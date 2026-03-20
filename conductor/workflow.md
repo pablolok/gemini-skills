@@ -80,11 +80,15 @@ All tasks follow a strict lifecycle:
         -   For each remaining code file, verify a corresponding test file exists.
         -   If a test file is missing, you **must** create one. Before writing the test, **first, analyze other test files in the repository to determine the correct naming convention and testing style.** The new tests **must** validate the functionality described in this phase's tasks (`plan.md`).
 
-3.  **Execute Automated Tests with Proactive Debugging:**
-    -   Before execution, you **must** announce the exact shell command you will use to run the tests.
-    -   **Example Announcement:** "I will now run the automated test suite to verify the phase. **Command:** `CI=true npm test`"
-    -   Execute the announced command.
-    -   If tests fail, you **must** inform the user and begin debugging. You may attempt to propose a fix a **maximum of two times**. If the tests still fail after your second proposed fix, you **must stop**, report the persistent failure, and ask the user for guidance.
+3.  **Execute Automated Tests and Compliance Audits:**
+    -   **Step 3.1: Automated Tests:**
+        -   Before execution, you **must** announce the exact shell command you will use to run the tests.
+        -   **Example Announcement:** "I will now run the automated test suite to verify the phase. **Command:** `CI=true npm test`"
+        -   Execute the announced command.
+    -   **Step 3.2: Compliance Audit Orchestration:**
+        -   After automated tests pass, you **must** invoke the `compliance-audit-orchestrator` skill to perform specialized audits (C# or Scripts) based on the files modified in this phase.
+        -   Follow the remediation steps within the orchestrator if any violations are found.
+    -   **Error Handling:** If either tests fail or compliance audits report persistent violations, you **must** inform the user and begin debugging. You may attempt to propose a fix a **maximum of two times**. If the failure persists after your second proposed fix, you **must stop**, report the persistent failure, and ask the user for guidance.
 
 4.  **Propose a Detailed, Actionable Manual Verification Plan:**
     -   **CRITICAL:** To generate the plan, first analyze `product.md`, `product-guidelines.md`, and `plan.md` to determine the user-facing goals of the completed phase.
