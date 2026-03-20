@@ -25,6 +25,8 @@
 ## Phase 4: Interactive Remediation & Final E2E
 - [ ] **Task: Write TDD - Interactive Prompting via `ask_user`**
 - [ ] **Task: Implement - Remediation UI/Flow for detected issues**
+- [ ] **Task: Write TDD - 'Propose New Skill' Detection & Creation Initiation**
+- [ ] **Task: Implement - Logic to suggest and initiate new skill creation via `ask_user`**
 - [ ] **Task: Write TDD - End-to-End Skill Validation (Mock Execution)**
 - [ ] **Task: Implement - Full E2E test suite for the new skill**
 - [ ] **Task: Conductor - User Manual Verification 'Phase 4' (Protocol in workflow.md)**

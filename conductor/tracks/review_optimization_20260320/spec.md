@@ -15,7 +15,10 @@
     -   Compare the actual execution path against the `plan.md` and `workflow.md`.
     -   Suggest alternative tool sequences or strategies for future tasks.
 5.  **Interactive Remediation:**
-    -   Instead of just reporting, the skill MUST provide interactive prompts (using `ask_user` or similar) to allow the user to immediately refine the workflow or update a faulty skill.
+    -   Instead of just reporting, the skill MUST provide interactive prompts (using `ask_user` or similar) to allow the user to immediately:
+        -   Refine the workflow.
+        -   Update a faulty or inefficient skill.
+        -   **Propose the creation of a brand-new skill** if a recurring manual pattern is detected without an existing skill to handle it.
 
 ## Non-Functional Requirements
 -   **Low Overhead:** The analysis should be fast and not significantly delay the checkpoint process.
