@@ -1,7 +1,7 @@
 # Implementation Plan: Post-Execution Review & Optimization Skill
 
 ## Phase 1: Foundation & Integration
-- [ ] **Task: Conductor - Setup Track Artifacts (metadata, index, spec, plan)**
+- [~] **Task: Conductor - Setup Track Artifacts (metadata, index, spec, plan)**
 - [ ] **Task: Write TDD - Basic Skill Skeleton and Metadata**
 - [ ] **Task: Implement - `SKILL.md` and basic trigger mechanism**
 - [ ] **Task: Write TDD - Skill Activation within Checkpoint Protocol**
