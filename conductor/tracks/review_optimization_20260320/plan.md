@@ -2,7 +2,7 @@
 
 ## Phase 1: Foundation & Integration
 - [x] **Task: Conductor - Setup Track Artifacts (metadata, index, spec, plan)** 49dcf71
-- [ ] **Task: Write TDD - Basic Skill Skeleton and Metadata**
+- [x] **Task: Write TDD - Basic Skill Skeleton and Metadata** 6bd85a0
 - [ ] **Task: Implement - `SKILL.md` and basic trigger mechanism**
 - [ ] **Task: Write TDD - Skill Activation within Checkpoint Protocol**
 - [ ] **Task: Implement - Integration with `workflow.md` checkpoint steps**
