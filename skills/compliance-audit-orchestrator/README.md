@@ -9,12 +9,18 @@ This skill is designed to solve the problem of selecting between multiple specia
 ## How it Works
 
 1.  **File Inspection:** The orchestrator identifies which files were modified in the current phase.
-2.  **Smart Delegation:**
-    *   **C# Files:** Triggers the `compliance-audit-c#` skill.
-    *   **Script Files:** Triggers the `complaiance-audit-scripts` skill (.ps1, .py, .sh, .bat, .js).
-3.  **Sequential Execution:** If you modify both C# and script files, it runs both audits in sequence.
+2.  **Skill Presence Verification:** Before triggering any specialized audit, the orchestrator MUST verify that the required skill is "installed" and available for use in the current environment (e.g., in the project's local `skills/` directory or the user's global `.gemini/skills/` directory).
+3.  **Smart Delegation:**
+    *   **C# Files:** Triggers the `compliance-audit-c#` skill if it's available.
+    *   **Script Files:** Triggers the `complaiance-audit-scripts` skill if it's available.
+4.  **Sequential Execution:** If you modify both C# and script files, it runs both available audits in sequence.
+5.  **Graceful Error Handling:** If a specialized audit is required based on your file changes but the skill is NOT found, the orchestrator will inform you and ask for guidance.
 
-## Installation & Integration
+## Future Extensibility
+
+To add support for a new specialized audit (e.g., `compliance-audit-frontend`), simply:
+1.  Add a new file pattern to the **Determine and Dispatch** logic.
+2.  The orchestrator will automatically handle the presence check and dispatching.
 
 ### Mandatory Setup
 This is the **only** skill you should manually add to your `conductor/workflow.md`. It is designed to be the single entry point for all compliance audits.
