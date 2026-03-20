@@ -1,0 +1,49 @@
+---
+name: complaiance-audit-scripts
+description: Ensure all code implemented in a track phase adheres to the strict engineering principles defined in the workflow (e.g., TDD, PowerShell/Python Scripting Standards). Use this immediately before finalizing any implementation phase.
+---
+
+# Conductor Compliance Audit
+
+When you invoke this skill, you must perform a strict, holistic audit of the code you just wrote during the current implementation phase.
+
+## Subagent Delegation
+
+You MUST invoke the `generalist` sub-agent to review the specific files modified.
+
+Provide the sub-agent with the following prompt:
+
+```text
+Please review the recently modified files in this project and verify strict compliance with the following Engineering Principles:
+
+1. **Automation & Scripting Standards:** 
+   - **PowerShell:** Use PowerShell 7 (Core) syntax. Follow best practices for error handling (`Try/Catch`), parameter validation, and avoid using aliases in scripts.
+   - **Python:** Follow PEP 8 guidelines. Use type hints where appropriate.
+2. **Cross-Platform Compatibility:** Ensure that file paths are handled using platform-agnostic methods (e.g., `Join-Path` in PowerShell, `os.path.join` or `pathlib` in Python).
+3. **Dependency Injection & Collaborators:** Runtime collaborators must come from constructor injection or be passed as parameters. No hidden `new Object()` or hardcoded dependency construction inside logic-heavy functions.
+4. **TDD & Coverage:** Ensure there are adequate automated tests for the new logic (e.g., Pester for PowerShell, Pytest for Python). Tests must be deterministic. The codebase MUST maintain a minimum baseline of 80% Line Coverage.
+5. **Static Logic & Global State:** Avoid global variables. Business rules and orchestration must live in focused functions or classes, not in the global script scope.
+6. **SOLID Principles:** Verify that functions and modules have a single responsibility. Use abstractions to decouple logic from external side effects (like API calls or file system access).
+7. **Idempotency:** Scripts must be safe to run multiple times. Verify that state is checked before mutating actions occur to prevent duplication or corruption.
+8. **Logging & Observability:** Avoid raw `print()` or `Write-Host` for business logic tracking. Ensure a standard logging framework/mechanism is used.
+9. **Fail-Fast Configuration:** Ensure all required environment variables, secrets, and file paths are validated at the very beginning of the script.
+10. **Documentation:** Verify that functions and scripts include standard docstrings or comment-based help.
+11. **Static Analysis & Linting:** Code must pass standard static analysis tools without warnings before being considered compliant.
+
+If you find ANY violations, you MUST return a detailed bulleted list of the violations found.
+For each violation, you must specify:
+* **[File Path:Line Number]**
+  * **Violation:** <Description of which principle was violated and why>
+  * **Suggested Fix:** <General text description of how to fix the violation>
+
+Otherwise, state "NO violations".
+```
+
+## Remediation
+
+1. If the sub-agent reports **NO violations**, you may proceed with the "User Manual Verification" step.
+2. If the sub-agent reports **ANY violations**, you MUST fix the code yourself to adhere to the principles before asking the user for verification. You must loop this audit until it reports "NO violations".
+
+## Automatic Workflow Integration
+
+If the file `conductor/workflow.md` exists and does not already mention the `complaiance-audit-scripts` skill as a mandatory step in the "Verification Workflow", you MUST update that file to include it. This ensures that the compliance audit is strictly integrated into the local development lifecycle.
