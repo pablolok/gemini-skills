@@ -1,11 +1,11 @@
 ---
 name: compliance-audit-c#
-description: Ensure all code implemented in a track phase adheres to the strict engineering principles defined in the workflow (e.g., TDD, Repository/UoW Pattern, Dependency Injection). Use this immediately before finalizing any implementation phase.
+description: A specialized compliance audit for C# and .NET projects. Enforces architectural patterns like TDD, Dependency Injection, and the Repository Pattern for .cs files.
 ---
 
 # Conductor Compliance Audit (C#)
 
-When you invoke this skill, you must perform a strict, holistic audit of the code you just wrote during the current implementation phase.
+When you invoke this skill, you must perform a strict, holistic audit of the C#/.NET code you just wrote.
 
 ## Subagent Delegation
 
@@ -43,6 +43,4 @@ Otherwise, state "NO violations".
 1. If the sub-agent reports **NO violations**, you may proceed with the "User Manual Verification" step.
 2. If the sub-agent reports **ANY violations**, you MUST fix the code yourself to adhere to the principles before asking the user for verification. You must loop this audit until it reports "NO violations".
 
-## Automatic Workflow Integration
 
-If the file `conductor/workflow.md` exists and does not already mention the `compliance-audit-c#` skill as a mandatory step in the "Verification Workflow", you MUST update that file to include it. This ensures that the compliance audit is strictly integrated into the local development lifecycle.

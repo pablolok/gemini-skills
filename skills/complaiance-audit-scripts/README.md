@@ -32,9 +32,9 @@ Violations are reported using a strict, machine-readable format to facilitate qu
 
 ## Installation & Integration
 
-### Automatic Workflow Setup
-The first time an agent invokes this skill, it checks for `conductor/workflow.md`. If the skill is not listed in the "Mandatory Verification Workflow", it will **automatically update the workflow file** to include the audit.
+### Recommended Strategy
+The **[Compliance Audit Orchestrator](../compliance-audit-orchestrator/)** is the primary way to use this skill. It automatically detects script changes and invokes this audit.
 
-### Usage
-To trigger the audit, simply instruct the Gemini CLI:
+### Manual Usage
+To trigger this specific audit manually:
 > "Use the complaiance-audit-scripts skill."
