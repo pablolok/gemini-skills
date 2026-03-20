@@ -4,7 +4,7 @@
 A collection of custom skills for the Gemini CLI to automate and enhance software engineering workflows.
 
 ## Overview
-A collection of custom skills for the Gemini CLI designed to automate and enhance software engineering workflows by enforcing architectural rigor, improving workflow efficiency, and providing automated compliance auditing.
+A collection of custom skills for the Gemini CLI designed to automate and enhance software engineering workflows by enforcing architectural rigor, improving workflow efficiency, and providing verified, automated compliance auditing.
 
 ## Target Audience
 - **Software Engineers**: Developers looking to automate repetitive engineering tasks.
@@ -19,4 +19,4 @@ A collection of custom skills for the Gemini CLI designed to automate and enhanc
 ## Key Features
 - **Smart Orchestration**: Automatically detect project changes and dispatch the most relevant specialized audit (e.g., C# or Scripts) without manual intervention.
 - **Specialized Compliance Audits**: Dedicated audits for diverse environments, including C#/.NET architectural standards and script-based automation projects.
-- **Deep Conductor Integration**: Designed to work natively with the Conductor workflow, automatically keeping project documentation and tracking up to date.
+- **Deep Conductor Integration**: Verified to work natively with the Conductor workflow, automatically performing specialized audits as part of the phase completion protocol.
