@@ -59,10 +59,13 @@ class EfficiencyAuditor:
             for action in actions:
                 if action.get("type") == "shell":
                     cmd: str = action.get("command", "").lower()
-                    has_keyword: bool = "test" in name or "test" in desc
+                    has_keyword: bool = (
+                        "test" in name or "test" in desc or
+                        "audit" in name or "audit" in desc
+                    )
                     if has_keyword:
-                        if "test" in cmd or "pytest" in cmd:
-                            # If we ran tests manually but didn't use the skill.
+                        if "test" in cmd or "pytest" in cmd or "audit" in cmd or "grep" in cmd:
+                            # If we ran tests/audits manually but didn't use the skill.
                             used_skill: bool = any(
                                 a.get("type") == "skill" and
                                 a.get("name") == skill.get("name")
