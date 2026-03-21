@@ -13,7 +13,7 @@ class TestRemediator(unittest.TestCase):
 
     def setUp(self) -> None:
         """Set up test fixtures."""
-        self.mock_ask_user = MagicMock()
+        self.mock_ask_user: MagicMock = MagicMock()
         self.logger: logging.Logger = logging.getLogger("test_remediator")
         self.rem: remediator.Remediator = remediator.Remediator(
             self.mock_ask_user, self.logger
@@ -23,31 +23,35 @@ class TestRemediator(unittest.TestCase):
         """Verify that the remediator prompts the user for workflow drift."""
         # Mocking ask_user to return a "yes" answer
         self.mock_ask_user.return_value = {"answers": {"0": "yes"}}
-        
+
         findings: typing.List[str] = [
             "Workflow Drift: Action on 'user.py' but not in plan."
         ]
-        
+
         # This should call ask_user
         self.rem.remediate_workflow_drift(findings)
-        
+
         self.assertTrue(self.mock_ask_user.called)
         # Check the question in the first call
-        call_args = self.mock_ask_user.call_args[0][0]
+        call_args: typing.List[typing.Dict[str, typing.Any]] = (
+            self.mock_ask_user.call_args[0][0]
+        )
         self.assertIn("Workflow Drift", call_args[0]["question"])
 
     def test_prompt_for_tool_recommendations(self) -> None:
         """Verify that the remediator prompts for tool optimizations."""
         self.mock_ask_user.return_value = {"answers": {"0": "yes"}}
-        
+
         recommendations: typing.List[str] = [
             "Recommendation: Use grep_search instead of grep."
         ]
-        
+
         self.rem.remediate_tool_usage(recommendations)
-        
+
         self.assertTrue(self.mock_ask_user.called)
-        call_args = self.mock_ask_user.call_args[0][0]
+        call_args: typing.List[typing.Dict[str, typing.Any]] = (
+            self.mock_ask_user.call_args[0][0]
+        )
         self.assertIn("Recommendation", call_args[0]["question"])
 
     def test_remediate_tool_usage_empty(self) -> None:

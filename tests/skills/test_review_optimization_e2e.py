@@ -17,15 +17,15 @@ class TestReviewOptimizationE2E(unittest.TestCase):
 
     def setUp(self) -> None:
         """Set up test fixtures."""
-        self.logger = logging.getLogger("test_e2e")
-        self.mock_ask_user = MagicMock()
+        self.logger: logging.Logger = logging.getLogger("test_e2e")
+        self.mock_ask_user: MagicMock = MagicMock()
         self.mock_ask_user.return_value = {"answers": {"0": "yes"}}
 
-        self.analyzer = ExecutionAnalyzer(self.logger)
-        self.auditor = EfficiencyAuditor(self.logger)
-        self.advisor = WorkflowAdvisor(self.logger)
-        self.remediator = Remediator(self.mock_ask_user, self.logger)
-        self.proposer = SkillProposer(self.mock_ask_user, self.logger)
+        self.analyzer: ExecutionAnalyzer = ExecutionAnalyzer(self.logger)
+        self.auditor: EfficiencyAuditor = EfficiencyAuditor(self.logger)
+        self.advisor: WorkflowAdvisor = WorkflowAdvisor(self.logger)
+        self.remediator: Remediator = Remediator(self.mock_ask_user, self.logger)
+        self.proposer: SkillProposer = SkillProposer(self.mock_ask_user, self.logger)
 
     def test_full_workflow_with_findings(self) -> None:
         """Verify that the full workflow identifies and remediates multiple findings."""
@@ -53,15 +53,15 @@ class TestReviewOptimizationE2E(unittest.TestCase):
         workflow_content: str = "Standard workflow."
 
         # 1. Analyze
-        actions = self.analyzer.parse_history(history)
+        actions: typing.List[typing.Dict[str, typing.Any]] = self.analyzer.parse_history(history)
         self.assertEqual(len(actions), 7)
         
         # 2. Audit for missed skills
-        missed_skills = self.auditor.detect_missed_skills(actions, available_skills)
+        missed_skills: typing.List[typing.Dict[str, str]] = self.auditor.detect_missed_skills(actions, available_skills)
         self.assertIn("compliance-audit-scripts", [s["name"] for s in missed_skills])
         
         # 3. Advise on drift and tools
-        drift = self.advisor.compare_execution_with_plan(actions, plan_content, workflow_content)
+        drift: typing.List[str] = self.advisor.compare_execution_with_plan(actions, plan_content, workflow_content)
         self.assertTrue(any("unplanned_file.py" in d for d in drift))
         
         recommendations = self.advisor.recommend_tool_sequences(actions)

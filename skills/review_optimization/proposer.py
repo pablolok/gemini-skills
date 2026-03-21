@@ -14,7 +14,10 @@ class SkillProposer:
 
     def __init__(
         self,
-        ask_user_fn: typing.Callable[[typing.List[typing.Dict[str, typing.Any]]], typing.Dict[str, typing.Any]],
+        ask_user_fn: typing.Callable[
+            [typing.List[typing.Dict[str, typing.Any]]],
+            typing.Dict[str, typing.Any]
+        ],
         logger: logging.Logger
     ) -> None:
         """Initializes the proposer.
@@ -22,6 +25,10 @@ class SkillProposer:
         Args:
             ask_user_fn: A collaborator function to prompt the user.
             logger: A logging.Logger instance for observability.
+            
+        Raises:
+            TypeError: If ask_user_fn is not a callable or logger is not
+                      a logging.Logger instance.
         """
         if not callable(ask_user_fn):
             raise TypeError("ask_user_fn must be a callable")
@@ -33,6 +40,7 @@ class SkillProposer:
             typing.Dict[str, typing.Any]
         ] = ask_user_fn
         self._logger: logging.Logger = logger
+        self._proposed_cmds: typing.Set[str] = set()
 
     def analyze_for_new_skills(
         self,
@@ -43,10 +51,17 @@ class SkillProposer:
         
         Args:
             actual_actions: Structured actions from ExecutionAnalyzer.
-            repetition_threshold: The number of occurrences to trigger a proposal.
+            repetition_threshold: The number of occurrences to trigger
+                                  a proposal.
+                                  
+        Raises:
+            TypeError: If actual_actions is not a list.
+            ValueError: If repetition_threshold is not a positive integer.
         """
         if not isinstance(actual_actions, list):
             raise TypeError("actual_actions must be a list")
+        if not isinstance(repetition_threshold, int) or repetition_threshold <= 0:
+            raise ValueError("repetition_threshold must be a positive integer")
 
         self._logger.info("Analyzing for recurring patterns...")
         
@@ -55,14 +70,22 @@ class SkillProposer:
             a.get("command", "") for a in actual_actions if a.get("type") == "shell"
         ]
         
-        counts = collections.Counter(shell_commands)
+        counts: typing.Counter[str] = collections.Counter(shell_commands)
         
         for cmd, count in counts.items():
             if count >= repetition_threshold and cmd:
+                # Idempotency: Don't propose the same command twice in one session
+                if cmd in self._proposed_cmds:
+                    continue
+                
                 self._logger.info(f"Detected recurring pattern: '{cmd}' ({count} times)")
                 self._ask_user_fn([{
                     "header": "New Skill Proposal",
-                    "question": f"I detected a recurring pattern: you ran '{cmd}' {count} times.\n"
-                                "Would you like to create a new specialized skill to automate this process?",
+                    "question": (
+                        f"I detected a recurring pattern: you ran '{cmd}' "
+                        f"{count} times.\nWould you like to create a new "
+                        "specialized skill to automate this process?"
+                    ),
                     "type": "yesno"
                 }])
+                self._proposed_cmds.add(cmd)

@@ -13,7 +13,10 @@ class Remediator:
 
     def __init__(
         self,
-        ask_user_fn: typing.Callable[[typing.List[typing.Dict[str, typing.Any]]], typing.Dict[str, typing.Any]],
+        ask_user_fn: typing.Callable[
+            [typing.List[typing.Dict[str, typing.Any]]],
+            typing.Dict[str, typing.Any]
+        ],
         logger: logging.Logger
     ) -> None:
         """Initializes the remediator.
