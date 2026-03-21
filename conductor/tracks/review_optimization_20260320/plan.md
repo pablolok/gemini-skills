@@ -16,8 +16,8 @@
 - [x] **Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)** 4174949
 
 ## Phase 3: Workflow Optimization & Advice
-- [ ] **Task: Write TDD - Workflow vs. Plan Comparison**
-- [ ] **Task: Implement - Optimization Advisor to compare actual path with `plan.md`**
+- [x] **Task: Write TDD - Workflow vs. Plan Comparison** 0033ea4
+- [x] **Task: Implement - Optimization Advisor to compare actual path with `plan.md`** 0033ea4
 - [ ] **Task: Write TDD - Suggesting Alternative Tool Sequences**
 - [ ] **Task: Implement - Recommendation engine based on project tech stack**
 - [ ] **Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)**
