@@ -18,8 +18,8 @@
 ## Phase 3: Workflow Optimization & Advice
 - [x] **Task: Write TDD - Workflow vs. Plan Comparison** 0033ea4
 - [x] **Task: Implement - Optimization Advisor to compare actual path with `plan.md`** 0033ea4
-- [ ] **Task: Write TDD - Suggesting Alternative Tool Sequences**
-- [ ] **Task: Implement - Recommendation engine based on project tech stack**
+- [x] **Task: Write TDD - Suggesting Alternative Tool Sequences** 6a14b5e
+- [x] **Task: Implement - Recommendation engine based on project tech stack** 6a14b5e
 - [ ] **Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)**
 
 ## Phase 4: Interactive Remediation & Final E2E
