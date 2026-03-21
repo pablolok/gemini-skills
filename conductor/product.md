@@ -20,3 +20,4 @@ A collection of custom skills for the Gemini CLI designed to automate and enhanc
 - **Smart Orchestration**: Automatically detect project changes and dispatch the most relevant specialized audit (e.g., C# or Scripts) without manual intervention.
 - **Specialized Compliance Audits**: Dedicated audits for diverse environments, including C#/.NET architectural standards and script-based automation projects.
 - **Deep Conductor Integration**: Verified to work natively with the Conductor workflow, automatically performing specialized audits as part of the phase completion protocol.
+- **Workflow Optimization & Skill Auditing**: A dedicated post-execution review skill that analyzes execution paths, identifies missed skill opportunities, and interactively proposes workflow refinements to improve overall efficiency.
