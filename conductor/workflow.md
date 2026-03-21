@@ -89,7 +89,7 @@ All tasks follow a strict lifecycle:
         -   After automated tests pass, you **must** invoke the `compliance-audit-orchestrator` skill to perform specialized audits (C# or Scripts) based on the files modified in this phase.
         -   Follow the remediation steps within the orchestrator if any violations are found.
     -   **Step 3.3: Post-Execution Review & Optimization:**
-        -   Invoke the `review-optimization` skill to analyze the phase's execution path, audit skill efficiency, and receive workflow optimization advice.
+        -   You **must** invoke the `review-optimization` skill to analyze the phase's execution path, audit skill efficiency, and receive workflow optimization advice.
         -   Follow the interactive recommendations provided by the skill to refine the workflow or update existing skills.
     -   **Error Handling:** If either tests fail, compliance audits report persistent violations, or the optimization review identifies critical workflow drift, you **must** inform the user and begin debugging. You may attempt to propose a fix a **maximum of two times**. If the failure persists after your second proposed fix, you **must stop**, report the persistent failure, and ask the user for guidance.
 
