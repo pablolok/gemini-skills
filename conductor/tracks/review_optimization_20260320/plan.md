@@ -11,7 +11,7 @@
 ## Phase 2: Execution Analysis & Detection
 - [x] **Task: Write TDD - Tool Call Log Parsing and Reconstruct Path** a4a9fad
 - [x] **Task: Implement - Analyzer to parse session history and identify tool sequences** a4a9fad
-- [ ] **Task: Write TDD - Skill Efficiency Detection (Missed or Badly Written Skills)**
+- [~] **Task: Write TDD - Skill Efficiency Detection (Missed or Badly Written Skills)**
 - [ ] **Task: Implement - Logic to cross-reference history with available skills and metadata**
 - [ ] **Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)**
 
