@@ -57,3 +57,34 @@ class WorkflowAdvisor:
                     )
                     
         return advice
+
+    def recommend_tool_sequences(
+        self,
+        actual_actions: typing.List[typing.Dict[str, typing.Any]]
+    ) -> typing.List[str]:
+        """Analyzes actions to recommend more efficient tool usage.
+        
+        Args:
+            actual_actions: Structured actions from ExecutionAnalyzer.
+            
+        Returns:
+            A list of string recommendations.
+        """
+        self._logger.info("Analyzing actions for tool sequence optimizations...")
+        recommendations: typing.List[str] = []
+        
+        for action in actual_actions:
+            if action.get("type") == "shell":
+                cmd: str = action.get("command", "")
+                if cmd.startswith("grep "):
+                    recommendations.append(
+                        "Recommendation: Use the 'grep_search' tool instead of running 'grep' "
+                        "in a shell command for better performance and structured output."
+                    )
+                if cmd.startswith("cat "):
+                    recommendations.append(
+                        "Recommendation: Use the 'read_file' tool instead of running 'cat' "
+                        "in a shell command to efficiently read file contents."
+                    )
+                    
+        return recommendations

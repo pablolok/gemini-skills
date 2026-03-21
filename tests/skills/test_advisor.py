@@ -59,6 +59,27 @@ class TestWorkflowAdvisor(unittest.TestCase):
         # Should not flag anything if the actions are aligned with the plan.
         self.assertEqual(len(advice), 0)
 
+    def test_recommend_tool_sequences(self) -> None:
+        """Verify that the advisor suggests better tool sequences for inefficient actions."""
+        if advisor is None:
+            self.fail("advisor module not implemented yet")
+            
+        workflow_advisor: 'advisor.WorkflowAdvisor' = advisor.WorkflowAdvisor()
+        
+        # Suppose a user runs grep inside a bash shell instead of using grep_search
+        inefficient_actions: typing.List[typing.Dict[str, typing.Any]] = [
+            {"type": "shell", "command": "grep 'TODO' src/app.py"},
+            {"type": "shell", "command": "cat src/app.py"}
+        ]
+        
+        recommendations: typing.List[str] = workflow_advisor.recommend_tool_sequences(
+            inefficient_actions
+        )
+        
+        self.assertTrue(len(recommendations) >= 2)
+        self.assertTrue(any("grep_search" in msg for msg in recommendations))
+        self.assertTrue(any("read_file" in msg for msg in recommendations))
+
 
 def main() -> None:
     """Main function to run tests."""
