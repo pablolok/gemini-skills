@@ -120,8 +120,11 @@ All tasks follow a strict lifecycle:
         ```
 
 5.  **Await Explicit User Feedback:**
-    -   After presenting the detailed plan, ask the user for confirmation: "**Does this meet your expectations? Please confirm with yes or provide feedback on what needs to be changed.**"
-    -   **PAUSE** and await the user's response. Do not proceed without an explicit yes or confirmation.
+    -   After presenting the detailed plan, ask the user for confirmation using the `ask_user` tool:
+        - **header:** "Verify"
+        - **question:** "Does this meet your expectations? Please type 'yes' to confirm or provide your feedback here."
+        - **type:** "text"
+    -   **PAUSE** and await the user's response. Do not proceed without an explicit "yes" or equivalent confirmation. If feedback is provided, address it and repeat the verification process.
 
 6.  **Create Checkpoint Commit:**
     -   Stage all changes. If no changes occurred in this step, proceed with an empty commit.
