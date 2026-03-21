@@ -55,11 +55,12 @@ All tasks follow a strict lifecycle:
    - **Step 9.3: Attach Note:** Use the `git notes` command to attach the summary to the commit.
      ```bash
      # The note content from the previous step is passed via the -m flag.
-     git notes add -m "<note content>" <commit_hash>
+     # Using -f (force) ensures idempotency if the note already exists.
+     git notes add -f -m "<note content>" <commit_hash>
      ```
 
 10. **Get and Record Task Commit SHA:**
-    - **Step 10.1: Update Plan:** Read `plan.md`, find the line for the completed task, update its status from `[~]` to `[x]`, and append the first 7 characters of the *just-completed commit's* commit hash.
+    - **Step 10.1: Update Plan:** Read `plan.md`, find the line for the completed task, update its status from `[~]` to `[x]`, and append the first 7 characters of the *just-completed commit's* commit hash (if not already present).
     - **Step 10.2: Write Plan:** Write the updated content back to `plan.md`.
 
 11. **Commit Plan Update:**
@@ -83,7 +84,7 @@ All tasks follow a strict lifecycle:
 3.  **Execute Automated Tests and Compliance Audits:**
     -   **Step 3.1: Automated Tests:**
         -   Before execution, you **must** announce the exact shell command you will use to run the tests.
-        -   **Example Announcement:** "I will now run the automated test suite to verify the phase. **Command:** `CI=true npm test`"
+        -   **Example Announcement:** "I will now run the automated test suite to verify the phase. **Command:** `npm test` (Note: Ensure `CI=true` is set in your environment for non-interactive execution)."
         -   Execute the announced command.
     -   **Step 3.2: Compliance Audit Orchestration:**
         -   After automated tests pass, you **must** invoke the `compliance-audit-orchestrator` skill to perform specialized audits (C# or Scripts) based on the files modified in this phase.
@@ -128,7 +129,7 @@ All tasks follow a strict lifecycle:
 
 7.  **Attach Auditable Verification Report using Git Notes:**
     -   **Step 7.1: Draft Note Content:** Create a detailed verification report including the automated test command, the manual verification steps, and the user's confirmation.
-    -   **Step 7.2: Attach Note:** Use the `git notes` command and the full commit hash from the previous step to attach the full report to the checkpoint commit.
+    -   **Step 7.2: Attach Note:** Use the `git notes add -f` command and the full commit hash from the previous step to attach the full report to the checkpoint commit.
 
 8.  **Get and Record Phase Checkpoint SHA:**
     -   **Step 8.1: Get Commit Hash:** Obtain the hash of the *just-created checkpoint commit* (`git log -1 --format="%H"`).
