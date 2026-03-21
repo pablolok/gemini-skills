@@ -12,7 +12,7 @@ This skill is designed to solve the problem of selecting between multiple specia
 2.  **Skill Presence Verification:** Before triggering any specialized audit, the orchestrator MUST verify that the required skill is "installed" and available for use in the current environment (e.g., in the project's local `skills/` directory or the user's global `.gemini/skills/` directory).
 3.  **Smart Delegation:**
     *   **C# Files:** Triggers the `compliance-audit-c#` skill if it's available.
-    *   **Script Files:** Triggers the `complaiance-audit-scripts` skill if it's available.
+    *   **Script Files:** Triggers the `compliance-audit-scripts` skill if it's available.
 4.  **Sequential Execution:** If you modify both C# and script files, it runs both available audits in sequence.
 5.  **Graceful Error Handling:** If a specialized audit is required based on your file changes but the skill is NOT found, the orchestrator will inform you and ask for guidance.
 

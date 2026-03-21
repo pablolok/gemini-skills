@@ -37,4 +37,4 @@ The **[Compliance Audit Orchestrator](../compliance-audit-orchestrator/)** is th
 
 ### Manual Usage
 To trigger this specific audit manually:
-> "Use the complaiance-audit-scripts skill."
+> "Use the compliance-audit-scripts skill."

@@ -6,7 +6,7 @@ Confirm current status of all audit skills and the orchestrator.
 - [x] **Task: Audit current implementation status**
     - [x] Read and analyze `skills/compliance-audit-orchestrator/SKILL.md` for dispatch logic.
     - [x] Read and analyze `skills/compliance-audit-c#/SKILL.md` for C# audit rules.
-    - [x] Read and analyze `skills/complaiance-audit-scripts/SKILL.md` for script audit rules.
+    - [x] Read and analyze `skills/compliance-audit-scripts/SKILL.md` for script audit rules.
 - [x] **Task: Setup test environment**
     - [x] Create sample .NET (C#) test files (compliant and non-compliant).
     - [x] Create sample automation script test files (compliant and non-compliant).
@@ -19,8 +19,8 @@ Independently test the C# and Scripts audit skills.
     - [x] Manually invoke `compliance-audit-c#` against compliant sample.
     - [x] Manually invoke `compliance-audit-c#` against non-compliant sample and verify error reporting.
 - [x] **Task: Verify Script Compliance Audit**
-    - [x] Manually invoke `complaiance-audit-scripts` against compliant sample.
-    - [x] Manually invoke `complaiance-audit-scripts` against non-compliant sample and verify error reporting.
+    - [x] Manually invoke `compliance-audit-scripts` against compliant sample.
+    - [x] Manually invoke `compliance-audit-scripts` against non-compliant sample and verify error reporting.
 - [x] **Task: Conductor - User Manual Verification 'Phase 2: Specialized Audit Verification' (Protocol in workflow.md)**
 
 ## Phase 3: Orchestrator Integration Testing [checkpoint: 63f911f]
