@@ -17,7 +17,7 @@ These are called automatically by the orchestrator but can also be invoked manua
 | Skill | Description |
 | :--- | :--- |
 | **[Compliance Audit (C#)](./skills/compliance-audit-c#/)** | Specialized audit for C#/.NET architectural rigor. |
-| **[Compliance Audit (Scripts)](./skills/complaiance-audit-scripts/)** | Specialized audit for automation and script-based projects. |
+| **[Compliance Audit (Scripts)](./skills/compliance-audit-scripts/)** | Specialized audit for automation and script-based projects. |
 
 ## Installation & Usage
 

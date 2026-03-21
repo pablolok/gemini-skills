@@ -17,7 +17,7 @@ When you invoke this skill, you MUST:
     *   The user's global `.gemini/skills/` directory.
 3.  **Determine and Dispatch:**
     *   **C# Audit:** If any **C# files** (`.cs`, `.csproj`, `.sln`) were modified, verify the presence of `compliance-audit-c#`. If present, invoke it.
-    *   **Scripts Audit:** If any **Script files** (`.ps1`, `.py`, `.sh`, `.bat`, `.js` for Node.js scripts) were modified, verify the presence of `complaiance-audit-scripts`. If present, invoke it.
+    *   **Scripts Audit:** If any **Script files** (`.ps1`, `.py`, `.sh`, `.bat`, `.js` for Node.js scripts) were modified, verify the presence of `compliance-audit-scripts`. If present, invoke it.
 4.  **Handling Missing Skills:** If a specialized audit is required based on the file changes but the skill is NOT found:
     *   DO NOT fail silently. 
     *   Inform the user clearly: *"The implementation modified <file types> but the required specialized audit skill '<skill name>' was not found."*
