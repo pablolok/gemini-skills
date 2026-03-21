@@ -27,6 +27,6 @@
 - [x] **Task: Implement - Remediation UI/Flow for detected issues** 8e3c172
 - [x] **Task: Write TDD - 'Propose New Skill' Detection & Creation Initiation** 95fe1e5
 - [x] **Task: Implement - Logic to suggest and initiate new skill creation via `ask_user`** 95fe1e5
-- [ ] **Task: Write TDD - End-to-End Skill Validation (Mock Execution)**
-- [ ] **Task: Implement - Full E2E test suite for the new skill**
+- [x] **Task: Write TDD - End-to-End Skill Validation (Mock Execution)** f1cf06d
+- [x] **Task: Implement - Full E2E test suite for the new skill** f1cf06d
 - [ ] **Task: Conductor - User Manual Verification 'Phase 4' (Protocol in workflow.md)**
