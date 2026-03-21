@@ -18,7 +18,7 @@ Please review the recently modified files in this project and verify strict comp
 
 1. **Automation & Scripting Standards:** 
    - **PowerShell:** Use PowerShell 7 (Core) syntax. Follow best practices for error handling (`Try/Catch`), parameter validation, and avoid using aliases in scripts.
-   - **Python:** Follow PEP 8 guidelines. Use type hints where appropriate.
+   - **Python:** Follow PEP 8 guidelines strictly (e.g., two blank lines between top-level definitions, module-level docstrings). Use type hints for all method signatures (`-> None`, `-> str`, etc.) and complex local variables.
 2. **Cross-Platform Compatibility:** Ensure that file paths are handled using platform-agnostic methods (e.g., `Join-Path` in PowerShell, `os.path.join` or `pathlib` in Python).
 3. **Dependency Injection & Collaborators:** Runtime collaborators must come from constructor injection or be passed as parameters. No hidden `new Object()` or hardcoded dependency construction inside logic-heavy functions.
 4. **TDD & Coverage:** Ensure there are adequate automated tests for the new logic (e.g., Pester for PowerShell, Pytest for Python). Tests must be deterministic. The codebase MUST maintain a minimum baseline of 80% Line Coverage.
@@ -27,7 +27,7 @@ Please review the recently modified files in this project and verify strict comp
 7. **Idempotency:** Scripts must be safe to run multiple times. Verify that state is checked before mutating actions occur to prevent duplication or corruption.
 8. **Logging & Observability:** Avoid raw `print()` or `Write-Host` for business logic tracking. Ensure a standard logging framework/mechanism is used.
 9. **Fail-Fast Configuration:** Ensure all required environment variables, secrets, and file paths are validated at the very beginning of the script.
-10. **Documentation:** Verify that functions and scripts include standard docstrings or comment-based help.
+10. **Documentation:** Verify that all modules, classes, and functions include standard docstrings or comment-based help (PEP 8 compliant for Python).
 11. **Static Analysis & Linting:** Code must pass standard static analysis tools without warnings before being considered compliant.
 
 If you find ANY violations, you MUST return a detailed bulleted list of the violations found.
@@ -43,5 +43,3 @@ Otherwise, state "NO violations".
 
 1. If the sub-agent reports **NO violations**, you may proceed with the "User Manual Verification" step.
 2. If the sub-agent reports **ANY violations**, you MUST fix the code yourself to adhere to the principles before asking the user for verification. You must loop this audit until it reports "NO violations".
-
-
