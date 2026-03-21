@@ -1,5 +1,5 @@
 ---
-name: complaiance-audit-scripts
+name: compliance-audit-scripts
 description: A specialized compliance audit for automation and scripting (PowerShell, Python, Bash). Enforces best practices for cross-platform safety, idempotency, and TDD in script files.
 ---
 
