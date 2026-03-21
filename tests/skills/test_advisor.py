@@ -1,24 +1,22 @@
 """Test suite for the workflow optimization advisor."""
 
+import logging
 import typing
 import unittest
 
-# Using try/except to allow tests to fail gracefully during Red Phase TDD
-try:
-    import skills.review_optimization.advisor as advisor
-except ImportError:
-    advisor = None  # type: ignore
+import skills.review_optimization.advisor as advisor
 
 
 class TestWorkflowAdvisor(unittest.TestCase):
     """Test suite for verifying the logic of the workflow advisor."""
 
+    def setUp(self) -> None:
+        """Set up test fixtures."""
+        self.logger: logging.Logger = logging.getLogger("test_advisor")
+
     def test_compare_execution_with_plan_detects_drift(self) -> None:
         """Verify that the advisor detects when actions deviate from the plan."""
-        if advisor is None:
-            self.fail("advisor module not implemented yet")
-            
-        workflow_advisor: 'advisor.WorkflowAdvisor' = advisor.WorkflowAdvisor()
+        workflow_advisor: advisor.WorkflowAdvisor = advisor.WorkflowAdvisor(self.logger)
         
         actual_actions: typing.List[typing.Dict[str, typing.Any]] = [
             {"type": "read", "target": "some_random_file.py"},
@@ -39,10 +37,7 @@ class TestWorkflowAdvisor(unittest.TestCase):
 
     def test_compare_execution_no_drift(self) -> None:
         """Verify that the advisor reports no issues when execution matches plan."""
-        if advisor is None:
-            self.fail("advisor module not implemented yet")
-            
-        workflow_advisor: 'advisor.WorkflowAdvisor' = advisor.WorkflowAdvisor()
+        workflow_advisor: advisor.WorkflowAdvisor = advisor.WorkflowAdvisor(self.logger)
         
         actual_actions: typing.List[typing.Dict[str, typing.Any]] = [
             {"type": "read", "target": "user.py"},
@@ -61,10 +56,7 @@ class TestWorkflowAdvisor(unittest.TestCase):
 
     def test_recommend_tool_sequences(self) -> None:
         """Verify that the advisor suggests better tool sequences for inefficient actions."""
-        if advisor is None:
-            self.fail("advisor module not implemented yet")
-            
-        workflow_advisor: 'advisor.WorkflowAdvisor' = advisor.WorkflowAdvisor()
+        workflow_advisor: advisor.WorkflowAdvisor = advisor.WorkflowAdvisor(self.logger)
         
         # Suppose a user runs grep inside a bash shell instead of using grep_search
         inefficient_actions: typing.List[typing.Dict[str, typing.Any]] = [
