@@ -8,6 +8,7 @@ import subprocess
 import logging
 import typing
 import json
+import shutil
 
 
 class SkillSelector:
@@ -95,7 +96,7 @@ class SkillInstaller:
             return None
 
     def install_skill(self, skill_rel_path: str, target_project_path: str) -> bool:
-        """Create a junction from the target project to the skill source."""
+        """Install a skill by copying files to the target project."""
         source_path = os.path.join(self.published_dir, skill_rel_path)
         skill_name = os.path.basename(skill_rel_path)
         
@@ -108,11 +109,12 @@ class SkillInstaller:
         if os.path.exists(target_path):
             # Check if it's already a junction or a real dir
             self.logger.info(f"Skill '{skill_name}' already exists in target project.")
+            # In the future, we might want to prompt for overwrite/update
             return False
 
-        self.logger.info(f"Installing skill '{skill_name}' via junction...")
+        self.logger.info(f"Installing skill '{skill_name}' via file copying...")
         try:
-            self._create_junction(os.path.abspath(source_path), os.path.abspath(target_path))
+            self._copy_skill_files(os.path.abspath(source_path), os.path.abspath(target_path))
             self.logger.info(f"Successfully installed '{skill_name}'.")
             
             # Check for post-install hook
@@ -144,19 +146,9 @@ class SkillInstaller:
         except Exception as e:
             self.logger.error(f"Error running post-install hook: {e}")
 
-    def _create_junction(self, source: str, target: str) -> None:
-        """Create a platform-independent junction or symlink."""
-        if sys.platform == "win32":
-            # Use mklink /J for directory junctions on Windows
-            # Use a list of arguments for security and clarity
-            subprocess.run(
-                ["cmd", "/c", "mklink", "/J", target, source],
-                check=True,
-                capture_output=True
-            )
-        else:
-            # Use symlink on non-Windows
-            os.symlink(source, target, target_is_directory=True)
+    def _copy_skill_files(self, source: str, target: str) -> None:
+        """Recursively copy skill files from source to target."""
+        shutil.copytree(source, target, dirs_exist_ok=True)
 
 
 def manual_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, typing.Any]:

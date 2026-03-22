@@ -56,10 +56,11 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertEqual(selected, ["audit/skill1", "workflow/skill3"])
         self.mock_ask_user.assert_called_once()
 
+    @patch("shutil.copytree")
     @patch("os.path.exists")
     @patch("os.makedirs")
-    def test_create_junction_logic(self, mock_makedirs, mock_exists) -> None:
-        """Verify the logic for creating directory junctions."""
+    def test_copy_installation_logic(self, mock_makedirs, mock_exists, mock_copytree) -> None:
+        """Verify the logic for installing skills via file copying."""
         if SkillInstaller is None:
             self.skipTest("SkillInstaller not yet implemented")
             
@@ -68,17 +69,21 @@ class TestSkillInstaller(unittest.TestCase):
         target_project = "C:/temp/project"
         skill_path = "audit/review-optimization"
         
-        mock_exists.return_value = False # .gemini/skills doesn't exist
+        # .gemini/skills doesn't exist
+        def exists_side_effect(path):
+            if "metadata.json" in path:
+                return True
+            return False
+        mock_exists.side_effect = exists_side_effect
         
-        # We'll mock the actual junction command in the implementation
-        with patch.object(installer, '_create_junction') as mock_junction:
-            installer.install_skill(skill_path, target_project)
-            
-            expected_target = os.path.join(target_project, ".gemini", "skills", "review-optimization")
-            mock_junction.assert_called_once_with(
-                os.path.abspath(os.path.join(self.published_dir, skill_path)),
-                os.path.abspath(expected_target)
-            )
+        installer.install_skill(skill_path, target_project)
+        
+        expected_target = os.path.join(target_project, ".gemini", "skills", "review-optimization")
+        mock_copytree.assert_called_once_with(
+            os.path.abspath(os.path.join(self.published_dir, skill_path)),
+            os.path.abspath(expected_target),
+            dirs_exist_ok=True
+        )
 
     @patch("subprocess.run")
     @patch("os.makedirs")
@@ -103,8 +108,8 @@ class TestSkillInstaller(unittest.TestCase):
             return True
         mock_exists.side_effect = side_effect
         
-        # Mock _create_junction to do nothing
-        with patch.object(installer, '_create_junction'):
+        # Mock _copy_skill_files to do nothing
+        with patch.object(installer, '_copy_skill_files'):
             installer.install_skill(skill_path, target_project)
             
             # Should have called subprocess.run with python and the hook path
