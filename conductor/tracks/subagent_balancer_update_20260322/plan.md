@@ -1,7 +1,7 @@
 # Implementation Plan: Subagent Balancer & Skill Manager Review
 
 ## Phase 1: Setup and Context Verification
-- [ ] Task: Review existing `install.py` logic for status rendering.
+- [~] Task: Review existing `install.py` logic for status rendering.
 - [ ] Task: Review the current `skills/subagent-balancer/SKILL.md` content and prompt.
 - [ ] Task: Review the current `skills/skill-manager/SKILL.md` to identify where to add new documentation.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Setup and Context Verification' (Protocol in workflow.md)
