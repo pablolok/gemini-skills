@@ -12,11 +12,14 @@
 - [x] Task: Run tests to verify the UI string formatting. b6f0ea8
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Update `install.py` Version Display' (Protocol in workflow.md)
 
-## Phase 3: Enhance `subagent-balancer` Skill
+## Phase 3: Enhance `subagent-balancer` Skill [checkpoint: 74eda1f]
 - [x] Task: Update the instructions in `subagent-balancer` SKILL.md to explicitly route tasks based on token limits and context awareness.
 - [x] Task: Enhance the prompt instructions for choosing between generalist and specialized subagents.
 - [x] Task: Perform general review, tweaking phrasing and formatting for clarity and optimizing logic. 10a9949
-- [~] Task: Conductor - User Manual Verification 'Phase 3: Enhance `subagent-balancer` Skill' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 3: Enhance `subagent-balancer` Skill' (Protocol in workflow.md)
+
+## Phase 4: Update `skill-manager` Documentation
+- [~] Task: Update `skills/skill-manager/SKILL.md` to include documentation on the `post_install.py` hook.
 - [~] Task: Conductor - User Manual Verification 'Phase 3: Enhance `subagent-balancer` Skill' (Protocol in workflow.md)
 - [ ] Task: Enhance the prompt instructions for choosing between generalist and specialized subagents.
 - [ ] Task: Perform general review, tweaking phrasing and formatting for clarity and optimizing logic.
