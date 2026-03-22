@@ -9,7 +9,7 @@
 - [x] Task: Update `skill-publisher` to automate version increments and changelog updates during publication. [3b7adc1]
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Metadata Update & Initial Versioning' (Protocol in workflow.md) [checkpoint: 39352de]
 
-## Phase 2: Copy Installation Implementation
+## Phase 2: Copy Installation Implementation [checkpoint: c0ff264]
 
 - [x] Task: Modify `install.py` to replace junction creation with file copying for skill installation. [e7bcf56]
 - [x] Task: Implement the file-copying logic focusing on: [e7bcf56]
