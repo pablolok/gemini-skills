@@ -34,27 +34,25 @@ This repository provides a set of official, stable skills in the `published/` di
 - **workflow/**: Skills for enhancing the Conductor workflow.
 - **utility/**: General purpose utility skills.
 
-## Using this Repository as a Skill Provider
+## 🚀 Gemini CLI Integration (Recommended)
 
-You can easily install any of the official skills into your own projects using the interactive installer.
+If you are using the Gemini CLI, you don't need to run scripts manually. You can ask Gemini to manage the installation process for you.
 
-### Interactive Installation
+**How to use:**
+1.  **Activate Gemini** in your project.
+2.  **Give the Command**: Tell Gemini: *"Install official skills from the global repository."*
+3.  **Interactive Selection**: Gemini will use the built-in **[Skill Manager](./published/utility/skill-manager/)** to scan for available skills and prompt you to select the ones you want.
+4.  **Auto-Integration**: Gemini will handle the junctions and any `post_install.py` hooks (like updating your `workflow.md`) automatically.
 
-To install skills into your current project, run the following command from your project's root:
+## 🛠️ Manual Installation
+
+If you prefer to install skills manually from your terminal, run this command from your project's root:
 
 ```bash
 python <path-to-gemini-skills>/install.py
 ```
 
-### Gemini CLI Integration
-
-If you are using the Gemini CLI, you can ask Gemini to manage skills for you. Gemini uses the **[Skill Manager](./published/utility/skill-manager/)** skill to:
-1.  **Locate** the global skills repository.
-2.  **Scan** for available official skills.
-3.  **Prompt** you interactively (using the standard `ask_user` tool) to select which skills to install.
-4.  **Execute** the installation and post-install hooks automatically.
-
-To try it, simply tell Gemini: *"Install official skills from the global repository."*
+The installer will guide you through the same interactive process.
 
 ---
 Created by [pablolok](https://github.com/pablolok)
