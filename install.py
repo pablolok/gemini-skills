@@ -284,7 +284,12 @@ def manual_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, ty
     for i, opt in enumerate(question['options']):
         print(f"{i}: {opt['label']} - {opt['description']}")
     
-    selection = input("\nEnter choice(s): ")
+    try:
+        selection = input("\nEnter choice(s): ")
+    except KeyboardInterrupt:
+        print("\nUser closed the installer.")
+        raise
+
     indices: typing.List[int] = [
         int(x.strip()) for x in selection.split() 
         if x.strip().isdigit() and 0 <= int(x.strip()) < len(question['options'])
@@ -341,4 +346,9 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except KeyboardInterrupt:
+        logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+        logging.getLogger("skill_installer").info("User closed the installer.")
+        sys.exit(130)

@@ -38,24 +38,46 @@ class TestSkillInstaller(unittest.TestCase):
         """Verify that the selector correctly uses ask_user."""
         if SkillSelector is None:
             self.skipTest("SkillSelector not yet implemented")
-            
+
         available_skills = {
             "audit": ["skill1", "skill2"],
             "workflow": ["skill3"]
         }
-        
+
         selector = SkillSelector(self.mock_ask_user)
-        
+
         # Mock user selecting skill1 and skill3
         self.mock_ask_user.return_value = {
             "answers": {"0": ["audit/skill1", "workflow/skill3"]}
         }
-        
+
         selected = selector.select_skills(available_skills)
-        
+
         self.assertEqual(selected, ["audit/skill1", "workflow/skill3"])
         self.mock_ask_user.assert_called_once()
 
+    def test_select_skills_formats_update_string(self) -> None:
+        """Verify that updates are formatted as '[Update Available] (vX -> vY)'."""
+        selector = SkillSelector(self.mock_ask_user)
+
+        available_skills = {"category": ["skill_a"]}
+        installed_skills = {"skill_a": "1.0.0"}
+        updates = [{
+            "name": "skill_a",
+            "installed": "1.0.0",
+            "latest": "2.0.0",
+            "rel_path": "category/skill_a"
+        }]
+
+        # Call just to inspect the arguments passed to ask_user
+        selector.select_skills(available_skills, installed_skills, updates)
+
+        self.mock_ask_user.assert_called_once()
+        args, kwargs = self.mock_ask_user.call_args
+
+        options = args[0]["questions"][0]["options"]
+        self.assertEqual(len(options), 1)
+        self.assertIn("[Update Available] (1.0.0 -> 2.0.0)", options[0]["description"])
     @patch("shutil.copytree")
     @patch("os.path.exists")
     @patch("os.makedirs")
@@ -163,6 +185,24 @@ class TestSkillInstaller(unittest.TestCase):
         
         self.assertEqual(response["answers"]["0"], ["opt1"])
         mock_print.assert_called()
+
+    @patch("builtins.input", side_effect=KeyboardInterrupt)
+    @patch("builtins.print")
+    def test_manual_ask_user_keyboard_interrupt(self, mock_print, mock_input) -> None:
+        """Verify Ctrl+C exits the manual prompt cleanly."""
+        from install import manual_ask_user
+
+        config = {
+            "questions": [{
+                "question": "Choose?",
+                "options": [{"label": "opt1", "description": "desc1"}]
+            }]
+        }
+
+        with self.assertRaises(KeyboardInterrupt):
+            manual_ask_user(config)
+
+        mock_print.assert_called_with("\nUser closed the installer.")
 
     @patch("install.SkillInstaller")
     @patch("install.SkillSelector")
