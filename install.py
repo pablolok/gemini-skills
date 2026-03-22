@@ -107,10 +107,11 @@ class SkillInstaller:
         target_path = os.path.join(target_skills_dir, skill_name)
         
         if os.path.exists(target_path):
-            # Check if it's already a junction or a real dir
-            self.logger.info(f"Skill '{skill_name}' already exists in target project.")
-            # In the future, we might want to prompt for overwrite/update
-            return False
+            self.logger.info(f"Skill '{skill_name}' already exists. Overwriting...")
+            # If it's a junction or symlink, remove it first
+            if os.path.islink(target_path) or self._is_junction(target_path):
+                self._remove_junction(target_path)
+            # shutil.copytree with dirs_exist_ok=True will handle existing directories
 
         self.logger.info(f"Installing skill '{skill_name}' via file copying...")
         try:
@@ -126,6 +127,28 @@ class SkillInstaller:
         except Exception as e:
             self.logger.error(f"Failed to install '{skill_name}': {e}")
             return False
+
+    def _is_junction(self, path: str) -> bool:
+        """Check if a path is a Windows directory junction."""
+        if sys.platform != "win32":
+            return False
+        
+        # On Windows, junctions are not always detected by islink
+        # We can use the 'dir' command or check for specific attributes
+        # For simplicity in this script, we'll try to detect it via subprocess
+        try:
+            output = subprocess.check_output(["cmd", "/c", "dir", os.path.dirname(path)], text=True)
+            return f"<JUNCTION>     {os.path.basename(path)}" in output
+        except Exception:
+            return False
+
+    def _remove_junction(self, path: str) -> None:
+        """Remove a directory junction or symlink."""
+        if sys.platform == "win32":
+            # rmdir is safe for junctions (removes the link, not the contents)
+            subprocess.run(["cmd", "/c", "rmdir", path], check=True, capture_output=True)
+        else:
+            os.remove(path)
 
     def _run_post_install_hook(self, hook_path: str, target_project_path: str) -> None:
         """Execute the post_install.py script for a skill."""
