@@ -12,7 +12,8 @@ This skill acts as the central entry point for compliance audits. It ensures tha
 When you invoke this skill, you MUST:
 
 1.  **Identify Modified Files:** List all files created or modified during the current implementation phase.
-2.  **Verify Skill Presence:** Before any invocation, you MUST verify if the required specialized skill is "installed" and available for use in the current environment. A skill is considered available if its `SKILL.md` file exists in either:
+2.  **Skill Standards Audit**: If any skill-related files (`SKILL.md`, `metadata.json`) were modified, verify that they meet the official standards (SemVer, correct frontmatter, present README).
+3.  **Verify Skill Presence:** Before any invocation, you MUST verify if the required specialized skill is "installed" and available for use in the current environment. A skill is considered available if its `SKILL.md` file exists in either:
     *   The project's local `skills/` directory.
     *   The user's global `.gemini/skills/` directory.
 3.  **Apply Subagent Routing Guardrails:** Before dispatching to a specialized audit, check whether the user provided model-selection constraints or quota information. If so:

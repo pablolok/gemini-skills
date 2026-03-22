@@ -36,7 +36,7 @@ If quota data is missing, assume a constrained budget and bias toward local exec
 When a quota snapshot is available, run:
 
 ```bash
-python .gemini/skills/subagent-balancer/scripts/select_model.py --task-type review --scope small < quota.txt
+python skills/subagent-balancer/scripts/select_model.py --task-type review --scope small < quota.txt
 ```
 
 Use `--preferred-model`, `--avoid-model`, and `--no-preview` when the user has explicit constraints.
@@ -52,7 +52,7 @@ Interpret the result as follows:
 For automatic balancing, prefer the wrapper script:
 
 ```bash
-python .gemini/skills/subagent-balancer/scripts/balance_subagent.py --task-type review --scope small --no-preview --explain
+python skills/subagent-balancer/scripts/balance_subagent.py --task-type review --scope small --no-preview --explain
 ```
 
 Behavior:
@@ -67,23 +67,41 @@ You can override the capture command with `GEMINI_STATS_COMMAND` or `--stats-com
 
 Apply these rules in order:
 
-1. If the task can be completed reliably in the current agent with normal tools, do not spawn a subagent.
-2. If the user explicitly selected a model family or tier, treat that preference as binding. Do not silently substitute a different tier such as `flash` for `pro`.
-3. If the requested model is unavailable, near limit, or would force an unwanted preview fallback, choose one of these options instead of downgrading silently:
+1. **Context & Token Awareness**:
+   - If the task requires analyzing a large portion of the codebase (>10 files) or the current session context is already large, you MUST delegate to a fresh subagent to preserve the main session's context window.
+   - If the estimated input tokens for the task approach 50% of the current model's limit, delegate immediately.
+
+2. If the task can be completed reliably in the current agent with normal tools and low context usage, do not spawn a subagent.
+3. If the user explicitly selected a model family or tier, treat that preference as binding. Do not silently substitute a different tier such as `flash` for `pro`.
+4. If the requested model is unavailable, near limit, or would force an unwanted preview fallback, choose one of these options instead of downgrading silently:
    - Keep the work local.
    - Narrow the task scope.
    - Ask the user whether a cheaper model is acceptable.
-4. If the task is a sidecar task and does not block the next local step, delegation is allowed.
-5. If the task is small or mechanical, use the lightest acceptable subagent or keep it local.
-6. If the task is a review or audit, prefer a single subagent pass. Do not chain multiple review agents unless the user explicitly asks for parallel review.
-7. If usage for the preferred Gemini model is close to limit, choose one of these fallbacks:
+5. If the task is a sidecar task and does not block the next local step, delegation is allowed.
+6. If the task is small or mechanical, use the lightest acceptable subagent or keep it local.
+7. If the task is a review or audit, prefer a single subagent pass. Do not chain multiple review agents unless the user explicitly asks for parallel review.
+8. If usage for the preferred Gemini model is close to limit, choose one of these fallbacks:
    - Keep the work local.
    - Use a cheaper Gemini subagent if quality is still acceptable.
    - Reduce the task scope to a targeted file set.
    - Skip delegation entirely and perform a manual checklist review.
-8. If the quota is exhausted or the reset window is too far away for the task, do not spawn a Gemini subagent.
-9. Never delegate a task whose result must be immediately consumed unless the quality gain clearly outweighs the quota cost.
-10. Never let a delegated subagent spawn further subagents unless the user explicitly requested a multi-agent workflow.
+9. If the quota is exhausted or the reset window is too far away for the task, do not spawn a Gemini subagent.
+10. Never delegate a task whose result must be immediately consumed unless the quality gain clearly outweighs the quota cost.
+11. Never let a delegated subagent spawn further subagents unless the user explicitly requested a multi-agent workflow.
+
+## Subagent Selection
+
+When delegation is justified, choose the most efficient subagent:
+
+- **codebase_investigator**:
+  - Use for: Vague requests ("why is this broken?"), architectural mapping, root cause analysis, or broad system understanding.
+  - Best for: "Read-heavy" research tasks that require traversing many files.
+- **generalist**:
+  - Use for: Batch refactoring, fixing errors across multiple files, high-volume command output, or multi-step implementation tasks.
+  - Best for: "Write-heavy" or "Turn-heavy" tasks where keeping the main history clean is a priority.
+- **Specialized Skills**:
+  - Use for: Tasks strictly within a domain (e.g., `chrome-devtools` for browser debugging, `gws-*` for Google Workspace).
+  - Best for: Targeted tasks with minimal context overhead.
 
 ## Model Preference Guardrail
 
@@ -104,12 +122,30 @@ An automatic downgrade to `gemini-3-flash-preview` is not allowed.
 
 ## Suggested Model Heuristics
 
-- `flash` or equivalent lightweight agent:
-  Use for narrow review, file triage, grep-style exploration, metadata extraction, or checklist validation.
-- `pro` or equivalent stronger agent:
-  Use only for complex architecture review, ambiguous debugging, or broad code synthesis where a weaker agent is likely to fail.
+- `lite` (e.g., flash-8b):
+  Use for narrow review, file triage, grep-style exploration, metadata extraction, or checklist validation. Extremely quota-efficient.
+- `flash` (e.g., gemini-1.5-flash, gemini-2.0-flash):
+  The default choice for most development tasks. Good balance of speed and reasoning.
+- `pro` (e.g., gemini-1.5-pro):
+  Use only for complex architecture review, ambiguous debugging, or broad code synthesis where a weaker agent is likely to fail. Expensive on quota.
 - No subagent:
   Use for deterministic edits, small fixes, straightforward audits, and any task that can be completed from local context.
+
+## Quota Awareness Checklist
+
+Before delegating, ask:
+1. **Can I do this locally?** (e.g., using `grep_search` or `read_file` yourself).
+2. **Is the scope minimal?** (Only send the specific files needed, not the whole project).
+3. **Is the tier appropriate?** (Don't use Pro for a task Flash can handle).
+4. **Am I chaining agents?** (Avoid having a subagent call another subagent).
+5. **Is the result cacheable?** (If the task was just done, reuse the previous output).
+
+## Prompt Caching Advice
+
+To maximize efficiency and take advantage of potential prompt caching:
+- **Group related files**: If you need to analyze 5 related files, do it in one subagent call rather than 5 separate ones.
+- **Stable Context**: Keep the order of files and the system instructions consistent across calls when possible.
+- **Surgical Context**: Use `read_file` with `start_line` and `end_line` even when preparing subagent inputs to keep the prompt size down.
 
 ## Output Contract
 

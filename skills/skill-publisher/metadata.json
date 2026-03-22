@@ -1,0 +1,5 @@
+{
+  "name": "skill-publisher",
+  "version": "1.0.0",
+  "description": "Standardize and automate the publishing of stable skills from the development directory to the 'published' directory."
+}

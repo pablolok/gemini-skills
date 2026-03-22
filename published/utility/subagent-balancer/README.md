@@ -17,11 +17,11 @@ A utility skill for Gemini that makes subagent routing quota-aware and model-awa
 ## Typical Usage
 
 ```bash
-python .gemini/skills/subagent-balancer/scripts/balance_subagent.py --task-type review --scope small --no-preview --explain
+python skills/subagent-balancer/scripts/balance_subagent.py --task-type review --scope small --no-preview --explain
 ```
 
 With a saved snapshot:
 
 ```bash
-python .gemini/skills/subagent-balancer/scripts/select_model.py --task-type implementation --scope large < quota.txt
+python skills/subagent-balancer/scripts/select_model.py --task-type implementation --scope large < quota.txt
 ```
