@@ -2,8 +2,8 @@
 
 ## Phase 1: Setup and Context Verification
 - [x] Task: Review existing `install.py` logic for status rendering. 1a285ca
-- [~] Task: Review the current `skills/subagent-balancer/SKILL.md` content and prompt.
-- [ ] Task: Review the current `skills/skill-manager/SKILL.md` to identify where to add new documentation.
+- [x] Task: Review the current `skills/subagent-balancer/SKILL.md` content and prompt. 6a3324c
+- [~] Task: Review the current `skills/skill-manager/SKILL.md` to identify where to add new documentation.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Setup and Context Verification' (Protocol in workflow.md)
 
 ## Phase 2: Update `install.py` Version Display
