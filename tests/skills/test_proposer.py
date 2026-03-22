@@ -4,8 +4,10 @@ import logging
 import typing
 import unittest
 from unittest.mock import MagicMock
+import importlib
 
-import skills.review_optimization.proposer as proposer
+# Python doesn't allow hyphens in identifiers, so we use importlib
+proposer = importlib.import_module("skills.review-optimization.proposer")
 
 
 class TestSkillProposer(unittest.TestCase):

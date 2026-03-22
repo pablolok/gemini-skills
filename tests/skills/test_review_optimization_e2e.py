@@ -4,12 +4,20 @@ import logging
 import typing
 import unittest
 from unittest.mock import MagicMock
+import importlib
 
-from skills.review_optimization.analyzer import ExecutionAnalyzer
-from skills.review_optimization.auditor import EfficiencyAuditor
-from skills.review_optimization.advisor import WorkflowAdvisor
-from skills.review_optimization.remediator import Remediator
-from skills.review_optimization.proposer import SkillProposer
+# Python doesn't allow hyphens in identifiers, so we use importlib
+analyzer_mod = importlib.import_module("skills.review-optimization.analyzer")
+auditor_mod = importlib.import_module("skills.review-optimization.auditor")
+advisor_mod = importlib.import_module("skills.review-optimization.advisor")
+remediator_mod = importlib.import_module("skills.review-optimization.remediator")
+proposer_mod = importlib.import_module("skills.review-optimization.proposer")
+
+ExecutionAnalyzer = analyzer_mod.ExecutionAnalyzer
+EfficiencyAuditor = auditor_mod.EfficiencyAuditor
+WorkflowAdvisor = advisor_mod.WorkflowAdvisor
+Remediator = remediator_mod.Remediator
+SkillProposer = proposer_mod.SkillProposer
 
 
 class TestReviewOptimizationE2E(unittest.TestCase):
