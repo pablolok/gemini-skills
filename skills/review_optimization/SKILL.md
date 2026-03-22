@@ -32,7 +32,11 @@ Your analysis MUST cover:
 You MUST NOT apply changes automatically. Instead, provide interactive recommendations via `ask_user`:
 - **Workflow Refinement:** "I noticed a more efficient pattern for [task type]. Would you like to update the `workflow.md` guidelines?"
 - **Skill Update:** "The skill '[skill name]' was used but required manual correction. Should we refine its `SKILL.md` now?"
-- **New Skill Proposal:** "I detected a recurring manual pattern for [process]. Would you like to create a new skill to automate this?"
+- **New Skill Proposal:** "I detected a recurring manual pattern for [process]. Where would you like to save this new specialized skill?"
+    - **Global:** Save to the central `gemini-skills` repository.
+    - **Local:** Save to the current project's `.gemini/skills/` directory.
+    - **Custom Path:** Prompt for a specific absolute or relative path (directories will be created if they don't exist).
+
 
 ## Triggering
 
