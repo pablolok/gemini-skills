@@ -45,6 +45,9 @@ If you are using the Gemini CLI, you can automate the entire installation proces
 3.  **Interactive Selection**: Gemini will read the instructions, scan the repository, and prompt you to select the skills you want.
 4.  **Auto-Integration**: Gemini will handle the junctions and any `post_install.py` hooks automatically.
 
+> [!IMPORTANT]
+> **Workspace Boundaries**: Gemini may refuse to read files outside of your current project's workspace for security reasons. If you encounter this, either add the `gemini-skills` folder to your current workspace or use the **Manual Installation** method below.
+
 ## 🛠️ Manual Installation
 
 If you prefer to install skills manually from your terminal, run this command from your project's root:
