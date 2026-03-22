@@ -46,11 +46,15 @@ To install skills into your current project, run the following command from your
 python <path-to-gemini-skills>/install.py
 ```
 
-The installer will:
-1.  **Scan** the `published/` directory for available skills.
-2.  **Prompt** you to select which skills you want to install.
-3.  **Create Junctions**: Automatically link the skills into your project's `.gemini/skills/` directory.
-4.  **Run Hooks**: Execute any skill-specific `post_install.py` hooks (e.g., to integrate with your `conductor/workflow.md`).
+### Gemini CLI Integration
+
+If you are using the Gemini CLI, you can ask Gemini to manage skills for you. Gemini uses the **[Skill Manager](./published/utility/skill-manager/)** skill to:
+1.  **Locate** the global skills repository.
+2.  **Scan** for available official skills.
+3.  **Prompt** you interactively (using the standard `ask_user` tool) to select which skills to install.
+4.  **Execute** the installation and post-install hooks automatically.
+
+To try it, simply tell Gemini: *"Install official skills from the global repository."*
 
 ---
 Created by [pablolok](https://github.com/pablolok)
