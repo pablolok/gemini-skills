@@ -12,13 +12,13 @@
     - [x] Directory scanning, `ask_user` interaction, and junction creation.
 - [x] **Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)** [3c47f79]
 
-## Phase 3: Post-Installation Hooks & Integration
+## Phase 3: Post-Installation Hooks & Integration [checkpoint: 20e1618]
 - [x] **Task: Write TDD - Test `post_install.py` execution & integration logic** [75390e9]
 - [x] **Task: Implement - Installer hook runner** [d303897]
     - [x] Logic to execute `post_install.py` within each skill after junctioning.
-- [~] **Task: Implement - Sample `post_install.py` for 'Review Optimization' skill**
-    - [~] Logic to detect `conductor/workflow.md` and insert the audit protocol.
-- [ ] **Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)**
+- [x] **Task: Implement - Sample `post_install.py` for 'Review Optimization' skill** [20e1618]
+    - [x] Logic to detect `conductor/workflow.md` and insert the audit protocol.
+- [x] **Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)** [20e1618]
 
 ## Phase 4: Finalization & Documentation
 - [ ] **Task: Implement - Update `README.md`**
