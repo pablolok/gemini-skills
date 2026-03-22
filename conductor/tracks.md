@@ -11,7 +11,3 @@ This file tracks all major tracks for the project. Each track has its own detail
 - [ ] **Track: add the skill dependency when installing skills, for example audit-c# and audit-scripts are dependant on the orchestrator to work**
 *Link: [./tracks/skill_dependencies_20260322/](./tracks/skill_dependencies_20260322/)*\
 \
----
-
-- [x] **Track: Replace junctions with file copying for skill installation, implement version tracking, and add update notifications.**
-*Link: [./tracks/skill_copy_and_versioning_20260322/](./tracks/skill_copy_and_versioning_20260322/)*\
