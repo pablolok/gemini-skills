@@ -4,5 +4,5 @@ This file tracks all major tracks for the project. Each track has its own detail
 
 ---
 
-- [~] **Track: Update review-optimization skill to ask the user if a proposed new skill should be created globally (gemini-skills), locally (current project), or at a custom path.**
+- [x] **Track: Update review-optimization skill to ask the user if a proposed new skill should be created globally (gemini-skills), locally (current project), or at a custom path.**
 *Link: [./tracks/review_optimization_destination_20260322/](./tracks/review_optimization_destination_20260322/)*
