@@ -145,6 +145,28 @@ All tasks follow a strict lifecycle:
 
 10.  **Announce Completion:** Inform the user that the phase is complete and the checkpoint has been created, with the detailed verification report attached as a git note.
 
+### Track Finalization and Cleanup Protocol
+
+**Trigger:** This protocol is executed only after all phases in the track's `plan.md` have been completed and verified.
+
+1.  **Announce Finalization:** Inform the user that implementation is complete and finalization and cleanup are beginning.
+
+2.  **Synchronize Project Documentation:** Follow the "SYNCHRONIZE PROJECT DOCUMENTATION" protocol defined in the system prompt to update project-level files (`product.md`, `tech-stack.md`, etc.).
+
+3.  **Merge Changes to Main:**
+    -   **Step 3.1: Final Verification:** Ensure all tests pass on the feature branch.
+    -   **Step 3.2: Switch to Main:** `git checkout main`
+    -   **Step 3.3: Pull Latest:** `git pull origin main`
+    -   **Step 3.4: Merge Feature Branch:** `git merge <feature_branch_name>`
+    -   **Step 3.5: Resolve Conflicts:** If any conflicts occur, notify the user and resolve them.
+    -   **Step 3.6: Push to Origin:** `git push origin main`
+
+4.  **Mark Track as Completed:** Update the **Tracks Registry** (`conductor/tracks.md`) to change the status to `[x]`.
+
+5.  **Commit Track Completion:** Stage the **Tracks Registry** and commit with the message `chore(conductor): Mark track '<track_description>' as complete`.
+
+6.  **Cleanup Track:** Use the `ask_user` tool to offer the user to "Archive", "Delete", or "Skip" the track folder, following the "TRACK CLEANUP" protocol in the system prompt.
+
 ### Quality Gates
 
 Before marking any task complete, verify:
