@@ -1,13 +1,13 @@
 # Implementation Plan: Subagent Balancer & Skill Manager Review
 
-## Phase 1: Setup and Context Verification
+## Phase 1: Setup and Context Verification [checkpoint: d4e105a]
 - [x] Task: Review existing `install.py` logic for status rendering. 1a285ca
 - [x] Task: Review the current `skills/subagent-balancer/SKILL.md` content and prompt. 6a3324c
-- [x] Task: Review the current `skills/skill-manager/SKILL.md` to identify where to add new documentation. 2409ae2
-- [~] Task: Conductor - User Manual Verification 'Phase 1: Setup and Context Verification' (Protocol in workflow.md)
+- [x] Task: Review the current `skills/skill-manager/SKILL.md` to identify where to add new documentation. ad25d57
+- [x] Task: Conductor - User Manual Verification 'Phase 1: Setup and Context Verification' (Protocol in workflow.md)
 
 ## Phase 2: Update `install.py` Version Display
-- [ ] Task: Write test/script to verify the status string formatting in `install.py`.
+- [~] Task: Write test/script to verify the status string formatting in `install.py`.
 - [ ] Task: Implement change in `SkillSelector.select_skills` to format update strings as `[Update Available] (vX -> vY)`.
 - [ ] Task: Run tests to verify the UI string formatting.
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Update `install.py` Version Display' (Protocol in workflow.md)
