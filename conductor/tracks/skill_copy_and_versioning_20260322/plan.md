@@ -1,6 +1,6 @@
 # Implementation Plan: Skill Installation & Versioning
 
-## Phase 1: Metadata Update & Initial Versioning
+## Phase 1: Metadata Update & Initial Versioning [checkpoint: 3b7adc1]
 
 - [x] Task: Research and define the data structure for the `version` field in `metadata.json`. [b93fba9]
 - [x] Task: Update the `metadata.json` schema to include the `version` field. [b93fba9]
