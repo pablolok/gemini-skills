@@ -13,5 +13,5 @@
 - **Script-based Automation**: Governance and validation for automation scripts (e.g., Python, Bash, PowerShell).
 
 ## Distribution & Integration
-- **Windows Directory Junctions**: Used for zero-copy skill installation into target projects.
+- **Robust File Copying & SemVer Versioning**: Used for skill installation, version tracking, and update management in target projects.
 - **Python Post-installation Hooks**: Optional `post_install.py` scripts for automated project integration (e.g., workflow updates).
