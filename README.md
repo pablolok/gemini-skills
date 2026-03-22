@@ -46,7 +46,7 @@ If you are using the Gemini CLI, you can automate the entire installation proces
 4.  **Auto-Integration**: Gemini will handle the junctions and any `post_install.py` hooks automatically.
 
 > [!IMPORTANT]
-> **Workspace Boundaries**: Gemini may refuse to read files outside of your current project's workspace for security reasons. If you encounter this, either add the `gemini-skills` folder to your current workspace or use the **Manual Installation** method below.
+> **Workspace Boundaries**: Gemini may refuse to read files outside of your current project's workspace for security reasons. If you encounter this, you can use the `/directory add <path>` command to include the skills folder in your session, or use the **Manual Installation** method below.
 
 ## 🛠️ Manual Installation
 
