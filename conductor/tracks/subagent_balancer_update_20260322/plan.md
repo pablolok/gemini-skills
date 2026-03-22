@@ -7,10 +7,10 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Setup and Context Verification' (Protocol in workflow.md)
 
 ## Phase 2: Update `install.py` Version Display
-- [~] Task: Write test/script to verify the status string formatting in `install.py`.
-- [ ] Task: Implement change in `SkillSelector.select_skills` to format update strings as `[Update Available] (vX -> vY)`.
-- [ ] Task: Run tests to verify the UI string formatting.
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Update `install.py` Version Display' (Protocol in workflow.md)
+- [x] Task: Write test/script to verify the status string formatting in `install.py`. b6f0ea8
+- [x] Task: Implement change in `SkillSelector.select_skills` to format update strings as `[Update Available] (vX -> vY)`. b6f0ea8
+- [x] Task: Run tests to verify the UI string formatting. b6f0ea8
+- [~] Task: Conductor - User Manual Verification 'Phase 2: Update `install.py` Version Display' (Protocol in workflow.md)
 
 ## Phase 3: Enhance `subagent-balancer` Skill
 - [ ] Task: Update the instructions in `subagent-balancer` SKILL.md to explicitly route tasks based on token limits and context awareness.
