@@ -1,7 +1,7 @@
 # Implementation Plan: Skill Manager and 'Published' Directory
 
 ## Phase 1: 'Published' Folder & Categorization
-- [ ] **Task: Setup Track Artifacts (metadata, index, spec, plan)**
+- [x] **Task: Setup Track Artifacts (metadata, index, spec, plan)** [54481bd]
 - [ ] **Task: Create `published/` directory structure**
 - [ ] **Task: Populate `published/` with existing stable skills**
 - [ ] **Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)**
