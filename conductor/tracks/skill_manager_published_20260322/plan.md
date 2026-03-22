@@ -21,7 +21,8 @@
 - [x] **Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)** [20e1618]
 
 ## Phase 5: Gemini CLI Integration
-- [ ] **Task: Implement - `skill-manager` skill**
-    - [ ] Create `published/utility/skill-manager/SKILL.md` to allow Gemini to use `install.py` directly.
-- [ ] **Task: Conductor - User Manual Verification 'Phase 5' (Protocol in workflow.md)**
+- [x] **Task: Implement - `skill-manager` skill** [c0c7578]
+    - [x] Create `published/utility/skill-manager/SKILL.md` to allow Gemini to use `install.py` directly.
+- [~] **Task: Conductor - User Manual Verification 'Phase 5' (Protocol in workflow.md)**
+
 
