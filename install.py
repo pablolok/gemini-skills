@@ -8,18 +8,18 @@ import subprocess
 import logging
 import typing
 import json
-from pathlib import Path
+
 
 class SkillSelector:
-    """Handles skill selection via interactive prompt."""
+    """Handle skill selection via interactive prompt."""
 
-    def __init__(self, ask_user_fn: typing.Callable):
+    def __init__(self, ask_user_fn: typing.Callable) -> None:
         """Initialize with an ask_user-compatible function."""
         self.ask_user = ask_user_fn
 
     def select_skills(self, available_skills: typing.Dict[str, typing.List[str]]) -> typing.List[str]:
         """Prompt user to select skills from available categories."""
-        options = []
+        options: typing.List[typing.Dict[str, str]] = []
         for category, skills in available_skills.items():
             for skill in skills:
                 label = f"{category}/{skill}"
@@ -29,7 +29,6 @@ class SkillSelector:
                 })
 
         if not options:
-            print("No official skills found in the published directory.")
             return []
 
         response = self.ask_user({
@@ -44,23 +43,24 @@ class SkillSelector:
 
         # The mock in tests might return the direct list, or the standard tool response
         if "answers" in response:
-            return response["answers"]["0"] # Standard ask_user structure
+            return response["answers"]["0"]  # Standard ask_user structure
         
         # Fallback for simplified mock response in tests
         return response.get("Select Skills", [])
 
-class SkillInstaller:
-    """Handles directory scanning and junction creation logic."""
 
-    def __init__(self, published_dir: str, ask_user_fn: typing.Callable):
+class SkillInstaller:
+    """Handle directory scanning and junction creation logic."""
+
+    def __init__(self, published_dir: str, ask_user_fn: typing.Callable, logger: typing.Optional[logging.Logger] = None) -> None:
         """Initialize with paths and tools."""
         self.published_dir = os.path.abspath(published_dir)
         self.ask_user = ask_user_fn
-        self.logger = logging.getLogger("skill_installer")
+        self.logger = logger or logging.getLogger("skill_installer")
 
     def get_available_skills(self) -> typing.Dict[str, typing.List[str]]:
         """Scan the published directory for categories and skills."""
-        available = {}
+        available: typing.Dict[str, typing.List[str]] = {}
         if not os.path.exists(self.published_dir):
             return available
 
@@ -69,7 +69,7 @@ class SkillInstaller:
             if not os.path.isdir(cat_path):
                 continue
             
-            skills = []
+            skills: typing.List[str] = []
             for skill in os.listdir(cat_path):
                 skill_path = os.path.join(cat_path, skill)
                 # Ensure it's a directory and not a hidden file/gitkeep
@@ -81,7 +81,7 @@ class SkillInstaller:
         
         return available
 
-    def get_skill_metadata(self, skill_rel_path: str) -> typing.Optional[typing.Dict]:
+    def get_skill_metadata(self, skill_rel_path: str) -> typing.Optional[typing.Dict[str, typing.Any]]:
         """Read and parse the metadata.json for a skill."""
         metadata_path = os.path.join(self.published_dir, skill_rel_path, "metadata.json")
         if not os.path.exists(metadata_path):
@@ -91,7 +91,7 @@ class SkillInstaller:
             with open(metadata_path, "r") as f:
                 return json.load(f)
         except Exception as e:
-            print(f"Error parsing metadata for '{skill_rel_path}': {e}")
+            self.logger.error(f"Error parsing metadata for '{skill_rel_path}': {e}")
             return None
 
     def install_skill(self, skill_rel_path: str, target_project_path: str) -> bool:
@@ -107,13 +107,13 @@ class SkillInstaller:
         
         if os.path.exists(target_path):
             # Check if it's already a junction or a real dir
-            print(f"Skill '{skill_name}' already exists in target project.")
+            self.logger.info(f"Skill '{skill_name}' already exists in target project.")
             return False
 
-        print(f"Installing skill '{skill_name}' via junction...")
+        self.logger.info(f"Installing skill '{skill_name}' via junction...")
         try:
             self._create_junction(os.path.abspath(source_path), os.path.abspath(target_path))
-            print(f"Successfully installed '{skill_name}'.")
+            self.logger.info(f"Successfully installed '{skill_name}'.")
             
             # Check for post-install hook
             hook_path = os.path.join(source_path, "post_install.py")
@@ -122,12 +122,12 @@ class SkillInstaller:
                 
             return True
         except Exception as e:
-            print(f"Failed to install '{skill_name}': {e}")
+            self.logger.error(f"Failed to install '{skill_name}': {e}")
             return False
 
-    def _run_post_install_hook(self, hook_path: str, target_project_path: str):
+    def _run_post_install_hook(self, hook_path: str, target_project_path: str) -> None:
         """Execute the post_install.py script for a skill."""
-        print(f"Running post-install hook: {os.path.basename(hook_path)}...")
+        self.logger.info(f"Running post-install hook: {os.path.basename(hook_path)}...")
         try:
             # Pass the target project path as an argument to the hook
             subprocess.run(
@@ -136,56 +136,69 @@ class SkillInstaller:
                 capture_output=True,
                 text=True
             )
-            print("Post-install hook completed successfully.")
+            self.logger.info("Post-install hook completed successfully.")
         except subprocess.CalledProcessError as e:
-            print(f"Post-install hook failed with exit code {e.returncode}")
+            self.logger.error(f"Post-install hook failed with exit code {e.returncode}")
             if e.stderr:
-                print(f"Error: {e.stderr.strip()}")
+                self.logger.error(f"Error: {e.stderr.strip()}")
         except Exception as e:
-            print(f"Error running post-install hook: {e}")
+            self.logger.error(f"Error running post-install hook: {e}")
 
-    def _create_junction(self, source: str, target: str):
-        """Platform-independent junction/symlink creation."""
+    def _create_junction(self, source: str, target: str) -> None:
+        """Create a platform-independent junction or symlink."""
         if sys.platform == "win32":
             # Use mklink /J for directory junctions on Windows
-            # Needs shell=True to access the internal mklink command
-            cmd = f'mklink /J "{target}" "{source}"'
-            subprocess.run(cmd, shell=True, check=True, capture_output=True)
+            # Use a list of arguments for security and clarity
+            subprocess.run(
+                ["cmd", "/c", "mklink", "/J", target, source],
+                check=True,
+                capture_output=True
+            )
         else:
             # Use symlink on non-Windows
             os.symlink(source, target, target_is_directory=True)
 
-def main():
+
+def manual_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, typing.Any]:
+    """Fallback interactive prompt for manual execution."""
+    question = config["questions"][0]
+    print(f"\n{question['question']}")
+    for i, opt in enumerate(question['options']):
+        print(f"{i}: {opt['label']} - {opt['description']}")
+    
+    selection = input("\nEnter numbers separated by space: ")
+    indices: typing.List[int] = [int(x.strip()) for x in selection.split() if x.strip().isdigit()]
+    return {"answers": {"0": [question['options'][i]['label'] for i in indices]}}
+
+
+def main() -> None:
     """CLI entry point for manual or agent execution."""
-    print("=== Gemini Skill Installer ===")
+    logger = logging.getLogger("skill_installer")
+    logger.info("=== Gemini Skill Installer ===")
     
     # In this repo, 'published' is relative to the script
     script_dir = os.path.dirname(os.path.abspath(__file__))
     published_dir = os.path.join(script_dir, "published")
     
-    # Dummy ask_user if called manually (not by an agent)
-    # In a real scenario, this script is called by Gemini CLI which handles ask_user
-    # but for manual testing we might need a fallback.
-    def manual_ask_user(config):
-        question = config["questions"][0]
-        print(f"\n{question['question']}")
-        for i, opt in enumerate(question['options']):
-            print(f"{i}: {opt['label']} - {opt['description']}")
-        
-        selection = input("\nEnter numbers separated by space: ")
-        indices = [int(x.strip()) for x in selection.split() if x.strip().isdigit()]
-        return {"answers": {"0": [question['options'][i]['label'] for i in indices]}}
+    if not os.path.exists(published_dir):
+        logger.error(f"Published skills directory not found: {published_dir}")
+        sys.exit(1)
+    
+    # Run the installation flow
+    installer = SkillInstaller(published_dir, manual_ask_user, logger)
+    available = installer.get_available_skills()
+    
+    if not available:
+        logger.info("No skills found to install.")
+        return
 
-    # For verification in this environment, we'll use a mock-like or manual approach
-    # if it's not being called with the standard agent tools.
-    # But since I'm an agent, I can call the classes directly.
+    selector = SkillSelector(manual_ask_user)
+    selected = selector.select_skills(available)
     
-    # We use a placeholder for target project (current directory by default)
     target_project = os.getcwd()
-    
-    # Since this is an interactive tool, when run by a human it should work.
-    # When run by an agent, the agent should use the classes.
-    pass
+    for skill_path in selected:
+        installer.install_skill(skill_path, target_project)
+
 
 if __name__ == "__main__":
     main()

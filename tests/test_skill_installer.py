@@ -4,7 +4,6 @@ import os
 import sys
 import unittest
 from unittest.mock import MagicMock, patch
-import json
 
 # We'll implement these in install.py
 # For now, we'll try to import them, which will fail initially (Red phase)
@@ -114,6 +113,84 @@ class TestSkillInstaller(unittest.TestCase):
             args, kwargs = mock_run.call_args
             self.assertIn(sys.executable, args[0])
             self.assertIn(hook_path, args[0])
+
+    def test_get_skill_metadata(self) -> None:
+        """Verify reading metadata.json."""
+        if SkillInstaller is None:
+            self.skipTest("SkillInstaller not yet implemented")
+
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+        
+        # We know review-optimization has metadata.json
+        metadata = installer.get_skill_metadata("audit/review-optimization")
+        self.assertIsNotNone(metadata)
+        self.assertEqual(metadata["name"], "review-optimization")
+
+    @patch("subprocess.run")
+    @patch("os.path.exists")
+    def test_post_install_hook_failure(self, mock_exists, mock_run) -> None:
+        """Verify handling of post-install hook failure."""
+        import subprocess
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+        
+        mock_exists.return_value = True
+        mock_run.side_effect = subprocess.CalledProcessError(1, "cmd", stderr="Some error")
+        
+        # This should not raise, but log an error
+        installer._run_post_install_hook("some/hook.py", "target/path")
+        mock_run.assert_called_once()
+
+    @patch("builtins.input")
+    @patch("builtins.print")
+    def test_manual_ask_user(self, mock_print, mock_input) -> None:
+        """Verify the manual_ask_user fallback."""
+        from install import manual_ask_user
+        
+        config = {
+            "questions": [{
+                "question": "Choose?",
+                "options": [{"label": "opt1", "description": "desc1"}]
+            }]
+        }
+        
+        mock_input.return_value = "0"
+        response = manual_ask_user(config)
+        
+        self.assertEqual(response["answers"]["0"], ["opt1"])
+        mock_print.assert_called()
+
+    @patch("install.SkillInstaller")
+    @patch("install.SkillSelector")
+    @patch("os.path.exists")
+    def test_main_function(self, mock_exists, mock_selector, mock_installer) -> None:
+        """Verify that main runs the installation flow."""
+        from install import main
+        
+        mock_exists.return_value = True
+        
+        # Mock available skills
+        mock_inst_instance = mock_installer.return_value
+        mock_inst_instance.get_available_skills.return_value = {"audit": ["skill1"]}
+        
+        # Mock skill selection
+        mock_sel_instance = mock_selector.return_value
+        mock_sel_instance.select_skills.return_value = ["audit/skill1"]
+        
+        main()
+        
+        mock_inst_instance.get_available_skills.assert_called_once()
+        mock_sel_instance.select_skills.assert_called_once()
+        mock_inst_instance.install_skill.assert_called_once_with("audit/skill1", os.getcwd())
+
+    @patch("sys.exit")
+    @patch("os.path.exists")
+    def test_main_function_missing_dir(self, mock_exists, mock_exit) -> None:
+        """Verify that main exits if published dir is missing."""
+        from install import main
+        mock_exists.return_value = False
+        
+        main()
+        mock_exit.assert_called_once_with(1)
 
 if __name__ == "__main__":
     unittest.main()
