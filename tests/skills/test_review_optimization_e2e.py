@@ -7,11 +7,11 @@ from unittest.mock import MagicMock
 import importlib
 
 # Python doesn't allow hyphens in identifiers, so we use importlib
-analyzer_mod = importlib.import_module("skills.review-optimization.analyzer")
-auditor_mod = importlib.import_module("skills.review-optimization.auditor")
-advisor_mod = importlib.import_module("skills.review-optimization.advisor")
-remediator_mod = importlib.import_module("skills.review-optimization.remediator")
-proposer_mod = importlib.import_module("skills.review-optimization.proposer")
+analyzer_mod = importlib.import_module("skills.review_optimization.analyzer")
+auditor_mod = importlib.import_module("skills.review_optimization.auditor")
+advisor_mod = importlib.import_module("skills.review_optimization.advisor")
+remediator_mod = importlib.import_module("skills.review_optimization.remediator")
+proposer_mod = importlib.import_module("skills.review_optimization.proposer")
 
 ExecutionAnalyzer = analyzer_mod.ExecutionAnalyzer
 EfficiencyAuditor = auditor_mod.EfficiencyAuditor

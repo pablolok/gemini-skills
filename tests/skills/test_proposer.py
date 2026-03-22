@@ -7,7 +7,7 @@ from unittest.mock import MagicMock
 import importlib
 
 # Python doesn't allow hyphens in identifiers, so we use importlib
-proposer = importlib.import_module("skills.review-optimization.proposer")
+proposer = importlib.import_module("skills.review_optimization.proposer")
 
 
 class TestSkillProposer(unittest.TestCase):
