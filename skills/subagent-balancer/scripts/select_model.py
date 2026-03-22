@@ -10,25 +10,26 @@ from dataclasses import dataclass
 
 
 KNOWN_MODELS = {
-    "gemini-2.5-flash-lite": {"tier": "lite", "preview": False},
-    "gemini-2.5-flash": {"tier": "flash", "preview": False},
-    "gemini-2.5-pro": {"tier": "pro", "preview": False},
-    "gemini-3-flash-preview": {"tier": "flash", "preview": True},
-    "gemini-3.1-pro-preview": {"tier": "pro", "preview": True},
+    "gemini-1.5-flash-8b": {"tier": "lite", "preview": False},
+    "gemini-1.5-flash": {"tier": "flash", "preview": False},
+    "gemini-1.5-pro": {"tier": "pro", "preview": False},
+    "gemini-2.0-flash": {"tier": "flash", "preview": False},
+    "gemini-2.0-flash-lite-preview-02-05": {"tier": "lite", "preview": True},
+    "gemini-2.0-pro-exp-02-05": {"tier": "pro", "preview": True},
 }
 
 TIER_WEIGHTS = {
-    "review": {"lite": 5, "flash": 4, "pro": 2},
-    "search": {"lite": 5, "flash": 4, "pro": 2},
-    "verification": {"lite": 4, "flash": 4, "pro": 3},
-    "implementation": {"lite": 1, "flash": 3, "pro": 5},
-    "refactor": {"lite": 1, "flash": 3, "pro": 5},
+    "review": {"lite": 10, "flash": 4, "pro": 2},
+    "search": {"lite": 10, "flash": 4, "pro": 2},
+    "verification": {"lite": 8, "flash": 4, "pro": 3},
+    "implementation": {"lite": 1, "flash": 4, "pro": 8},
+    "refactor": {"lite": 1, "flash": 4, "pro": 8},
 }
 
 SCOPE_BONUS = {
-    "small": {"lite": 2, "flash": 1, "pro": 0},
-    "medium": {"lite": 0, "flash": 1, "pro": 1},
-    "large": {"lite": -2, "flash": 0, "pro": 2},
+    "small": {"lite": 6, "flash": 1, "pro": 0},
+    "medium": {"lite": 0, "flash": 3, "pro": 2},
+    "large": {"lite": -6, "flash": 0, "pro": 6},
 }
 
 MODEL_RE = re.compile(r"(gemini-\S+)")
@@ -47,41 +48,67 @@ class ModelQuota:
     @property
     def tier(self) -> str:
         """Return the tier of the model."""
-        return KNOWN_MODELS.get(self.name, {}).get("tier", "unknown")
+        if self.name in KNOWN_MODELS:
+            return KNOWN_MODELS[self.name]["tier"]
+        lower = self.name.lower()
+        if "pro" in lower:
+            return "pro"
+        if "lite" in lower or "8b" in lower:
+            return "lite"
+        if "flash" in lower:
+            return "flash"
+        return "unknown"
 
     @property
     def preview(self) -> bool:
         """Return whether the model is a preview model."""
-        return bool(KNOWN_MODELS.get(self.name, {}).get("preview", False))
+        if self.name in KNOWN_MODELS:
+            return bool(KNOWN_MODELS[self.name]["preview"])
+        lower = self.name.lower()
+        return "preview" in lower or "exp" in lower
 
 
 def parse_snapshot(text: str) -> list[ModelQuota]:
     """Parse a Gemini quota table into model quota entries."""
     models: list[ModelQuota] = []
 
-    for raw_line in text.splitlines():
-        line = " ".join(raw_line.strip().split())
-        if "gemini-" not in line:
-            continue
+    # Flatten and split by whitespace to handle dense tables
+    tokens = text.replace(",", " ").replace(":", " ").replace(")", " ").split()
+    
+    current_model = None
+    for i, token in enumerate(tokens):
+        if token.startswith("gemini-"):
+            # If we were tracking a model, save it
+            if current_model:
+                models.append(current_model)
+            
+            name = token
+            # Look ahead for percentage
+            usage_percent = None
+            limited = False
+            
+            # Search next 5 tokens for status
+            for j in range(1, 6):
+                if i + j >= len(tokens):
+                    break
+                next_token = tokens[i+j]
+                if next_token.startswith("gemini-"):
+                    break
+                if "limit" in next_token.lower():
+                    limited = True
+                percent_match = PERCENT_RE.search(next_token)
+                if percent_match and usage_percent is None:
+                    usage_percent = int(percent_match.group(1))
 
-        model_match = MODEL_RE.search(line)
-        if not model_match:
-            continue
-
-        name = model_match.group(1)
-        limited = " limit " in f" {line.lower()} "
-        percent_match = PERCENT_RE.search(line)
-        usage_percent = None if limited or not percent_match else int(percent_match.group(1))
-        reset_text = line.split(name, 1)[1].strip()
-
-        models.append(
-            ModelQuota(
+            current_model = ModelQuota(
                 name=name,
                 limited=limited,
                 usage_percent=usage_percent,
-                reset_text=reset_text,
+                reset_text=" ".join(tokens[i+1:i+6]) # Heuristic reset text
             )
-        )
+
+    if current_model:
+        models.append(current_model)
 
     return models
 
@@ -95,16 +122,16 @@ def choose_model(
     allow_preview: bool,
 ) -> dict[str, object]:
     """Choose the best model or return a local fallback."""
-    visible = [m for m in models if m.name in KNOWN_MODELS]
-    if not visible:
+    valid_candidates = [m for m in models if m.tier != "unknown"]
+    if not valid_candidates:
         return {
             "route": "local",
             "selected_model": None,
-            "reason": "No known Gemini models were parsed from the quota snapshot.",
+            "reason": "No valid Gemini models were parsed from the quota snapshot.",
             "ranked_candidates": [],
         }
 
-    by_name = {model.name: model for model in visible}
+    by_name = {model.name: model for model in valid_candidates}
     if preferred_model:
         preferred = by_name.get(preferred_model)
         if preferred and not preferred.limited and (allow_preview or not preferred.preview):
@@ -119,11 +146,11 @@ def choose_model(
             "route": "local",
             "selected_model": None,
             "reason": f"Preferred model {preferred_model} is unavailable or blocked by the preview policy.",
-            "ranked_candidates": [m.name for m in visible],
+            "ranked_candidates": [m.name for m in valid_candidates],
         }
 
     ranked: list[tuple[int, str, str]] = []
-    for model in visible:
+    for model in valid_candidates:
         if model.name in avoid_models:
             continue
         if model.limited:
@@ -134,8 +161,8 @@ def choose_model(
         task_weight = TIER_WEIGHTS.get(task_type, TIER_WEIGHTS["review"]).get(model.tier, 0)
         scope_weight = SCOPE_BONUS.get(scope, SCOPE_BONUS["medium"]).get(model.tier, 0)
         usage_weight = 100 - (model.usage_percent or 0)
-        preview_penalty = -15 if model.preview else 0
-        score = task_weight * 20 + scope_weight * 10 + usage_weight + preview_penalty
+        preview_penalty = -20 if model.preview else 0
+        score = task_weight * 30 + scope_weight * 15 + usage_weight + preview_penalty
         ranked.append((score, model.name, model.reset_text))
 
     ranked.sort(reverse=True)
