@@ -22,7 +22,7 @@
 
 ## Phase 6: Skill Publisher Utility [checkpoint: 881e7c0]
 - [x] **Task: Implement - `skill-publisher` skill** [881e7c0]
-    - [x] Create `scripts/skill-publisher/SKILL.md` to automate the syncing between `skills/` and `published/`.
+    - [x] Create `.gemini/skills/skill-publisher/SKILL.md` to automate the syncing between `skills/` and `published/`.
 - [x] **Task: Conductor - User Manual Verification 'Phase 6' (Protocol in workflow.md)** [881e7c0]
 
 
