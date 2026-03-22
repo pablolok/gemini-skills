@@ -7,6 +7,7 @@ import sys
 import subprocess
 import logging
 import typing
+import json
 from pathlib import Path
 
 class SkillSelector:
@@ -79,6 +80,19 @@ class SkillInstaller:
                 available[category] = skills
         
         return available
+
+    def get_skill_metadata(self, skill_rel_path: str) -> typing.Optional[typing.Dict]:
+        """Read and parse the metadata.json for a skill."""
+        metadata_path = os.path.join(self.published_dir, skill_rel_path, "metadata.json")
+        if not os.path.exists(metadata_path):
+            return None
+
+        try:
+            with open(metadata_path, "r") as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error parsing metadata for '{skill_rel_path}': {e}")
+            return None
 
     def install_skill(self, skill_rel_path: str, target_project_path: str) -> bool:
         """Create a junction from the target project to the skill source."""
