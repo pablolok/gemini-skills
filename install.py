@@ -95,6 +95,19 @@ class SkillInstaller:
     def get_skill_metadata(self, skill_rel_path: str) -> typing.Optional[typing.Dict[str, typing.Any]]:
         """Read and parse the metadata.json for a skill."""
         metadata_path = os.path.join(self.published_dir, skill_rel_path, "metadata.json")
+        return self._read_metadata(metadata_path)
+
+    def get_installed_skill_metadata(
+        self,
+        skill_name: str,
+        target_project_path: str
+    ) -> typing.Optional[typing.Dict[str, typing.Any]]:
+        """Read and parse the metadata.json for an installed skill."""
+        metadata_path = os.path.join(target_project_path, ".gemini", "skills", skill_name, "metadata.json")
+        return self._read_metadata(metadata_path)
+
+    def _read_metadata(self, metadata_path: str) -> typing.Optional[typing.Dict[str, typing.Any]]:
+        """Internal helper to read and parse a metadata.json file."""
         if not os.path.exists(metadata_path):
             return None
 
@@ -102,8 +115,51 @@ class SkillInstaller:
             with open(metadata_path, "r") as f:
                 return json.load(f)
         except Exception as e:
-            self.logger.error(f"Error parsing metadata for '{skill_rel_path}': {e}")
+            self.logger.error(f"Error parsing metadata at '{metadata_path}': {e}")
             return None
+
+    def check_for_updates(self, target_project_path: str) -> typing.List[typing.Dict[str, str]]:
+        """Check all installed skills for available updates."""
+        from versioning import VersionComparator
+        
+        updates = []
+        target_skills_dir = os.path.join(target_project_path, ".gemini", "skills")
+        if not os.path.exists(target_skills_dir):
+            return updates
+
+        available_skills = self.get_available_skills()
+        # Create a reverse map: skill_name -> rel_path
+        name_to_rel = {}
+        for cat, skills in available_skills.items():
+            for s in skills:
+                name_to_rel[s] = f"{cat}/{s}"
+
+        for skill_name in os.listdir(target_skills_dir):
+            skill_path = os.path.join(target_skills_dir, skill_name)
+            if not os.path.isdir(skill_path):
+                continue
+
+            installed_meta = self.get_installed_skill_metadata(skill_name, target_project_path)
+            if not installed_meta or "version" not in installed_meta:
+                continue
+
+            rel_path = name_to_rel.get(skill_name)
+            if not rel_path:
+                continue
+
+            latest_meta = self.get_skill_metadata(rel_path)
+            if not latest_meta or "version" not in latest_meta:
+                continue
+
+            if VersionComparator.is_newer(installed_meta["version"], latest_meta["version"]):
+                updates.append({
+                    "name": skill_name,
+                    "installed": installed_meta["version"],
+                    "latest": latest_meta["version"],
+                    "rel_path": rel_path
+                })
+
+        return updates
 
     def install_skill(self, skill_rel_path: str, target_project_path: str) -> bool:
         """Install a skill by copying files to the target project."""
