@@ -4,7 +4,8 @@ import os
 import typing
 import unittest
 
-import skills.review_optimization.analyzer as analyzer
+import importlib
+analyzer = importlib.import_module("skills.review-optimization.analyzer")
 
 
 class TestExecutionAnalyzer(unittest.TestCase):

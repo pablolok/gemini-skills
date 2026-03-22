@@ -7,12 +7,7 @@ import json
 
 # We'll implement these in install.py
 # For now, we'll try to import them, which will fail initially (Red phase)
-try:
-    from install import SkillSelector, SkillInstaller
-except ImportError:
-    # Stubs for the Red phase to avoid collection errors if we want to run them
-    SkillSelector = None
-    SkillInstaller = None
+from install import SkillSelector, SkillInstaller
 
 class TestSkillInstaller(unittest.TestCase):
     """Test suite for the SkillInstaller logic."""
@@ -37,7 +32,7 @@ class TestSkillInstaller(unittest.TestCase):
         # We know we have 'audit' category with at least 4 skills from Phase 1
         self.assertIn("audit", skills)
         self.assertTrue(len(skills["audit"]) >= 4)
-        self.assertIn("review_optimization", skills["audit"])
+        self.assertIn("review-optimization", skills["audit"])
 
     def test_ask_user_for_skills(self) -> None:
         """Verify that the selector correctly uses ask_user."""
@@ -71,7 +66,7 @@ class TestSkillInstaller(unittest.TestCase):
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
         
         target_project = "C:/temp/project"
-        skill_path = "audit/review_optimization"
+        skill_path = "audit/review-optimization"
         
         mock_exists.return_value = False # .gemini/skills doesn't exist
         
@@ -79,7 +74,7 @@ class TestSkillInstaller(unittest.TestCase):
         with patch.object(installer, '_create_junction') as mock_junction:
             installer.install_skill(skill_path, target_project)
             
-            expected_target = os.path.join(target_project, ".gemini", "skills", "review_optimization")
+            expected_target = os.path.join(target_project, ".gemini", "skills", "review-optimization")
             mock_junction.assert_called_once_with(
                 os.path.abspath(os.path.join(self.published_dir, skill_path)),
                 os.path.abspath(expected_target)

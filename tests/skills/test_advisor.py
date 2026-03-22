@@ -4,7 +4,8 @@ import logging
 import typing
 import unittest
 
-import skills.review_optimization.advisor as advisor
+import importlib
+advisor = importlib.import_module("skills.review-optimization.advisor")
 
 
 class TestWorkflowAdvisor(unittest.TestCase):

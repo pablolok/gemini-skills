@@ -8,7 +8,7 @@ from typing import Dict, List
 class TestReviewOptimizationSkill(unittest.TestCase):
     """Test suite for verifying the review-optimization skill."""
 
-    SKILL_PATH: str = os.path.join("skills", "review_optimization", "SKILL.md")
+    SKILL_PATH = os.path.join("skills", "review-optimization", "SKILL.md")
 
     @classmethod
     def setUpClass(cls) -> None:

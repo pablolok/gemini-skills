@@ -8,9 +8,9 @@
 
 ## Phase 2: Core Installer and Junction Logic
 - [x] **Task: Write TDD - Test `SkillSelector` & `SkillInstaller` logic** [4304fb6]
-- [~] **Task: Implement - `SkillInstaller` core**
-    - [~] Directory scanning, `ask_user` interaction, and junction creation.
-- [ ] **Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)**
+- [x] **Task: Implement - `SkillInstaller` core** [de10053]
+    - [x] Directory scanning, `ask_user` interaction, and junction creation.
+- [~] **Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)**
 
 ## Phase 3: Post-Installation Hooks & Integration
 - [ ] **Task: Write TDD - Test `post_install.py` execution & integration logic**

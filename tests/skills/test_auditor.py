@@ -4,7 +4,8 @@ import os
 import typing
 import unittest
 
-import skills.review_optimization.auditor as auditor
+import importlib
+auditor = importlib.import_module("skills.review-optimization.auditor")
 
 
 class TestEfficiencyAuditor(unittest.TestCase):

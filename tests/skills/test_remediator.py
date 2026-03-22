@@ -5,7 +5,8 @@ import typing
 import unittest
 from unittest.mock import MagicMock
 
-import skills.review_optimization.remediator as remediator
+import importlib
+remediator = importlib.import_module("skills.review-optimization.remediator")
 
 
 class TestRemediator(unittest.TestCase):
