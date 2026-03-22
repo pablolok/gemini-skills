@@ -4,7 +4,7 @@ A specialized skill for the **Gemini CLI** to enforce architectural rigor and en
 
 ## Overview
 
-This skill automates the "Sub-Agent Compliance Audit" step of the **Conductor** workflow. When invoked, it delegates a comprehensive review to a `generalist` sub-agent to verify that newly implemented code strictly adheres to project-specific engineering principles.
+This skill automates the "Sub-Agent Compliance Audit" step of the **Conductor** workflow. When invoked, it first applies quota-aware routing and explicit model-selection guardrails, then delegates only if that route is justified. If the user selected Pro or rejected Flash or preview models, the skill must preserve that choice or keep the audit local.
 
 ## Audit Criteria
 

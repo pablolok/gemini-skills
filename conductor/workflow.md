@@ -89,7 +89,9 @@ All tasks follow a strict lifecycle:
         -   **Example Announcement:** "I will now run the automated test suite to verify the phase. **Command:** `npm test` (Note: Ensure `CI=true` is set in your environment for non-interactive execution)."
         -   Execute the announced command.
     -   **Step 3.2: Compliance Audit Orchestration:**
-        -   After automated tests pass, you **must** invoke the `compliance-audit-orchestrator` skill to perform specialized audits (C# or Scripts) based on the files modified in this phase.
+        -   After automated tests pass, you **must** apply the `subagent-balancer` policy whenever an audit may delegate review work.
+        -   If the user explicitly selected a model tier, that choice is binding. Do not silently downgrade from Pro to Flash or from a non-preview choice to a preview model.
+        -   Then invoke the `compliance-audit-orchestrator` skill to perform specialized audits (C# or Scripts) based on the files modified in this phase.
         -   Follow the remediation steps within the orchestrator if any violations are found.
     -   **Step 3.3: Post-Execution Review & Optimization:**
         -   You **must** invoke the `review-optimization` skill to analyze the phase's execution path, audit skill efficiency, and receive workflow optimization advice.

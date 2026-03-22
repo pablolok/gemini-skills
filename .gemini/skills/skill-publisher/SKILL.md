@@ -15,7 +15,7 @@ When a user asks you to "publish" or "sync" a skill, follow these steps:
 -   Ensure the skill exists in `skills/<skill-name>`.
 -   **Validation Checklist**:
     -   [ ] `SKILL.md`: Must have correct frontmatter (name, description).
-    -   [ ] `README.md`: Must be present and accurately describe the skill.
+    -   [ ] `README.md`: Must be present, accurately describe the skill, and reflect the current workflow, scripts, installation path, and trigger behavior.
     -   [ ] Code Quality: All tests in `tests/skills/` must pass.
     -   [ ] Structure: Follows the standard skill layout (e.g., Python packages use `_`, folders use `-`).
 
@@ -29,6 +29,7 @@ When a user asks you to "publish" or "sync" a skill, follow these steps:
 -   **Step 3.1**: Clean the existing destination folder in `published/<category>/<skill-name>`.
 -   **Step 3.2**: Perform a recursive copy of the validated source.
 -   **Step 3.3**: Verify that all file names remain consistent (e.g., maintain hyphens for folders).
+-   **Step 3.4**: Ensure `README.md` is copied and remains aligned with the newly published `SKILL.md`, scripts, and metadata. If the README is stale, update it before finishing the publish.
 
 ### 4. Finalize
 -   **Step 4.1: Versioning**:
@@ -38,5 +39,8 @@ When a user asks you to "publish" or "sync" a skill, follow these steps:
 -   **Step 4.2: Changelog**:
     -   If a `CHANGELOG.md` exists in the skill folder, append the current date and version with a summary of changes.
     -   If it doesn't exist, create one.
--   **Step 4.3: Global Metadata**: Update any global metadata if required.
--   **Step 4.4: Commit**: Commit the changes with a clear message: `feat(published): sync skill '<skill-name>' to version <new-version>`.
+-   **Step 4.3: Documentation Check**:
+    -   Re-read the source and published `README.md` files.
+    -   Confirm they mention any newly added scripts, hooks, Codex integration notes, or workflow changes introduced by this publish.
+-   **Step 4.4: Global Metadata**: Update any global metadata if required.
+-   **Step 4.5: Commit**: Commit the changes with a clear message: `feat(published): sync skill '<skill-name>' to version <new-version>`.
