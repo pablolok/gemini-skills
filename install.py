@@ -169,6 +169,16 @@ class SkillInstaller:
 
         return updates
 
+    def notify_updates(self, updates: typing.List[typing.Dict[str, str]]) -> None:
+        """Log a notification message for available updates."""
+        if not updates:
+            return
+
+        self.logger.info("\n[UPDATE AVAILABLE] Newer versions of some skills are available:")
+        for update in updates:
+            self.logger.info(f"  - {update['name']}: {update['installed']} -> {update['latest']}")
+        self.logger.info("\nRun 'python install.py' or 'python check_updates.py' to update.\n")
+
     def install_skill(self, skill_rel_path: str, target_project_path: str) -> bool:
         """Install a skill by copying files to the target project."""
         source_path = os.path.join(self.published_dir, skill_rel_path)

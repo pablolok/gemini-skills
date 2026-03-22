@@ -28,11 +28,11 @@
 
 ## Phase 4: Integration & Notifications
 
-- [ ] Task: Integrate update checks into the `skill-manager` skill.
-- [ ] Task: Create a standalone `check_updates.py` script for manual update checks.
-- [ ] Task: Implement the logic to notify the user when updates are available.
-- [ ] Task: Integrate the update check into the Gemini startup process (if possible, or provide a recommended command).
-- [ ] Task: Write integration tests for the full update notification flow.
+- [x] Task: Integrate update checks into the `skill-manager` skill. [e91827b]
+- [x] Task: Create a standalone `check_updates.py` script for manual update checks. [2cd9292]
+- [x] Task: Implement the logic to notify the user when updates are available. [2cd9292]
+- [x] Task: Integrate the update check into the Gemini startup process (if possible, or provide a recommended command). [e91827b]
+- [~] Task: Write integration tests for the full update notification flow.
 - [ ] Task: Conductor - User Manual Verification 'Phase 4: Integration & Notifications' (Protocol in workflow.md)
 
 ## Phase 5: Final Review & Documentation
