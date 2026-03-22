@@ -20,15 +20,29 @@ class SkillSelector:
         """Initialize with an ask_user-compatible function."""
         self.ask_user = ask_user_fn
 
-    def select_skills(self, available_skills: typing.Dict[str, typing.List[str]]) -> typing.List[str]:
-        """Prompt user to select skills from available categories."""
+    def select_skills(
+        self,
+        available_skills: typing.Dict[str, typing.List[str]],
+        installed_skills: typing.Optional[typing.Dict[str, str]] = None,
+        updates: typing.Optional[typing.List[typing.Dict[str, str]]] = None
+    ) -> typing.List[typing.List[str]]:
+        """Prompt user to select skills from available categories with status info."""
         options: typing.List[typing.Dict[str, str]] = []
+        installed = installed_skills or {}
+        update_names = {u["name"] for u in (updates or [])}
+
         for category, skills in available_skills.items():
             for skill in skills:
                 label = f"{category}/{skill}"
+                status = ""
+                if skill in update_names:
+                    status = " [UPDATE AVAILABLE]"
+                elif skill in installed:
+                    status = f" [Installed v{installed[skill]}]"
+                
                 options.append({
                     "label": label,
-                    "description": f"Official {category} skill: {skill}"
+                    "description": f"Official {category} skill: {skill}{status}"
                 })
 
         if not options:
@@ -37,7 +51,7 @@ class SkillSelector:
         response = self.ask_user({
             "questions": [{
                 "header": "Select Skills",
-                "question": "Which skills would you like to install in your project?",
+                "question": "Which skills would you like to install or update?",
                 "type": "choice",
                 "multiSelect": True,
                 "options": options
@@ -190,8 +204,8 @@ class SkillInstaller:
         
         if os.path.exists(target_path):
             self.logger.info(f"Skill '{skill_name}' already exists. Overwriting...")
-            # Use os.path.islink which handles symlinks and junctions since Python 3.8
-            if os.path.islink(target_path):
+            # Use a robust check for junctions and symlinks
+            if self._is_link_or_junction(target_path):
                 self._remove_junction(target_path)
             # shutil.copytree with dirs_exist_ok=True will handle existing directories
 
@@ -209,6 +223,22 @@ class SkillInstaller:
         except Exception as e:
             self.logger.error(f"Failed to install '{skill_name}': {e}")
             return False
+
+    def _is_link_or_junction(self, path: str) -> bool:
+        """Check if a path is a symlink or a Windows directory junction."""
+        if os.path.islink(path):
+            return True
+        
+        if sys.platform == "win32":
+            # On some Windows/Python versions, islink doesn't catch junctions.
+            # Check for FILE_ATTRIBUTE_REPARSE_POINT (0x400)
+            try:
+                import ctypes
+                attrs = ctypes.windll.kernel32.GetFileAttributesW(path)
+                return attrs != -1 and bool(attrs & 0x400)
+            except Exception:
+                return False
+        return False
 
     def _remove_junction(self, path: str) -> None:
         """Remove a directory junction or symlink."""
@@ -293,8 +323,18 @@ def main() -> None:
         logger.info("No skills found to install.")
         return
 
+    # Gather installation status for the selector
+    updates = installer.check_for_updates(target_project)
+    installed_skills = {}
+    target_skills_dir = os.path.join(target_project, ".gemini", "skills")
+    if os.path.exists(target_skills_dir):
+        for skill_name in os.listdir(target_skills_dir):
+            if os.path.isdir(os.path.join(target_skills_dir, skill_name)):
+                meta = installer.get_installed_skill_metadata(skill_name, target_project)
+                installed_skills[skill_name] = meta.get("version", "unknown") if meta else "unknown"
+
     selector = SkillSelector(manual_ask_user)
-    selected = selector.select_skills(available)
+    selected = selector.select_skills(available, installed_skills, updates)
     
     for skill_path in selected:
         installer.install_skill(skill_path, target_project)

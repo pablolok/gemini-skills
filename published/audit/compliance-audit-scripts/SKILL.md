@@ -9,9 +9,19 @@ When you invoke this skill, you must perform a strict, holistic audit of the scr
 
 ## Subagent Delegation
 
-You MUST invoke the `generalist` sub-agent to review the specific files modified.
+You MUST apply a quota-aware routing decision before delegating review work.
 
-Provide the sub-agent with the following prompt:
+If the `subagent-balancer` skill is available, use it first.
+
+If it is not available, apply this inline policy:
+
+1. If the modified file set is small and the audit can be completed reliably in the current agent, keep the review local.
+2. If delegation is justified, prefer a single lightweight review sub-agent for a bounded file set.
+3. Use a stronger sub-agent only for broad, ambiguous, or high-risk audits.
+4. If Gemini quota is constrained, reset is far away, or the preferred model is already near limit, do not delegate. Perform the audit locally instead.
+5. Never chain multiple review sub-agents for this audit unless the user explicitly requests a multi-agent review.
+
+If you choose delegation, provide the sub-agent with the following prompt:
 
 ```text
 Please review the recently modified files in this project and verify strict compliance with the following Engineering Principles:

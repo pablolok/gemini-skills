@@ -3,6 +3,7 @@
 import os
 import sys
 import logging
+import typing
 from install import SkillInstaller, manual_ask_user
 
 def main(ask_user_fn: typing.Optional[typing.Callable] = None) -> None:

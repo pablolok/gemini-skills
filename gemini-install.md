@@ -13,9 +13,11 @@ When a user asks you to install skills from this repository, you should:
     Use the `SkillInstaller` and `SkillSelector` classes from `./install.py` in this repository.
 
 3.  **Process**:
-    -   Scan the `./published/` directory for available skills.
-    -   Prompt the user (via `ask_user`) to select the skills they want to install.
-    -   Perform the installation using `installer.install_skill(skill_path, target_project_path)`.
+    -   Check for updates: Use `installer.check_for_updates(target_project_path)` to see if any installed skills have newer versions.
+    -   Notify user: If updates are available, inform the user and ask if they'd like to update.
+    -   Scan for new skills: Scan the `./published/` directory for available skills.
+    -   Prompt the user (via `ask_user`) to select the skills they want to install or update.
+    -   Perform the installation/update using `installer.install_skill(skill_path, target_project_path)`.
     -   `target_project_path` should be the current working directory where you were first activated.
 
 4.  **Post-Install**:

@@ -1,5 +1,5 @@
 {
   "name": "compliance-audit-c#",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A specialized compliance audit for C# and .NET projects. Enforces architectural patterns like TDD, Dependency Injection, and the Repository Pattern for .cs files."
 }

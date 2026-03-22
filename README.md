@@ -43,20 +43,31 @@ If you are using the Gemini CLI, you can automate the entire installation proces
 2.  **Give the Command**: Copy and paste the following prompt to Gemini (replace `<path>` with the absolute path to where you cloned this repository):
     > *"Read the installation instructions at `<path>/gemini-install.md` and help me install the official skills."*
 3.  **Interactive Selection**: Gemini will read the instructions, scan the repository, and prompt you to select the skills you want.
-4.  **Auto-Integration**: Gemini will handle the junctions and any `post_install.py` hooks automatically.
+4.  **Auto-Integration**: Gemini will physically copy the skill files into your project and execute any `post_install.py` hooks automatically.
+
+> [!TIP]
+> **Versioning & Updates**: All skills now include version tracking. You can check for updates by running `python <path>/check_updates.py` from your project's root.
 
 > [!IMPORTANT]
 > **Workspace Boundaries**: Gemini may refuse to read files outside of your current project's workspace for security reasons. If you encounter this, you can use the `/directory add <path>` command to include the skills folder in your session, or use the **Manual Installation** method below.
 
 ## 🛠️ Manual Installation
 
-If you prefer to install skills manually from your terminal, run this command from your project's root:
+If you prefer to install or update skills manually from your terminal, run this command from your project's root:
 
 ```bash
 python <path-to-gemini-skills>/install.py
 ```
 
-The installer will guide you through the same interactive process.
+The installer will guide you through the interactive selection and handle copying/updating automatically.
+
+### 🔄 Checking for Updates
+
+To check for newer versions of installed skills without running the full installer:
+
+```bash
+python <path-to-gemini-skills>/check_updates.py
+```
 
 ---
 Created by [pablolok](https://github.com/pablolok)

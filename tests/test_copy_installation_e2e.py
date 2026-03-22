@@ -77,5 +77,43 @@ class TestCopyInstallationE2E(unittest.TestCase):
             content = f.read()
         self.assertEqual(content, "# Updated Test Skill")
 
+    @unittest.skipUnless(os.name == "nt", "Windows junction tests only run on Windows")
+    def test_transition_from_junction_to_copy(self) -> None:
+        """Verify that a legacy junction is correctly replaced by a copy."""
+        skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
+        target_skills_dir = os.path.join(self.project_dir, ".gemini", "skills")
+        os.makedirs(target_skills_dir, exist_ok=True)
+        target_path = os.path.join(target_skills_dir, self.skill_name)
+        
+        # Create a real junction manually
+        import subprocess
+        res = subprocess.run(
+            ["cmd", "/c", "mklink", "/J", target_path, os.path.abspath(self.skill_src_path)],
+            check=True, capture_output=True, text=True
+        )
+        print(f"\nmklink output: {res.stdout}")
+        
+        # Verify it IS a link
+        is_link = os.path.islink(target_path)
+        print(f"Is link? {is_link}")
+        
+        # Check attributes
+        import ctypes
+        attrs = ctypes.windll.kernel32.GetFileAttributesW(target_path)
+        print(f"Attributes: {attrs}")
+        # FILE_ATTRIBUTE_REPARSE_POINT = 0x400
+        print(f"Is reparse point? {bool(attrs & 0x400)}")
+        
+        self.assertTrue(is_link or bool(attrs & 0x400))
+        
+        # Install via our tool
+        success = self.installer.install_skill(skill_rel_path, self.project_dir)
+        self.assertTrue(success)
+        
+        # Verify it IS NO LONGER a link
+        self.assertFalse(os.path.islink(target_path))
+        self.assertTrue(os.path.isdir(target_path))
+        self.assertTrue(os.path.isfile(os.path.join(target_path, "SKILL.md")))
+
 if __name__ == "__main__":
     unittest.main()

@@ -37,7 +37,7 @@
 
 ## Phase 5: Final Review & Documentation
 
-- [ ] Task: Verify that the transition from junctions to copying works correctly in existing projects.
-- [ ] Task: Update the project documentation (e.g., `README.md`) to reflect the new installation method and versioning system.
-- [ ] Task: Perform a final end-to-end test of the skill installation and update process.
-- [ ] Task: Conductor - User Manual Verification 'Phase 5: Final Review & Documentation' (Protocol in workflow.md)
+- [x] Task: Verify that the transition from junctions to copying works correctly in existing projects. [a65f708]
+- [x] Task: Update the project documentation (e.g., `README.md`) to reflect the new installation method and versioning system. [607f5eb]
+- [x] Task: Perform a final end-to-end test of the skill installation and update process. [607f5eb]
+- [x] Task: Conductor - User Manual Verification 'Phase 5: Final Review & Documentation' (Protocol in workflow.md) [checkpoint: a65f708]
