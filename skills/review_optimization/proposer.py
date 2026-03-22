@@ -6,6 +6,7 @@ history and propose the creation of new specialized skills.
 
 import collections
 import logging
+import os
 import typing
 
 
@@ -79,13 +80,38 @@ class SkillProposer:
                     continue
                 
                 self._logger.info(f"Detected recurring pattern: '{cmd}' ({count} times)")
-                self._ask_user_fn([{
+                response = self._ask_user_fn([{
                     "header": "New Skill Proposal",
                     "question": (
                         f"I detected a recurring pattern: you ran '{cmd}' "
-                        f"{count} times.\nWould you like to create a new "
-                        "specialized skill to automate this process?"
+                        f"{count} times.\nWhere would you like to save this "
+                        "new specialized skill?"
                     ),
-                    "type": "yesno"
+                    "type": "choice",
+                    "options": [
+                        {"label": "Global", "description": "Save to the central gemini-skills repository."},
+                        {"label": "Local", "description": "Save to the current project's .gemini/skills/ directory."},
+                        {"label": "Custom Path", "description": "Prompt for a specific directory path."},
+                        {"label": "Skip", "description": "Do not create a skill at this time."}
+                    ]
                 }])
+                
+                selection = response.get("New Skill Proposal")
+                
+                if selection == "Custom Path":
+                    path_response = self._ask_user_fn([{
+                        "header": "Skill Path",
+                        "question": "Please enter the absolute or relative path for the new skill:",
+                        "type": "text",
+                        "placeholder": "/path/to/my/skills"
+                    }])
+                    custom_path = path_response.get("Skill Path")
+                    if custom_path:
+                        os.makedirs(custom_path, exist_ok=True)
+                        self._logger.info(f"Created custom skill directory: {custom_path}")
+                elif selection == "Local":
+                    local_path = os.path.join(".gemini", "skills")
+                    os.makedirs(local_path, exist_ok=True)
+                    self._logger.info(f"Ensured local skill directory: {local_path}")
+                
                 self._proposed_cmds.add(cmd)

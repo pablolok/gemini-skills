@@ -19,7 +19,13 @@ class TestReviewOptimizationE2E(unittest.TestCase):
         """Set up test fixtures."""
         self.logger: logging.Logger = logging.getLogger("test_e2e")
         self.mock_ask_user: MagicMock = MagicMock()
-        self.mock_ask_user.return_value = {"answers": {"0": "yes"}}
+        
+        # Default mock response for generic questions (yesno/text)
+        # For the new choice question, it needs to return a dict with the header key
+        self.mock_ask_user.return_value = {
+            "answers": {"0": "yes"},
+            "New Skill Proposal": "Skip" # Default to skip for E2E
+        }
 
         self.analyzer: ExecutionAnalyzer = ExecutionAnalyzer(self.logger)
         self.auditor: EfficiencyAuditor = EfficiencyAuditor(self.logger)

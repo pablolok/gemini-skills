@@ -29,15 +29,65 @@ class TestSkillProposer(unittest.TestCase):
             {"type": "shell", "command": "./my_custom_task.sh"}
         ]
         
-        # This should call ask_user once to propose a new skill
+        # Mock ask_user response for the first question
+        self.mock_ask_user.return_value = {"New Skill Proposal": "yes"}
+
+        # This should call ask_user to propose a new skill with choice options
         skill_proposer.analyze_for_new_skills(repetitive_actions)
         
         self.assertTrue(self.mock_ask_user.called)
-        call_args: typing.List[typing.Dict[str, typing.Any]] = (
-            self.mock_ask_user.call_args[0][0]
+        
+        # Check first call (proposal)
+        first_call_args: typing.List[typing.Dict[str, typing.Any]] = (
+            self.mock_ask_user.call_args_list[0][0][0]
         )
-        self.assertIn("recurring pattern", call_args[0]["question"].lower())
-        self.assertIn("./my_custom_task.sh", call_args[0]["question"])
+        self.assertEqual(first_call_args[0]["type"], "choice")
+        self.assertIn("recurring pattern", first_call_args[0]["question"].lower())
+        
+        options = [opt["label"] for opt in first_call_args[0]["options"]]
+        self.assertIn("Global", options)
+        self.assertIn("Local", options)
+        self.assertIn("Custom Path", options)
+
+    def test_custom_path_auto_creation(self) -> None:
+        """Verify that selecting Custom Path prompts for a path and creates it."""
+        import os
+        import tempfile
+        import shutil
+
+        # Create a temporary directory to act as a custom path
+        temp_dir = tempfile.mkdtemp()
+        custom_path = os.path.join(temp_dir, "new", "skill", "path")
+        
+        try:
+            skill_proposer: proposer.SkillProposer = proposer.SkillProposer(
+                self.mock_ask_user, self.logger
+            )
+            
+            repetitive_actions: typing.List[typing.Dict[str, typing.Any]] = [
+                {"type": "shell", "command": "./task.sh"},
+                {"type": "shell", "command": "./task.sh"},
+                {"type": "shell", "command": "./task.sh"}
+            ]
+
+            # Mock responses: 
+            # 1. Selection = Custom Path
+            # 2. Path Input = custom_path
+            self.mock_ask_user.side_effect = [
+                {"New Skill Proposal": "Custom Path"},
+                {"Skill Path": custom_path}
+            ]
+
+            skill_proposer.analyze_for_new_skills(repetitive_actions)
+            
+            # Verify ask_user was called twice
+            self.assertEqual(self.mock_ask_user.call_count, 2)
+            
+            # Verify directory was created
+            self.assertTrue(os.path.exists(custom_path))
+            
+        finally:
+            shutil.rmtree(temp_dir)
 
     def test_idempotency_same_session(self) -> None:
         """Verify that the same command is not proposed twice."""
