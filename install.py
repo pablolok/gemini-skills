@@ -100,10 +100,35 @@ class SkillInstaller:
         try:
             self._create_junction(os.path.abspath(source_path), os.path.abspath(target_path))
             print(f"Successfully installed '{skill_name}'.")
+            
+            # Check for post-install hook
+            hook_path = os.path.join(source_path, "post_install.py")
+            if os.path.exists(hook_path):
+                self._run_post_install_hook(hook_path, target_project_path)
+                
             return True
         except Exception as e:
             print(f"Failed to install '{skill_name}': {e}")
             return False
+
+    def _run_post_install_hook(self, hook_path: str, target_project_path: str):
+        """Execute the post_install.py script for a skill."""
+        print(f"Running post-install hook: {os.path.basename(hook_path)}...")
+        try:
+            # Pass the target project path as an argument to the hook
+            subprocess.run(
+                [sys.executable, os.path.abspath(hook_path), os.path.abspath(target_project_path)],
+                check=True,
+                capture_output=True,
+                text=True
+            )
+            print("Post-install hook completed successfully.")
+        except subprocess.CalledProcessError as e:
+            print(f"Post-install hook failed with exit code {e.returncode}")
+            if e.stderr:
+                print(f"Error: {e.stderr.strip()}")
+        except Exception as e:
+            print(f"Error running post-install hook: {e}")
 
     def _create_junction(self, source: str, target: str):
         """Platform-independent junction/symlink creation."""

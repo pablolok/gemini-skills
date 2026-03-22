@@ -1,6 +1,7 @@
 """Tests for the SkillSelector and SkillInstaller classes."""
 
 import os
+import sys
 import unittest
 from unittest.mock import MagicMock, patch
 import json
@@ -81,8 +82,9 @@ class TestSkillInstaller(unittest.TestCase):
             )
 
     @patch("subprocess.run")
+    @patch("os.makedirs")
     @patch("os.path.exists")
-    def test_run_post_install_hook(self, mock_exists, mock_run) -> None:
+    def test_run_post_install_hook(self, mock_exists, mock_makedirs, mock_run) -> None:
         """Verify that the installer executes post_install.py if it exists."""
         if SkillInstaller is None:
             self.skipTest("SkillInstaller not yet implemented")
@@ -92,10 +94,13 @@ class TestSkillInstaller(unittest.TestCase):
         target_project = "C:/temp/project"
         skill_path = "audit/review-optimization"
         
-        # Scenario: post_install.py exists
+        # Scenario: post_install.py exists, but target skill dir does not
         def side_effect(path):
             if "post_install.py" in path:
                 return True
+            if ".gemini" in path and "skills" in path:
+                # This covers target_path check
+                return False
             return True
         mock_exists.side_effect = side_effect
         
