@@ -1,0 +1,29 @@
+# Implementation Plan: Subagent Balancer & Skill Manager Review
+
+## Phase 1: Setup and Context Verification
+- [ ] Task: Review existing `install.py` logic for status rendering.
+- [ ] Task: Review the current `skills/subagent-balancer/SKILL.md` content and prompt.
+- [ ] Task: Review the current `skills/skill-manager/SKILL.md` to identify where to add new documentation.
+- [ ] Task: Conductor - User Manual Verification 'Phase 1: Setup and Context Verification' (Protocol in workflow.md)
+
+## Phase 2: Update `install.py` Version Display
+- [ ] Task: Write test/script to verify the status string formatting in `install.py`.
+- [ ] Task: Implement change in `SkillSelector.select_skills` to format update strings as `[Update Available] (vX -> vY)`.
+- [ ] Task: Run tests to verify the UI string formatting.
+- [ ] Task: Conductor - User Manual Verification 'Phase 2: Update `install.py` Version Display' (Protocol in workflow.md)
+
+## Phase 3: Enhance `subagent-balancer` Skill
+- [ ] Task: Update the instructions in `subagent-balancer` SKILL.md to explicitly route tasks based on token limits and context awareness.
+- [ ] Task: Enhance the prompt instructions for choosing between generalist and specialized subagents.
+- [ ] Task: Perform general review, tweaking phrasing and formatting for clarity and optimizing logic.
+- [ ] Task: Conductor - User Manual Verification 'Phase 3: Enhance `subagent-balancer` Skill' (Protocol in workflow.md)
+
+## Phase 4: Update `skill-manager` Documentation
+- [ ] Task: Update `skills/skill-manager/SKILL.md` to include documentation on the `post_install.py` hook.
+- [ ] Task: Update `skills/skill-manager/SKILL.md` to explain how to update skills and check for updates.
+- [ ] Task: Conductor - User Manual Verification 'Phase 4: Update `skill-manager` Documentation' (Protocol in workflow.md)
+
+## Phase 5: Final Integration and Testing
+- [ ] Task: Run the `install.py` script locally to verify visual output of updates.
+- [ ] Task: Verify the updated `subagent-balancer` skill prompt syntax.
+- [ ] Task: Conductor - User Manual Verification 'Phase 5: Final Integration and Testing' (Protocol in workflow.md)
