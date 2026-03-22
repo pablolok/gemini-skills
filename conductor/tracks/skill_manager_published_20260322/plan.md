@@ -21,9 +21,10 @@
 - [x] **Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)** [20e1618]
 
 ## Phase 6: Skill Publisher Utility
-- [ ] **Task: Implement - `skill-publisher` skill**
-    - [ ] Create `skills/skill-publisher/SKILL.md` to automate the syncing between `skills/` and `published/`.
-- [ ] **Task: Conductor - User Manual Verification 'Phase 6' (Protocol in workflow.md)**
+- [x] **Task: Implement - `skill-publisher` skill** [881e7c0]
+    - [x] Create `skills/skill-publisher/SKILL.md` to automate the syncing between `skills/` and `published/`.
+- [~] **Task: Conductor - User Manual Verification 'Phase 6' (Protocol in workflow.md)**
+
 
 
 
