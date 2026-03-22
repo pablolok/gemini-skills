@@ -21,7 +21,7 @@
 
 ## Phase 3: Version Comparison & Update Check Logic
 
-- [ ] Task: Implement a `VersionComparator` class to handle SemVer comparison logic.
+- [x] Task: Implement a `VersionComparator` class to handle SemVer comparison logic. [5161546]
 - [ ] Task: Implement the logic to check for updates by comparing the installed version in a project against the version in the `skills/` or `published/` directory.
 - [ ] Task: Write tests for the `VersionComparator` and update check logic.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Version Comparison & Update Check Logic' (Protocol in workflow.md)
