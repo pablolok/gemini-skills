@@ -13,9 +13,9 @@
 - [x] **Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)** [3c47f79]
 
 ## Phase 3: Post-Installation Hooks & Integration
-- [ ] **Task: Write TDD - Test `post_install.py` execution & integration logic**
-- [ ] **Task: Implement - Installer hook runner**
-    - [ ] Logic to execute `post_install.py` within each skill after junctioning.
+- [x] **Task: Write TDD - Test `post_install.py` execution & integration logic** [75390e9]
+- [~] **Task: Implement - Installer hook runner**
+    - [~] Logic to execute `post_install.py` within each skill after junctioning.
 - [ ] **Task: Implement - Sample `post_install.py` for 'Review Optimization' skill**
     - [ ] Logic to detect `conductor/workflow.md` and insert the audit protocol.
 - [ ] **Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)**
