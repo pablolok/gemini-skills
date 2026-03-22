@@ -11,12 +11,12 @@
 
 ## Phase 2: Copy Installation Implementation
 
-- [ ] Task: Modify `install.py` to replace junction creation with file copying for skill installation.
-- [ ] Task: Implement the file-copying logic focusing on:
-    - [ ] Recursively copying files.
-    - [ ] Overwriting existing files in the target directory.
-    - [ ] Maintaining the directory structure.
-- [ ] Task: Write integration tests to confirm that skills are correctly installed by copying files.
+- [x] Task: Modify `install.py` to replace junction creation with file copying for skill installation. [e7bcf56]
+- [x] Task: Implement the file-copying logic focusing on: [e7bcf56]
+    - [x] Recursively copying files.
+    - [x] Overwriting existing files in the target directory.
+    - [x] Maintaining the directory structure.
+- [x] Task: Write integration tests to confirm that skills are correctly installed by copying files. [012b8e4]
 - [ ] Task: Conductor - User Manual Verification 'Phase 2: Copy Installation Implementation' (Protocol in workflow.md)
 
 ## Phase 3: Version Comparison & Update Check Logic
