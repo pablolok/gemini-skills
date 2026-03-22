@@ -11,3 +11,8 @@ This file tracks all major tracks for the project. Each track has its own detail
 - [ ] **Track: add the skill dependency when installing skills, for example audit-c# and audit-scripts are dependant on the orchestrator to work**
 *Link: [./tracks/skill_dependencies_20260322/](./tracks/skill_dependencies_20260322/)*\
 \
+
+---
+
+- [ ] **Track: Review subagent-balancer skill to improve task routing and update install.py to show latest version for updates.**
+*Link: [./tracks/subagent_balancer_update_20260322/](./tracks/subagent_balancer_update_20260322/)*
