@@ -13,7 +13,8 @@
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Update `install.py` Version Display' (Protocol in workflow.md)
 
 ## Phase 3: Enhance `subagent-balancer` Skill
-- [~] Task: Update the instructions in `subagent-balancer` SKILL.md to explicitly route tasks based on token limits and context awareness.
+- [x] Task: Update the instructions in `subagent-balancer` SKILL.md to explicitly route tasks based on token limits and context awareness.
+- [~] Task: Enhance the prompt instructions for choosing between generalist and specialized subagents.
 - [ ] Task: Enhance the prompt instructions for choosing between generalist and specialized subagents.
 - [ ] Task: Perform general review, tweaking phrasing and formatting for clarity and optimizing logic.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Enhance `subagent-balancer` Skill' (Protocol in workflow.md)
