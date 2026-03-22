@@ -80,5 +80,35 @@ class TestSkillInstaller(unittest.TestCase):
                 os.path.abspath(expected_target)
             )
 
+    @patch("subprocess.run")
+    @patch("os.path.exists")
+    def test_run_post_install_hook(self, mock_exists, mock_run) -> None:
+        """Verify that the installer executes post_install.py if it exists."""
+        if SkillInstaller is None:
+            self.skipTest("SkillInstaller not yet implemented")
+            
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+        
+        target_project = "C:/temp/project"
+        skill_path = "audit/review-optimization"
+        
+        # Scenario: post_install.py exists
+        def side_effect(path):
+            if "post_install.py" in path:
+                return True
+            return True
+        mock_exists.side_effect = side_effect
+        
+        # Mock _create_junction to do nothing
+        with patch.object(installer, '_create_junction'):
+            installer.install_skill(skill_path, target_project)
+            
+            # Should have called subprocess.run with python and the hook path
+            hook_path = os.path.abspath(os.path.join(self.published_dir, skill_path, "post_install.py"))
+            mock_run.assert_called_once()
+            args, kwargs = mock_run.call_args
+            self.assertIn(sys.executable, args[0])
+            self.assertIn(hook_path, args[0])
+
 if __name__ == "__main__":
     unittest.main()
