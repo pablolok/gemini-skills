@@ -35,7 +35,7 @@
 - [x] Task: Write integration tests for the full update notification flow. [08bed55]
 - [x] Task: Conductor - User Manual Verification 'Phase 4: Integration & Notifications' (Protocol in workflow.md) [checkpoint: 08bed55]
 
-## Phase 5: Final Review & Documentation
+## Phase 5: Final Review & Documentation [checkpoint: afd0679]
 
 - [x] Task: Verify that the transition from junctions to copying works correctly in existing projects. [a65f708]
 - [x] Task: Update the project documentation (e.g., `README.md`) to reflect the new installation method and versioning system. [607f5eb]
