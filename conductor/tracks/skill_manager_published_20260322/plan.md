@@ -2,7 +2,7 @@
 
 ## Phase 1: 'Published' Folder & Categorization
 - [x] **Task: Setup Track Artifacts (metadata, index, spec, plan)** [54481bd]
-- [ ] **Task: Create `published/` directory structure**
+- [x] **Task: Create `published/` directory structure** [e289148]
 - [ ] **Task: Populate `published/` with existing stable skills**
 - [ ] **Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)**
 
