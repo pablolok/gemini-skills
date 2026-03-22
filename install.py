@@ -29,14 +29,17 @@ class SkillSelector:
         """Prompt user to select skills from available categories with status info."""
         options: typing.List[typing.Dict[str, str]] = []
         installed = installed_skills or {}
-        update_names = {u["name"] for u in (updates or [])}
+        
+        # Create a mapping of update name to its update info dictionary
+        update_map = {u["name"]: u for u in (updates or [])}
 
         for category, skills in available_skills.items():
             for skill in skills:
                 label = f"{category}/{skill}"
                 status = ""
-                if skill in update_names:
-                    status = " [UPDATE AVAILABLE]"
+                if skill in update_map:
+                    update_info = update_map[skill]
+                    status = f" [Update Available] ({update_info['installed']} -> {update_info['latest']})"
                 elif skill in installed:
                     status = f" [Installed v{installed[skill]}]"
                 
