@@ -6,7 +6,7 @@
 - [x] Task: Update the `metadata.json` schema to include the `version` field. [b93fba9]
 - [x] Task: Add a `version` field to all skills in the `skills/` and `published/` directories (e.g., `1.0.0`). [a19b464]
 - [x] Task: Write tests to verify that the version fields are correctly parsed. [33ddbac]
-- [ ] Task: Update `skill-publisher` to automate version increments and changelog updates during publication.
+- [x] Task: Update `skill-publisher` to automate version increments and changelog updates during publication. [3b7adc1]
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Metadata Update & Initial Versioning' (Protocol in workflow.md) [checkpoint: 39352de]
 
 ## Phase 2: Copy Installation Implementation
@@ -17,7 +17,7 @@
     - [x] Overwriting existing files in the target directory.
     - [x] Maintaining the directory structure.
 - [x] Task: Write integration tests to confirm that skills are correctly installed by copying files. [012b8e4]
-- [ ] Task: Conductor - User Manual Verification 'Phase 2: Copy Installation Implementation' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Copy Installation Implementation' (Protocol in workflow.md) [checkpoint: cf6abc7]
 
 ## Phase 3: Version Comparison & Update Check Logic
 

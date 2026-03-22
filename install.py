@@ -14,6 +14,8 @@ import shutil
 class SkillSelector:
     """Handle skill selection via interactive prompt."""
 
+    ask_user: typing.Callable
+
     def __init__(self, ask_user_fn: typing.Callable) -> None:
         """Initialize with an ask_user-compatible function."""
         self.ask_user = ask_user_fn
@@ -42,18 +44,26 @@ class SkillSelector:
             }]
         })
 
-        # The mock in tests might return the direct list, or the standard tool response
-        if "answers" in response:
-            return response["answers"]["0"]  # Standard ask_user structure
+        # Parse the standard tool response structure
+        if isinstance(response, dict) and "answers" in response:
+            return response["answers"]["0"]
         
-        # Fallback for simplified mock response in tests
-        return response.get("Select Skills", [])
+        return []
 
 
 class SkillInstaller:
     """Handle directory scanning and junction creation logic."""
 
-    def __init__(self, published_dir: str, ask_user_fn: typing.Callable, logger: typing.Optional[logging.Logger] = None) -> None:
+    published_dir: str
+    ask_user: typing.Callable
+    logger: logging.Logger
+
+    def __init__(
+        self,
+        published_dir: str,
+        ask_user_fn: typing.Callable,
+        logger: typing.Optional[logging.Logger] = None
+    ) -> None:
         """Initialize with paths and tools."""
         self.published_dir = os.path.abspath(published_dir)
         self.ask_user = ask_user_fn
@@ -133,12 +143,13 @@ class SkillInstaller:
         if sys.platform != "win32":
             return False
         
+        abs_path = os.path.abspath(path)
+        parent_dir = os.path.dirname(abs_path)
+        
         # On Windows, junctions are not always detected by islink
-        # We can use the 'dir' command or check for specific attributes
-        # For simplicity in this script, we'll try to detect it via subprocess
         try:
-            output = subprocess.check_output(["cmd", "/c", "dir", os.path.dirname(path)], text=True)
-            return f"<JUNCTION>     {os.path.basename(path)}" in output
+            output = subprocess.check_output(["cmd", "/c", "dir", parent_dir], text=True)
+            return f"<JUNCTION>     {os.path.basename(abs_path)}" in output
         except Exception:
             return False
 
@@ -175,19 +186,32 @@ class SkillInstaller:
 
 
 def manual_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, typing.Any]:
-    """Fallback interactive prompt for manual execution."""
+    """Provide a fallback interactive prompt for manual execution."""
     question = config["questions"][0]
+    is_multi = question.get("multiSelect", False)
+    
     print(f"\n{question['question']}")
+    if is_multi:
+        print("(You can select multiple options by separating numbers with spaces)")
+    
     for i, opt in enumerate(question['options']):
         print(f"{i}: {opt['label']} - {opt['description']}")
     
-    selection = input("\nEnter numbers separated by space: ")
-    indices: typing.List[int] = [int(x.strip()) for x in selection.split() if x.strip().isdigit()]
+    selection = input("\nEnter choice(s): ")
+    indices: typing.List[int] = [
+        int(x.strip()) for x in selection.split() 
+        if x.strip().isdigit() and 0 <= int(x.strip()) < len(question['options'])
+    ]
+    
+    if not is_multi and indices:
+        indices = [indices[0]]
+        
     return {"answers": {"0": [question['options'][i]['label'] for i in indices]}}
 
 
 def main() -> None:
-    """CLI entry point for manual or agent execution."""
+    """Run the CLI entry point for manual or agent execution."""
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger = logging.getLogger("skill_installer")
     logger.info("=== Gemini Skill Installer ===")
     
@@ -199,6 +223,11 @@ def main() -> None:
         logger.error(f"Published skills directory not found: {published_dir}")
         sys.exit(1)
     
+    target_project = os.getcwd()
+    if not os.access(target_project, os.W_OK):
+        logger.error(f"Target project directory is not writable: {target_project}")
+        sys.exit(1)
+
     # Run the installation flow
     installer = SkillInstaller(published_dir, manual_ask_user, logger)
     available = installer.get_available_skills()
@@ -210,7 +239,6 @@ def main() -> None:
     selector = SkillSelector(manual_ask_user)
     selected = selector.select_skills(available)
     
-    target_project = os.getcwd()
     for skill_path in selected:
         installer.install_skill(skill_path, target_project)
 

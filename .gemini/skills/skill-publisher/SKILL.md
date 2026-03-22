@@ -31,5 +31,12 @@ When a user asks you to "publish" or "sync" a skill, follow these steps:
 -   **Step 3.3**: Verify that all file names remain consistent (e.g., maintain hyphens for folders).
 
 ### 4. Finalize
--   Update any global metadata if required.
--   Commit the changes with a clear message: `feat(published): sync skill '<skill-name>' to version <date>`.
+-   **Step 4.1: Versioning**:
+    -   Compare the version in `skills/<skill-name>/metadata.json` with `published/<category>/<skill-name>/metadata.json`.
+    -   If changes are detected, increment the version in the source `metadata.json` (use SemVer: patch for fixes, minor for features).
+    -   Ensure the destination `metadata.json` matches the new version.
+-   **Step 4.2: Changelog**:
+    -   If a `CHANGELOG.md` exists in the skill folder, append the current date and version with a summary of changes.
+    -   If it doesn't exist, create one.
+-   **Step 4.3: Global Metadata**: Update any global metadata if required.
+-   **Step 4.4: Commit**: Commit the changes with a clear message: `feat(published): sync skill '<skill-name>' to version <new-version>`.

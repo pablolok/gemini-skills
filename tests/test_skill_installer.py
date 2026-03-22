@@ -48,7 +48,7 @@ class TestSkillInstaller(unittest.TestCase):
         
         # Mock user selecting skill1 and skill3
         self.mock_ask_user.return_value = {
-            "Select Skills": ["audit/skill1", "workflow/skill3"]
+            "answers": {"0": ["audit/skill1", "workflow/skill3"]}
         }
         
         selected = selector.select_skills(available_skills)
