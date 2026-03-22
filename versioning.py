@@ -21,9 +21,16 @@ class VersionComparator:
         """Return True if latest is newer than current."""
         try:
             curr_v = cls.parse_version(current)
+        except ValueError:
+            # If current is invalid, assume latest is newer if it is valid
+            try:
+                cls.parse_version(latest)
+                return True
+            except ValueError:
+                return False
+
+        try:
             late_v = cls.parse_version(latest)
             return late_v > curr_v
         except ValueError:
-            # If one is invalid, we can't reliably compare.
-            # For safety, assume not newer if current is invalid, or newer if latest is valid and current is not.
             return False

@@ -57,17 +57,25 @@ class SkillInstaller:
     published_dir: str
     ask_user: typing.Callable
     logger: logging.Logger
+    version_comparator: typing.Any
 
     def __init__(
         self,
         published_dir: str,
         ask_user_fn: typing.Callable,
-        logger: typing.Optional[logging.Logger] = None
+        logger: typing.Optional[logging.Logger] = None,
+        version_comparator: typing.Any = None
     ) -> None:
         """Initialize with paths and tools."""
         self.published_dir = os.path.abspath(published_dir)
         self.ask_user = ask_user_fn
         self.logger = logger or logging.getLogger("skill_installer")
+        
+        if version_comparator is None:
+            from versioning import VersionComparator
+            self.version_comparator = VersionComparator
+        else:
+            self.version_comparator = version_comparator
 
     def get_available_skills(self) -> typing.Dict[str, typing.List[str]]:
         """Scan the published directory for categories and skills."""
@@ -151,7 +159,7 @@ class SkillInstaller:
             if not latest_meta or "version" not in latest_meta:
                 continue
 
-            if VersionComparator.is_newer(installed_meta["version"], latest_meta["version"]):
+            if self.version_comparator.is_newer(installed_meta["version"], latest_meta["version"]):
                 updates.append({
                     "name": skill_name,
                     "installed": installed_meta["version"],
@@ -174,8 +182,8 @@ class SkillInstaller:
         
         if os.path.exists(target_path):
             self.logger.info(f"Skill '{skill_name}' already exists. Overwriting...")
-            # If it's a junction or symlink, remove it first
-            if os.path.islink(target_path) or self._is_junction(target_path):
+            # Use os.path.islink which handles symlinks and junctions since Python 3.8
+            if os.path.islink(target_path):
                 self._remove_junction(target_path)
             # shutil.copytree with dirs_exist_ok=True will handle existing directories
 
@@ -194,26 +202,11 @@ class SkillInstaller:
             self.logger.error(f"Failed to install '{skill_name}': {e}")
             return False
 
-    def _is_junction(self, path: str) -> bool:
-        """Check if a path is a Windows directory junction."""
-        if sys.platform != "win32":
-            return False
-        
-        abs_path = os.path.abspath(path)
-        parent_dir = os.path.dirname(abs_path)
-        
-        # On Windows, junctions are not always detected by islink
-        try:
-            output = subprocess.check_output(["cmd", "/c", "dir", parent_dir], text=True)
-            return f"<JUNCTION>     {os.path.basename(abs_path)}" in output
-        except Exception:
-            return False
-
     def _remove_junction(self, path: str) -> None:
         """Remove a directory junction or symlink."""
         if sys.platform == "win32":
-            # rmdir is safe for junctions (removes the link, not the contents)
-            subprocess.run(["cmd", "/c", "rmdir", path], check=True, capture_output=True)
+            # os.rmdir is safe for junctions on Windows
+            os.rmdir(path)
         else:
             os.remove(path)
 

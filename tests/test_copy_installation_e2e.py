@@ -29,6 +29,9 @@ class TestCopyInstallationE2E(unittest.TestCase):
         
         with open(os.path.join(self.skill_src_path, "metadata.json"), "w") as f:
             f.write('{"name": "test-skill", "version": "1.0.0"}')
+        
+        with open(os.path.join(self.skill_src_path, "CHANGELOG.md"), "w") as f:
+            f.write("# Changelog\n\n- Initial version")
             
         self.installer = SkillInstaller(self.published_dir, lambda x: {})
 
@@ -47,6 +50,7 @@ class TestCopyInstallationE2E(unittest.TestCase):
         self.assertTrue(os.path.exists(target_path))
         self.assertTrue(os.path.isfile(os.path.join(target_path, "SKILL.md")))
         self.assertTrue(os.path.isfile(os.path.join(target_path, "metadata.json")))
+        self.assertTrue(os.path.isfile(os.path.join(target_path, "CHANGELOG.md")))
         
         # Verify it's NOT a link (junction or symlink)
         self.assertFalse(os.path.islink(target_path))

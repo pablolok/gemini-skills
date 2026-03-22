@@ -32,5 +32,14 @@ class TestVersionComparator(unittest.TestCase):
         self.assertFalse(VersionComparator.is_newer("2.0.0", "1.0.0"))
         self.assertFalse(VersionComparator.is_newer("1.0.0", "1.0.0"))
 
+    def test_is_newer_invalid(self) -> None:
+        """Verify comparison logic with invalid versions."""
+        # Current invalid, latest valid -> newer
+        self.assertTrue(VersionComparator.is_newer("invalid", "1.0.0"))
+        # Current valid, latest invalid -> not newer
+        self.assertFalse(VersionComparator.is_newer("1.0.0", "invalid"))
+        # Both invalid -> not newer
+        self.assertFalse(VersionComparator.is_newer("invalid", "invalid"))
+
 if __name__ == "__main__":
     unittest.main()
