@@ -1,10 +1,10 @@
 # Implementation Plan: Skill Manager and 'Published' Directory
 
-## Phase 1: 'Published' Folder & Categorization
+## Phase 1: 'Published' Folder & Categorization [checkpoint: f6d4ce6]
 - [x] **Task: Setup Track Artifacts (metadata, index, spec, plan)** [54481bd]
 - [x] **Task: Create `published/` directory structure** [e289148]
 - [x] **Task: Populate `published/` with existing stable skills** [56883b6]
-- [ ] **Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)** [f6d4ce6]
 
 ## Phase 2: Core Installer and Junction Logic
 - [ ] **Task: Write TDD - Test `SkillSelector` & `SkillInstaller` logic**
