@@ -36,14 +36,14 @@ This repository provides a set of official, stable skills in the `published/` di
 
 ## 🚀 Gemini CLI Integration (Recommended)
 
-If you are using the Gemini CLI, you don't need to run scripts manually. You can ask Gemini to manage the installation process for you.
+If you are using the Gemini CLI, you can automate the entire installation process.
 
 **How to use:**
 1.  **Activate Gemini** in your project.
-2.  **Give the Command**: Copy and paste the following prompt to Gemini:
-    > *"Locate my global `gemini-skills` repository, use its **Skill Manager** to list available official skills, and help me install the ones I select."*
-3.  **Interactive Selection**: Gemini will scan the repository and prompt you interactively (using the `ask_user` tool) to select the skills you want.
-4.  **Auto-Integration**: Gemini will automatically create the junctions and run any `post_install.py` hooks.
+2.  **Give the Command**: Copy and paste the following prompt to Gemini (replace `<path>` with the absolute path to where you cloned this repository):
+    > *"Read the installation instructions at `<path>/gemini-install.md` and help me install the official skills."*
+3.  **Interactive Selection**: Gemini will read the instructions, scan the repository, and prompt you to select the skills you want.
+4.  **Auto-Integration**: Gemini will handle the junctions and any `post_install.py` hooks automatically.
 
 ## 🛠️ Manual Installation
 
