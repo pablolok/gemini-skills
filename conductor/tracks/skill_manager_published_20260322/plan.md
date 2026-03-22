@@ -20,10 +20,10 @@
     - [x] Logic to detect `conductor/workflow.md` and insert the audit protocol.
 - [x] **Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)** [20e1618]
 
-## Phase 6: Skill Publisher Utility
+## Phase 6: Skill Publisher Utility [checkpoint: 881e7c0]
 - [x] **Task: Implement - `skill-publisher` skill** [881e7c0]
-    - [x] Create `skills/skill-publisher/SKILL.md` to automate the syncing between `skills/` and `published/`.
-- [~] **Task: Conductor - User Manual Verification 'Phase 6' (Protocol in workflow.md)**
+    - [x] Create `scripts/skill-publisher/SKILL.md` to automate the syncing between `skills/` and `published/`.
+- [x] **Task: Conductor - User Manual Verification 'Phase 6' (Protocol in workflow.md)** [881e7c0]
 
 
 
