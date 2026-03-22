@@ -6,14 +6,14 @@
 - [x] Task: Review the current `skills/skill-manager/SKILL.md` to identify where to add new documentation. ad25d57
 - [x] Task: Conductor - User Manual Verification 'Phase 1: Setup and Context Verification' (Protocol in workflow.md)
 
-## Phase 2: Update `install.py` Version Display
+## Phase 2: Update `install.py` Version Display [checkpoint: 94bcd5e]
 - [x] Task: Write test/script to verify the status string formatting in `install.py`. b6f0ea8
 - [x] Task: Implement change in `SkillSelector.select_skills` to format update strings as `[Update Available] (vX -> vY)`. b6f0ea8
 - [x] Task: Run tests to verify the UI string formatting. b6f0ea8
-- [~] Task: Conductor - User Manual Verification 'Phase 2: Update `install.py` Version Display' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 2: Update `install.py` Version Display' (Protocol in workflow.md)
 
 ## Phase 3: Enhance `subagent-balancer` Skill
-- [ ] Task: Update the instructions in `subagent-balancer` SKILL.md to explicitly route tasks based on token limits and context awareness.
+- [~] Task: Update the instructions in `subagent-balancer` SKILL.md to explicitly route tasks based on token limits and context awareness.
 - [ ] Task: Enhance the prompt instructions for choosing between generalist and specialized subagents.
 - [ ] Task: Perform general review, tweaking phrasing and formatting for clarity and optimizing logic.
 - [ ] Task: Conductor - User Manual Verification 'Phase 3: Enhance `subagent-balancer` Skill' (Protocol in workflow.md)
