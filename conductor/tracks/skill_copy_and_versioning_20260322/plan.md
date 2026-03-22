@@ -26,7 +26,7 @@
 - [x] Task: Write tests for the `VersionComparator` and update check logic. [4a989a0]
 - [x] Task: Conductor - User Manual Verification 'Phase 3: Version Comparison & Update Check Logic' (Protocol in workflow.md) [checkpoint: 4a989a0]
 
-## Phase 4: Integration & Notifications
+## Phase 4: Integration & Notifications [checkpoint: efdf40b]
 
 - [x] Task: Integrate update checks into the `skill-manager` skill. [08bed55]
 - [x] Task: Create a standalone `check_updates.py` script for manual update checks. [08bed55]
