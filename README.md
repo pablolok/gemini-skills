@@ -41,6 +41,7 @@ If you are using the Gemini CLI, you don't need to run scripts manually. You can
 **How to use:**
 1.  **Activate Gemini** in your project.
 2.  **Give the Command**: Tell Gemini: *"Install official skills from the global repository."*
+    - *Note: If Gemini doesn't have the Skill Manager yet, you can point it directly: "Use the skill-manager from <path-to-this-repo> to install skills."*
 3.  **Interactive Selection**: Gemini will use the built-in **[Skill Manager](./published/utility/skill-manager/)** to scan for available skills and prompt you to select the ones you want.
 4.  **Auto-Integration**: Gemini will handle the junctions and any `post_install.py` hooks (like updating your `workflow.md`) automatically.
 
