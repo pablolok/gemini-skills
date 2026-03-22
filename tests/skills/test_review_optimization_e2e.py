@@ -64,7 +64,7 @@ class TestReviewOptimizationE2E(unittest.TestCase):
         drift: typing.List[str] = self.advisor.compare_execution_with_plan(actions, plan_content, workflow_content)
         self.assertTrue(any("unplanned_file.py" in d for d in drift))
         
-        recommendations = self.advisor.recommend_tool_sequences(actions)
+        recommendations: typing.List[str] = self.advisor.recommend_tool_sequences(actions)
         self.assertTrue(any("grep_search" in r for r in recommendations))
         
         # 4. Remediate (Interactively)
