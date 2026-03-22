@@ -115,7 +115,7 @@ class SkillInstaller:
         return self._read_metadata(metadata_path)
 
     def _read_metadata(self, metadata_path: str) -> typing.Optional[typing.Dict[str, typing.Any]]:
-        """Internal helper to read and parse a metadata.json file."""
+        """Read and parse a metadata.json file."""
         if not os.path.exists(metadata_path):
             return None
 
@@ -128,8 +128,6 @@ class SkillInstaller:
 
     def check_for_updates(self, target_project_path: str) -> typing.List[typing.Dict[str, str]]:
         """Check all installed skills for available updates."""
-        from versioning import VersionComparator
-        
         updates = []
         target_skills_dir = os.path.join(target_project_path, ".gemini", "skills")
         if not os.path.exists(target_skills_dir):
@@ -140,7 +138,7 @@ class SkillInstaller:
         name_to_rel = {}
         for cat, skills in available_skills.items():
             for s in skills:
-                name_to_rel[s] = f"{cat}/{s}"
+                name_to_rel[s] = os.path.join(cat, s)
 
         for skill_name in os.listdir(target_skills_dir):
             skill_path = os.path.join(target_skills_dir, skill_name)

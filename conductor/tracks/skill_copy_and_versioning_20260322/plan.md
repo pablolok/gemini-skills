@@ -33,7 +33,7 @@
 - [x] Task: Implement the logic to notify the user when updates are available. [08bed55]
 - [x] Task: Integrate the update check into the Gemini startup process (if possible, or provide a recommended command). [08bed55]
 - [x] Task: Write integration tests for the full update notification flow. [08bed55]
-- [ ] Task: Conductor - User Manual Verification 'Phase 4: Integration & Notifications' (Protocol in workflow.md)
+- [x] Task: Conductor - User Manual Verification 'Phase 4: Integration & Notifications' (Protocol in workflow.md) [checkpoint: 08bed55]
 
 ## Phase 5: Final Review & Documentation
 

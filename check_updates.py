@@ -5,7 +5,7 @@ import sys
 import logging
 from install import SkillInstaller, manual_ask_user
 
-def main() -> None:
+def main(ask_user_fn: typing.Optional[typing.Callable] = None) -> None:
     """Run the update check flow."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger = logging.getLogger("update_checker")
@@ -20,7 +20,8 @@ def main() -> None:
         logger.error(f"Published skills directory not found: {published_dir}")
         sys.exit(1)
         
-    installer = SkillInstaller(published_dir, manual_ask_user, logger)
+    ask_fn = ask_user_fn or manual_ask_user
+    installer = SkillInstaller(published_dir, ask_fn, logger)
     target_project = os.getcwd()
     
     logger.info(f"Checking for updates in: {target_project}")
@@ -35,7 +36,7 @@ def main() -> None:
         logger.info(f"- {update['name']}: {update['installed']} -> {update['latest']}")
     
     # Prompt for update
-    response = manual_ask_user({
+    response = ask_fn({
         "questions": [{
             "header": "Update Skills",
             "question": "Would you like to update these skills now?",
