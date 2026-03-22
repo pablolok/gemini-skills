@@ -7,9 +7,9 @@
 - [x] **Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)** [f6d4ce6]
 
 ## Phase 2: Core Installer and Junction Logic
-- [ ] **Task: Write TDD - Test `SkillSelector` & `SkillInstaller` logic**
-- [ ] **Task: Implement - `SkillInstaller` core**
-    - [ ] Directory scanning, `ask_user` interaction, and junction creation.
+- [x] **Task: Write TDD - Test `SkillSelector` & `SkillInstaller` logic** [4304fb6]
+- [~] **Task: Implement - `SkillInstaller` core**
+    - [~] Directory scanning, `ask_user` interaction, and junction creation.
 - [ ] **Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)**
 
 ## Phase 3: Post-Installation Hooks & Integration
