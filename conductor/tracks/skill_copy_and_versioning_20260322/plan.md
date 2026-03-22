@@ -4,7 +4,7 @@
 
 - [x] Task: Research and define the data structure for the `version` field in `metadata.json`. [b93fba9]
 - [x] Task: Update the `metadata.json` schema to include the `version` field. [b93fba9]
-- [ ] Task: Add a `version` field to all skills in the `skills/` and `published/` directories (e.g., `1.0.0`).
+- [x] Task: Add a `version` field to all skills in the `skills/` and `published/` directories (e.g., `1.0.0`). [a19b464]
 - [ ] Task: Write tests to verify that the version fields are correctly parsed.
 - [ ] Task: Conductor - User Manual Verification 'Phase 1: Metadata Update & Initial Versioning' (Protocol in workflow.md)
 
