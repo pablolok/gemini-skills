@@ -19,7 +19,7 @@
 - [x] Task: Write integration tests to confirm that skills are correctly installed by copying files. [012b8e4]
 - [x] Task: Conductor - User Manual Verification 'Phase 2: Copy Installation Implementation' (Protocol in workflow.md) [checkpoint: cf6abc7]
 
-## Phase 3: Version Comparison & Update Check Logic
+## Phase 3: Version Comparison & Update Check Logic [checkpoint: 2cd9292]
 
 - [x] Task: Implement a `VersionComparator` class to handle SemVer comparison logic. [5161546]
 - [x] Task: Implement the logic to check for updates by comparing the installed version in a project against the version in the `skills/` or `published/` directory. [4a989a0]
