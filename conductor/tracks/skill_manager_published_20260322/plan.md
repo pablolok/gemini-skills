@@ -20,7 +20,8 @@
     - [x] Logic to detect `conductor/workflow.md` and insert the audit protocol.
 - [x] **Task: Conductor - User Manual Verification 'Phase 3' (Protocol in workflow.md)** [20e1618]
 
-## Phase 4: Finalization & Documentation
-- [ ] **Task: Implement - Update `README.md`**
-    - [ ] Add "How to use this repository as a skill provider" section.
-- [ ] **Task: Conductor - User Manual Verification 'Phase 4' (Protocol in workflow.md)**
+## Phase 5: Gemini CLI Integration
+- [ ] **Task: Implement - `skill-manager` skill**
+    - [ ] Create `published/utility/skill-manager/SKILL.md` to allow Gemini to use `install.py` directly.
+- [ ] **Task: Conductor - User Manual Verification 'Phase 5' (Protocol in workflow.md)**
+
