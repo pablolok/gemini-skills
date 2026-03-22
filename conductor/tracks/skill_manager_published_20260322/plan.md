@@ -6,11 +6,11 @@
 - [x] **Task: Populate `published/` with existing stable skills** [56883b6]
 - [x] **Task: Conductor - User Manual Verification 'Phase 1' (Protocol in workflow.md)** [f6d4ce6]
 
-## Phase 2: Core Installer and Junction Logic
+## Phase 2: Core Installer and Junction Logic [checkpoint: 3c47f79]
 - [x] **Task: Write TDD - Test `SkillSelector` & `SkillInstaller` logic** [4304fb6]
 - [x] **Task: Implement - `SkillInstaller` core** [de10053]
     - [x] Directory scanning, `ask_user` interaction, and junction creation.
-- [~] **Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)**
+- [x] **Task: Conductor - User Manual Verification 'Phase 2' (Protocol in workflow.md)** [3c47f79]
 
 ## Phase 3: Post-Installation Hooks & Integration
 - [ ] **Task: Write TDD - Test `post_install.py` execution & integration logic**
