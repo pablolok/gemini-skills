@@ -1,6 +1,6 @@
 ---
 name: compliance-audit-orchestrator
-description: A Codex bridge for the canonical Gemini compliance audit orchestrator skill.
+description: Codex entry point for post-change compliance review. Uses the installed Gemini compliance audit orchestrator as the source of truth, then routes Codex through the correct audit and into review optimization.
 ---
 
 # Compliance Audit Orchestrator Bridge

@@ -1,6 +1,6 @@
 ---
 name: skill-publisher
-description: A Codex bridge for the installed Gemini skill-publisher skill.
+description: Publish stable Gemini skills from source to `published/`, then verify any Codex bridge wrappers still describe the bridged Gemini skill accurately for Codex users.
 ---
 
 # Skill Publisher Bridge
@@ -21,3 +21,5 @@ When publishing or syncing a skill from Codex:
 2. Ensure `README.md` is updated alongside `SKILL.md`, scripts, metadata, and changelog changes.
 3. If the skill also has a Codex bridge in `.codex/skills/`, verify the bridge still points to the correct installed Gemini skill path and that its Codex-specific notes remain accurate.
 4. After publishing a skill that affects post-change verification, run the Codex sequence: compliance audit first, then review optimization.
+
+Do not publish Gemini-only Codex bridges by default. If a skill is Gemini-specific, such as the balancer family, keep it in `.gemini/skills/` and document that Codex should ignore it unless a real Codex integration is being added.

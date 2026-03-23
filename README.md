@@ -61,6 +61,31 @@ python <path-to-gemini-skills>/install.py
 
 The installer will guide you through the interactive selection and handle copying/updating automatically.
 
+## Codex Bridge Layer
+
+This repository supports a two-layer setup when you want the same project to work well with both Gemini and Codex:
+
+- `.gemini/skills/` contains the real Gemini skills and their implementation files.
+- `.codex/skills/` contains lightweight Codex bridge wrappers that point Codex at the installed Gemini skills and add Codex-specific usage notes.
+
+Recommended flow for Codex-enabled projects:
+
+1. Install or update the Gemini skill into `.gemini/skills/`.
+2. Add or refresh the matching Codex bridge in `.codex/skills/`.
+3. Keep the bridge lightweight. It should describe when Codex should use the installed Gemini skill, not duplicate the Gemini implementation.
+
+For Codex, the useful bridge skills in this repo are currently centered on:
+- `skill-manager`
+- `skill-publisher`
+- `compliance-audit-orchestrator`
+- `compliance-audit-scripts`
+- `review-optimization`
+
+Important:
+- The balancer family is Gemini-specific.
+- `subagent-balancer`, `subagent-balancer-api`, and `subagent-balancer-orchestrator` should be treated as Gemini skills, not standard Codex bridge skills.
+- Codex should generally ignore those balancers unless you are explicitly building a Codex integration for them.
+
 ### 🔄 Checking for Updates
 
 To check for newer versions of installed skills without running the full installer:

@@ -1,6 +1,6 @@
 ---
 name: review-optimization
-description: A Codex bridge for the canonical Gemini review-optimization skill.
+description: Codex final post-change review step. Uses the installed Gemini review-optimization skill to assess workflow quality, missed skill usage, and improvement opportunities after auditing or significant file edits.
 ---
 
 # Review Optimization Bridge
