@@ -1,11 +1,11 @@
 ---
 name: subagent-balancer
-description: Use when a task may spawn Gemini subagents and you need quota-aware routing, model selection, or fallback-to-local execution to avoid exhausting usage limits.
+description: Use when Gemini CLI or a Google-account Gemini workflow may spawn subagents and you need quota-aware routing, model selection, or fallback-to-local execution to avoid exhausting usage limits.
 ---
 
 # Subagent Balancing
 
-Use this skill before any Gemini subagent delegation when quota, reset windows, or model scarcity matter.
+Use this skill before any Gemini CLI or Google-account Gemini subagent delegation when quota, reset windows, or model scarcity matter.
 
 If the user can provide a current Gemini quota table, use the bundled selector script to make the routing decision deterministic.
 

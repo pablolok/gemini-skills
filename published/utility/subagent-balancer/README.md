@@ -1,6 +1,8 @@
 # Subagent Balancer
 
-A utility skill for Gemini that makes subagent routing quota-aware and model-aware.
+This is the Gemini CLI / Google-account quota balancer.
+
+A utility skill for Gemini CLI and Google-account Gemini workflows that makes subagent routing quota-aware and model-aware.
 
 ## What It Adds
 

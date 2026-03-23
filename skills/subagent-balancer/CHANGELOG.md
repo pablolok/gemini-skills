@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.5.3] - 2026-03-23
+- Clarify Gemini CLI quota balancing scope after splitting API billing into a separate skill
+
+
+## [1.5.2] - 2026-03-23
+- Clarified that `subagent-balancer` is the Gemini CLI and Google-account quota-preservation skill after splitting API billing concerns into a separate skill.
+
 ## [1.5.1] - 2026-03-23
 - Add complexity-aware and scarcity-aware quota balancing for flash-first Gemini CLI routing
 
