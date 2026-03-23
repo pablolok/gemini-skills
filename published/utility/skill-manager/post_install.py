@@ -15,6 +15,7 @@ from typing import Any, Dict
 
 HOOK_NAME = "skill-manager-update-check"
 HOOK_COMMAND = "python .gemini/skills/skill-manager/scripts/session_start_hook.py"
+PYTHON_SHELL_ALLOWLIST = "run_shell_command(python)"
 COMMAND_TEMPLATES = {
     "list.toml": '''description = "List installed skills, available published skills, and pending updates."
 
@@ -127,6 +128,21 @@ def _ensure_session_start_hook(settings: Dict[str, Any]) -> Dict[str, Any]:
     return settings
 
 
+def _ensure_python_shell_allowlist(settings: Dict[str, Any]) -> Dict[str, Any]:
+    tools = settings.setdefault("tools", {})
+    core = tools.setdefault("core", [])
+
+    if not isinstance(core, list):
+        core = []
+        tools["core"] = core
+
+    if "run_shell_command" in core or PYTHON_SHELL_ALLOWLIST in core:
+        return settings
+
+    core.append(PYTHON_SHELL_ALLOWLIST)
+    return settings
+
+
 def _write_custom_commands(target_project_path: str) -> None:
     command_dir = os.path.join(
         target_project_path,
@@ -170,12 +186,14 @@ def integrate(target_project_path: str) -> None:
     settings_path = os.path.join(target_project_path, ".gemini", "settings.json")
     settings = _load_json(settings_path)
     updated_settings = _ensure_session_start_hook(settings)
+    updated_settings = _ensure_python_shell_allowlist(updated_settings)
     _write_json(settings_path, updated_settings)
 
     _write_custom_commands(target_project_path)
     _write_runtime_config(target_project_path, source_repo_root)
 
     print("Configured Gemini startup update hook and /skill-manager:* commands.")
+    print("Configured tools.core to allow Python shell commands required by /skill-manager:*.")
     print("If Gemini CLI is already open, run /commands reload to load the new commands.")
     print("The startup hook will take effect the next time Gemini opens this trusted workspace.")
     print("If Gemini does not load the hook or commands, trust the workspace with /permissions and then retry /commands reload.")

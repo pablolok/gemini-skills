@@ -60,6 +60,7 @@ These commands are invoked as:
 Important notes:
 - The built-in Gemini command is `/skills`, and it does not have an official `update` subcommand. `/skills update` will not work.
 - `/skill-manager:*` are custom namespaced commands provided by `skill-manager`.
+- `skill-manager` adds `run_shell_command(python)` to workspace `tools.core` so these commands can execute their helper scripts.
 - If Gemini is already open when the skill is installed, run `/commands reload` once so Gemini picks up the new custom command without restarting.
 - After updates are applied, run `/skills reload` to refresh Gemini's discovered skill list in the current session.
 
@@ -80,6 +81,17 @@ Expected behavior:
 - if updates are available, the startup hook should tell you to run `/skill-manager:update`
 
 If `/skill-manager:*` exists but the shell command is blocked, that usually means your current Gemini policy or approval mode is preventing custom-command shell execution. In that case, verify the workspace is trusted first, then re-check your Gemini permissions and approval settings.
+
+Expected settings change:
+```json
+{
+  "tools": {
+    "core": ["run_shell_command(python)"]
+  }
+}
+```
+
+`skill-manager` adds that allowlist entry during install or update if it is missing. It does not remove broader existing tool allowances if you already configured them.
 
 ### Codex Bridge Integration
 

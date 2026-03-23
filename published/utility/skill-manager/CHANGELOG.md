@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.4.1] - 2026-03-23
+- Allow Python shell execution for namespaced skill-manager commands
+
+
+## 1.4.0 (2026-03-23)
+- Add `run_shell_command(python)` to workspace `tools.core` during skill-manager install/update
+- Document the expected workspace settings change for `/skill-manager:*` commands
+- Expand trust and verification guidance for blocked custom-command shell execution
+
 ## [1.3.2] - 2026-03-23
 - Add /skill-manager commands, fix runtime pathing, and document trust verification
 

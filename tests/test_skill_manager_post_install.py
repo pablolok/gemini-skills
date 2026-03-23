@@ -59,6 +59,7 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             self.assertEqual(len(hooks), 1)
             self.assertEqual(hooks[0]["matcher"], "startup")
             self.assertEqual(hooks[0]["hooks"][0]["name"], POST_INSTALL.HOOK_NAME)
+            self.assertIn("run_shell_command(python)", settings["tools"]["core"])
 
             with open(os.path.join(command_dir, "update.toml"), "r", encoding="utf-8") as handle:
                 update_command = handle.read()
@@ -95,6 +96,30 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             hooks = settings["hooks"]["SessionStart"]
             self.assertEqual(len(hooks), 1)
             self.assertEqual(len(hooks[0]["hooks"]), 1)
+            self.assertEqual(settings["tools"]["core"].count("run_shell_command(python)"), 1)
+
+    def test_integrate_preserves_existing_broad_shell_allowlist(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            settings_path = os.path.join(temp_dir, ".gemini", "settings.json")
+            os.makedirs(os.path.dirname(settings_path), exist_ok=True)
+            with open(settings_path, "w", encoding="utf-8") as handle:
+                json.dump({"tools": {"core": ["run_shell_command"]}}, handle)
+
+            with patch.dict(
+                os.environ,
+                {
+                    "GEMINI_SKILLS_REPO_ROOT": os.path.abspath("."),
+                    "GEMINI_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
+                },
+                clear=False,
+            ):
+                POST_INSTALL.integrate(temp_dir)
+
+            with open(settings_path, "r", encoding="utf-8") as handle:
+                settings = json.load(handle)
+
+            self.assertIn("run_shell_command", settings["tools"]["core"])
+            self.assertNotIn("run_shell_command(python)", settings["tools"]["core"])
 
 
 class TestSkillManagerSessionStartHook(unittest.TestCase):
