@@ -47,6 +47,7 @@ class TestSubagentBalancerWrapper(unittest.TestCase):
                 timeout_seconds=1,
                 task_type="review",
                 scope="small",
+                complexity="trivial",
                 preferred_model=None,
                 avoid_model=[],
                 no_preview=True,
@@ -66,6 +67,7 @@ class TestSubagentBalancerWrapper(unittest.TestCase):
                 timeout_seconds=1,
                 task_type="implementation",
                 scope="large",
+                complexity="hard",
                 preferred_model=None,
                 avoid_model=[],
                 no_preview=True,
@@ -85,6 +87,7 @@ class TestSubagentBalancerWrapper(unittest.TestCase):
                 timeout_seconds=1,
                 task_type="review",
                 scope="small",
+                complexity="trivial",
                 preferred_model=None,
                 avoid_model=[],
                 no_preview=True,
@@ -103,6 +106,7 @@ class TestSubagentBalancerWrapper(unittest.TestCase):
                 timeout_seconds=1,
                 task_type="review",
                 scope="small",
+                complexity="trivial",
                 preferred_model=None,
                 avoid_model=[],
                 no_preview=True,
@@ -123,6 +127,7 @@ class TestSubagentBalancerWrapper(unittest.TestCase):
                 timeout_seconds=1,
                 task_type="review",
                 scope="small",
+                complexity="trivial",
                 preferred_model=None,
                 avoid_model=[],
                 no_preview=True,
@@ -131,6 +136,7 @@ class TestSubagentBalancerWrapper(unittest.TestCase):
             self.assertIn(result["route"], {"local", "subagent"})
             self.assertIn("reason", result)
             self.assertIn("ranked_candidates", result)
+            self.assertIn("complexity=trivial", result["reason"])
 
 
 if __name__ == "__main__":

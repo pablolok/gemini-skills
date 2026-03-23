@@ -97,6 +97,7 @@ def choose_route(args: argparse.Namespace) -> dict[str, Any]:
         models=models,
         task_type=args.task_type,
         scope=args.scope,
+        complexity=args.complexity,
         preferred_model=args.preferred_model,
         avoid_models=set(args.avoid_model),
         allow_preview=not args.no_preview,
@@ -122,6 +123,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="review",
     )
     parser.add_argument("--scope", choices=["small", "medium", "large"], default="medium")
+    parser.add_argument(
+        "--complexity",
+        choices=["trivial", "normal", "hard", "ambiguous"],
+        default="normal",
+    )
     parser.add_argument("--preferred-model")
     parser.add_argument("--avoid-model", action="append", default=[])
     parser.add_argument("--no-preview", action="store_true")

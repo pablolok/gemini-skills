@@ -28,6 +28,7 @@ When available, use:
 - Whether the task blocks the next step.
 - The task type: review, search, implementation, verification, or refactor.
 - The expected scope: small, medium, or large.
+- The expected complexity: trivial, normal, hard, or ambiguous.
 
 If quota data is missing, assume a constrained budget and bias toward local execution.
 
@@ -36,7 +37,7 @@ If quota data is missing, assume a constrained budget and bias toward local exec
 When a quota snapshot is available, run:
 
 ```bash
-python skills/subagent-balancer/scripts/select_model.py --task-type review --scope small < quota.txt
+python skills/subagent-balancer/scripts/select_model.py --task-type review --scope small --complexity trivial < quota.txt
 ```
 
 Use `--preferred-model`, `--avoid-model`, and `--no-preview` when the user has explicit constraints.
@@ -52,7 +53,7 @@ Interpret the result as follows:
 For automatic balancing, prefer the wrapper script:
 
 ```bash
-python skills/subagent-balancer/scripts/balance_subagent.py --task-type review --scope small --no-preview --explain
+python skills/subagent-balancer/scripts/balance_subagent.py --task-type review --scope small --complexity trivial --no-preview --explain
 ```
 
 Behavior:
@@ -85,6 +86,7 @@ Apply these rules in order:
 9. Never delegate a task whose result must be immediately consumed unless the quality gain clearly outweighs the quota cost.
 10. Never let a delegated subagent spawn further subagents unless the user explicitly requested a multi-agent workflow.
 11. Audits and bounded checks may intentionally stay on the main agent when the work is deterministic or quota pressure makes delegation wasteful.
+12. Treat `complexity` as the main quality override: `flash` remains the default delegated tier for normal work, while `pro` is justified mainly for hard or ambiguous tasks.
 
 ## Secondary Agent Routing
 
@@ -133,8 +135,9 @@ Before delegating, ask:
 1. **Can I do this locally?** (e.g., by reading files or running direct shell commands yourself)
 2. **Is the scope minimal?** (Only send the specific files needed, not the whole project)
 3. **Is the tier appropriate?** (Do not use Pro for work Lite or Flash can handle)
-4. **Am I chaining agents?** (Avoid having a subagent call another subagent)
-5. **Is the result cacheable?** (If the task was just done, reuse the previous output)
+4. **Is the complexity real?** (`pro` should be justified by hard or ambiguous work, not by routine implementation alone)
+5. **Am I chaining agents?** (Avoid having a subagent call another subagent)
+6. **Is the result cacheable?** (If the task was just done, reuse the previous output)
 
 ## Prompt Caching Advice
 

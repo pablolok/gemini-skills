@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.1] - 2026-03-23
+- Add complexity-aware and scarcity-aware quota balancing for flash-first Gemini CLI routing
+
+
+## [1.5.0] - 2026-03-23
+- Added explicit complexity-aware routing so `flash` remains the default delegated tier and `pro` is reserved for hard or ambiguous work.
+- Added model-family scarcity tuning to preserve scarcer `pro` quota and prefer cheaper models when quality is still acceptable.
+- Reworked reset-window scoring to be more proportional and extended the selector and wrapper interfaces to accept `--complexity`.
+
 ## [1.4.4] - 2026-03-23
 - Harden quota-aware routing with reset-aware scoring and a unified local-or-subagent contract
 

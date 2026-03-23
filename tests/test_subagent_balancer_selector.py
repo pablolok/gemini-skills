@@ -50,6 +50,7 @@ class TestSubagentBalancerSelector(unittest.TestCase):
             models=models,
             task_type="review",
             scope="small",
+            complexity="trivial",
             preferred_model=None,
             avoid_models=set(),
             allow_preview=True,
@@ -63,6 +64,7 @@ class TestSubagentBalancerSelector(unittest.TestCase):
             models=models,
             task_type="implementation",
             scope="large",
+            complexity="hard",
             preferred_model=None,
             avoid_models=set(),
             allow_preview=False,
@@ -79,6 +81,7 @@ gemini-2.5-pro           -     7%  4:00 PM (4h 0m)
             models=models,
             task_type="implementation",
             scope="medium",
+            complexity="normal",
             preferred_model=None,
             avoid_models=set(),
             allow_preview=False,
@@ -95,6 +98,7 @@ gemini-2.5-pro           -    14%  1:00 PM (8h 0m)
             models=models,
             task_type="refactor",
             scope="large",
+            complexity="ambiguous",
             preferred_model=None,
             avoid_models=set(),
             allow_preview=False,
@@ -107,6 +111,7 @@ gemini-2.5-pro           -    14%  1:00 PM (8h 0m)
             models=models,
             task_type="review",
             scope="small",
+            complexity="normal",
             preferred_model="gemini-2.5-pro",
             avoid_models=set(),
             allow_preview=False,
@@ -119,6 +124,7 @@ gemini-2.5-pro           -    14%  1:00 PM (8h 0m)
             models=models,
             task_type="review",
             scope="small",
+            complexity="trivial",
             preferred_model="gemini-2.5-flash",
             avoid_models=set(),
             allow_preview=True,
@@ -131,6 +137,7 @@ gemini-2.5-pro           -    14%  1:00 PM (8h 0m)
             models=models,
             task_type="review",
             scope="small",
+            complexity="normal",
             preferred_model="gemini-3.1-pro-preview",
             avoid_models=set(),
             allow_preview=False,
@@ -143,6 +150,7 @@ gemini-2.5-pro           -    14%  1:00 PM (8h 0m)
             models=models,
             task_type="review",
             scope="small",
+            complexity="trivial",
             preferred_model=None,
             avoid_models={"gemini-2.5-flash-lite", "gemini-2.5-pro"},
             allow_preview=False,
@@ -160,6 +168,7 @@ gemini-2.0-flash         -    35%  5:00 AM (32h 0m)
             models=models,
             task_type="implementation",
             scope="medium",
+            complexity="normal",
             preferred_model=None,
             avoid_models=set(),
             allow_preview=False,
@@ -176,6 +185,7 @@ gemini-4-pro             -    18%  3:00 PM (6h 0m)
             models=models,
             task_type="implementation",
             scope="medium",
+            complexity="normal",
             preferred_model=None,
             avoid_models=set(),
             allow_preview=False,
@@ -192,12 +202,78 @@ gemini-2.5-pro           -    18%  resets sometime later
             models=models,
             task_type="implementation",
             scope="medium",
+            complexity="normal",
             preferred_model=None,
             avoid_models=set(),
             allow_preview=False,
         )
         self.assertEqual(result["route"], "subagent")
         self.assertEqual(result["selected_model"], "gemini-2.5-flash")
+
+    def test_hard_complexity_can_escalate_to_pro(self) -> None:
+        snapshot = """
+gemini-2.5-flash         -    18%  2:00 PM (8h 0m)
+gemini-2.5-pro           -    20%  2:00 PM (8h 0m)
+"""
+        models = MODULE.parse_snapshot(snapshot)
+        result = MODULE.choose_model(
+            models=models,
+            task_type="implementation",
+            scope="medium",
+            complexity="hard",
+            preferred_model=None,
+            avoid_models=set(),
+            allow_preview=False,
+        )
+        self.assertEqual(result["selected_model"], "gemini-2.5-pro")
+
+    def test_normal_complexity_preserves_pro_quota_even_when_pro_is_slightly_healthier(self) -> None:
+        snapshot = """
+gemini-2.5-flash         -    24%  5:00 PM (6h 0m)
+gemini-2.5-pro           -    12%  5:00 PM (6h 0m)
+"""
+        models = MODULE.parse_snapshot(snapshot)
+        result = MODULE.choose_model(
+            models=models,
+            task_type="implementation",
+            scope="medium",
+            complexity="normal",
+            preferred_model=None,
+            avoid_models=set(),
+            allow_preview=False,
+        )
+        self.assertEqual(result["selected_model"], "gemini-2.5-flash")
+
+    def test_flash_lite_is_preferred_for_trivial_audit_style_work(self) -> None:
+        snapshot = """
+gemini-2.5-flash-lite    -    31%  7:00 PM (4h 0m)
+gemini-2.5-flash         -    14%  7:00 PM (4h 0m)
+gemini-2.5-pro           -     2%  7:00 PM (4h 0m)
+"""
+        models = MODULE.parse_snapshot(snapshot)
+        result = MODULE.choose_model(
+            models=models,
+            task_type="verification",
+            scope="small",
+            complexity="trivial",
+            preferred_model=None,
+            avoid_models=set(),
+            allow_preview=False,
+        )
+        self.assertEqual(result["selected_model"], "gemini-2.5-flash-lite")
+
+    def test_reason_includes_complexity(self) -> None:
+        models = MODULE.parse_snapshot(SNAPSHOT)
+        result = MODULE.choose_model(
+            models=models,
+            task_type="review",
+            scope="small",
+            complexity="trivial",
+            preferred_model=None,
+            avoid_models=set(),
+            allow_preview=True,
+        )
+        self.assertIn("complexity=trivial", result["reason"])
 
 
 if __name__ == "__main__":

@@ -10,17 +10,17 @@ from dataclasses import dataclass
 
 
 KNOWN_MODELS = {
-    "gemini-1.5-flash-8b": {"tier": "lite", "preview": False},
-    "gemini-1.5-flash": {"tier": "flash", "preview": False},
-    "gemini-1.5-pro": {"tier": "pro", "preview": False},
-    "gemini-2.0-flash": {"tier": "flash", "preview": False},
-    "gemini-2.0-flash-lite-preview-02-05": {"tier": "lite", "preview": True},
-    "gemini-2.0-pro-exp-02-05": {"tier": "pro", "preview": True},
-    "gemini-2.5-flash-lite": {"tier": "lite", "preview": False},
-    "gemini-2.5-flash": {"tier": "flash", "preview": False},
-    "gemini-2.5-pro": {"tier": "pro", "preview": False},
-    "gemini-3-flash-preview": {"tier": "flash", "preview": True},
-    "gemini-3.1-pro-preview": {"tier": "pro", "preview": True},
+    "gemini-1.5-flash-8b": {"tier": "lite", "preview": False, "scarcity": 14},
+    "gemini-1.5-flash": {"tier": "flash", "preview": False, "scarcity": 8},
+    "gemini-1.5-pro": {"tier": "pro", "preview": False, "scarcity": -6},
+    "gemini-2.0-flash": {"tier": "flash", "preview": False, "scarcity": 6},
+    "gemini-2.0-flash-lite-preview-02-05": {"tier": "lite", "preview": True, "scarcity": 6},
+    "gemini-2.0-pro-exp-02-05": {"tier": "pro", "preview": True, "scarcity": -12},
+    "gemini-2.5-flash-lite": {"tier": "lite", "preview": False, "scarcity": 20},
+    "gemini-2.5-flash": {"tier": "flash", "preview": False, "scarcity": 12},
+    "gemini-2.5-pro": {"tier": "pro", "preview": False, "scarcity": -10},
+    "gemini-3-flash-preview": {"tier": "flash", "preview": True, "scarcity": 2},
+    "gemini-3.1-pro-preview": {"tier": "pro", "preview": True, "scarcity": -18},
 }
 
 TIER_WEIGHTS = {
@@ -50,6 +50,18 @@ TIER_ECONOMY_BONUS = {
 COMPLEXITY_ESCALATION = {
     ("implementation", "large"): {"pro": 10},
     ("refactor", "large"): {"pro": 18},
+}
+
+COMPLEXITY_WEIGHTS = {
+    "trivial": {"lite": 8, "flash": 3, "pro": -10},
+    "normal": {"lite": 1, "flash": 5, "pro": 0},
+    "hard": {"lite": -10, "flash": 2, "pro": 14},
+    "ambiguous": {"lite": -14, "flash": 0, "pro": 18},
+}
+
+COMPLEXITY_ESCALATION_BY_LEVEL = {
+    "hard": {"pro": 42},
+    "ambiguous": {"pro": 56},
 }
 
 
@@ -84,6 +96,21 @@ class ModelQuota:
             return bool(KNOWN_MODELS[self.name]["preview"])
         lower = self.name.lower()
         return "preview" in lower or "exp" in lower
+
+    @property
+    def scarcity_bonus(self) -> int:
+        """Return a model-specific scarcity bonus."""
+        if self.name in KNOWN_MODELS:
+            return int(KNOWN_MODELS[self.name].get("scarcity", 0))
+        if self.preview:
+            return -8 if self.tier == "flash" else -14
+        if self.tier == "lite":
+            return 12
+        if self.tier == "flash":
+            return 6
+        if self.tier == "pro":
+            return -8
+        return 0
 
 
 def parse_snapshot(text: str) -> list[ModelQuota]:
@@ -136,6 +163,7 @@ def build_reason(
     selected_quota: ModelQuota,
     task_type: str,
     scope: str,
+    complexity: str,
     allow_preview: bool,
 ) -> str:
     """Build a concise explanation for the winning model."""
@@ -147,29 +175,25 @@ def build_reason(
     reset = selected_quota.reset_text or "reset unknown"
     preview_policy = "preview allowed" if allow_preview else "preview blocked"
     return (
-        f"{selected_quota.name} best fits task={task_type}, scope={scope}; "
+        f"{selected_quota.name} best fits task={task_type}, scope={scope}, complexity={complexity}; "
         f"{usage}, {reset}, {preview_policy}."
     )
 
 
 def compute_reset_bonus(model: ModelQuota) -> int:
-    """Score reset timing with stronger penalties for constrained models."""
+    """Score reset timing proportionally with stronger penalties for constrained models."""
     if model.reset_window_minutes is None:
         return 0
 
     usage_percent = model.usage_percent or 0
-    hours_until_reset = model.reset_window_minutes / 60
-    if hours_until_reset <= 6:
-        return 18
-    if hours_until_reset <= 12:
-        return 12
-    if hours_until_reset <= 24:
-        return 6
+    hours_until_reset = max(model.reset_window_minutes / 60, 1)
     if usage_percent >= 85:
-        return -18
+        return max(-22, 16 - int(hours_until_reset))
     if usage_percent >= 70:
-        return -10
-    return -4
+        return max(-14, 12 - int(hours_until_reset / 1.5))
+    if usage_percent >= 40:
+        return max(-6, 8 - int(hours_until_reset / 3))
+    return max(-2, 6 - int(hours_until_reset / 6))
 
 
 def compute_usage_penalty(model: ModelQuota) -> int:
@@ -188,6 +212,7 @@ def choose_model(
     models: list[ModelQuota],
     task_type: str,
     scope: str,
+    complexity: str,
     preferred_model: str | None,
     avoid_models: set[str],
     allow_preview: bool,
@@ -231,8 +256,11 @@ def choose_model(
 
         task_weight = TIER_WEIGHTS.get(task_type, TIER_WEIGHTS["review"]).get(model.tier, 0)
         scope_weight = SCOPE_BONUS.get(scope, SCOPE_BONUS["medium"]).get(model.tier, 0)
+        complexity_weight = COMPLEXITY_WEIGHTS.get(complexity, COMPLEXITY_WEIGHTS["normal"]).get(model.tier, 0)
         economy_bonus = TIER_ECONOMY_BONUS.get(model.tier, 0)
+        scarcity_bonus = model.scarcity_bonus
         escalation_bonus = COMPLEXITY_ESCALATION.get((task_type, scope), {}).get(model.tier, 0)
+        complexity_escalation = COMPLEXITY_ESCALATION_BY_LEVEL.get(complexity, {}).get(model.tier, 0)
         usage_weight = 100 - (model.usage_percent or 0)
         usage_penalty = compute_usage_penalty(model)
         reset_bonus = compute_reset_bonus(model)
@@ -240,8 +268,11 @@ def choose_model(
         score = (
             task_weight * 25
             + scope_weight * 12
+            + complexity_weight * 18
             + economy_bonus
+            + scarcity_bonus
             + escalation_bonus
+            + complexity_escalation
             + usage_weight
             + usage_penalty
             + reset_bonus
@@ -268,6 +299,7 @@ def choose_model(
             selected_quota=selected_quota,
             task_type=task_type,
             scope=scope,
+            complexity=complexity,
             allow_preview=allow_preview,
         ),
         "ranked_candidates": [name for _, name, _ in ranked],
@@ -285,6 +317,11 @@ def build_parser() -> argparse.ArgumentParser:
         default="review",
     )
     parser.add_argument("--scope", choices=["small", "medium", "large"], default="medium")
+    parser.add_argument(
+        "--complexity",
+        choices=["trivial", "normal", "hard", "ambiguous"],
+        default="normal",
+    )
     parser.add_argument("--preferred-model")
     parser.add_argument("--avoid-model", action="append", default=[])
     parser.add_argument("--no-preview", action="store_true")
@@ -310,6 +347,7 @@ def main() -> int:
         models=models,
         task_type=args.task_type,
         scope=args.scope,
+        complexity=args.complexity,
         preferred_model=args.preferred_model,
         avoid_models=set(args.avoid_model),
         allow_preview=not args.no_preview,
