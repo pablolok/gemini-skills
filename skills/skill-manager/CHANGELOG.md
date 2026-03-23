@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.3] - 2026-03-23
+- Manage local Gemini workspace ignores during install and update
+
+
 ## [1.5.2] - 2026-03-23
 - Add a managed `.gitignore` block for the local Gemini workspace files created by `skill-manager`
 - Clarify for Codex users that only intentionally repo-owned `.codex/skills` bridges should be committed
