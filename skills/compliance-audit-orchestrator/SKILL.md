@@ -16,19 +16,15 @@ When you invoke this skill, you MUST:
 3.  **Verify Skill Presence:** Before any invocation, you MUST verify if the required specialized skill is "installed" and available for use in the current environment. A skill is considered available if its `SKILL.md` file exists in either:
     *   The project's local `skills/` directory.
     *   The user's global `.gemini/skills/` directory.
-3.  **Resolve Balancer Context:** Before dispatching to a specialized audit:
-    *   If `subagent-balancer-orchestrator` is available, invoke it first and use its routing decision.
-    *   If the orchestrator is not available, choose between `subagent-balancer` and `subagent-balancer-api` from task context:
-        - Gemini CLI, account quotas, `/stats model`, model usage, or free-tier usage => `subagent-balancer`
-        - Google AI Developer API, Vertex AI, API keys, token pricing, batch, or billed usage => `subagent-balancer-api`
-    *   If the environment is still unclear, keep the audit local or ask the user before delegating.
-4.  **Apply Subagent Routing Guardrails:** Before dispatching to a specialized audit, check whether the user provided model-selection constraints or balancing inputs. If so:
-    *   If the resolved balancer skill is available, invoke it first and carry its routing decision into the specialized audit.
-    *   If no matching balancer skill is available, inline the minimum safe policy:
-        - preserve explicit model selection
-        - do not silently downgrade from Pro to Flash
-        - prefer a local audit over an unwanted fallback
-        - for billed API workflows, prefer the cheapest model that still clears the task quality floor
+3.  **Resolve Delegation Through The Balancer Layer:** Before dispatching to a specialized audit:
+    *   If `subagent-balancer-orchestrator` is available, invoke it first and carry its routing decision into the specialized audit.
+    *   If the orchestrator is not available but a direct balancer is already clearly appropriate from explicit task context, you may invoke that balancer directly.
+    *   If no balancer layer is available, prefer a local audit rather than re-implementing balancing policy in this skill.
+4.  **Fallback Policy Without A Balancer Layer:** If no orchestrator or direct balancer is available:
+    *   preserve explicit user model constraints
+    *   prefer a local audit first
+    *   only delegate when the audit is clearly too broad or risky to keep local
+    *   if delegation is still needed, use one bounded generalist review subagent and avoid chaining
 5.  **Determine and Dispatch:**
     *   **C# Audit:** If any **C# files** (`.cs`, `.csproj`, `.sln`) were modified, verify the presence of `compliance-audit-c#`. If present, invoke it.
     *   **Scripts Audit:** If any **Script files** (`.ps1`, `.py`, `.sh`, `.bat`, `.js` for Node.js scripts) were modified, verify the presence of `compliance-audit-scripts`. If present, invoke it.
