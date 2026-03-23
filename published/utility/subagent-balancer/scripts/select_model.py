@@ -16,24 +16,41 @@ KNOWN_MODELS = {
     "gemini-2.0-flash": {"tier": "flash", "preview": False},
     "gemini-2.0-flash-lite-preview-02-05": {"tier": "lite", "preview": True},
     "gemini-2.0-pro-exp-02-05": {"tier": "pro", "preview": True},
+    "gemini-2.5-flash-lite": {"tier": "lite", "preview": False},
+    "gemini-2.5-flash": {"tier": "flash", "preview": False},
+    "gemini-2.5-pro": {"tier": "pro", "preview": False},
+    "gemini-3-flash-preview": {"tier": "flash", "preview": True},
+    "gemini-3.1-pro-preview": {"tier": "pro", "preview": True},
 }
 
 TIER_WEIGHTS = {
-    "review": {"lite": 10, "flash": 4, "pro": 2},
-    "search": {"lite": 10, "flash": 4, "pro": 2},
-    "verification": {"lite": 8, "flash": 4, "pro": 3},
-    "implementation": {"lite": 1, "flash": 4, "pro": 8},
-    "refactor": {"lite": 1, "flash": 4, "pro": 8},
+    "review": {"lite": 12, "flash": 5, "pro": 1},
+    "search": {"lite": 12, "flash": 5, "pro": 1},
+    "verification": {"lite": 10, "flash": 6, "pro": 2},
+    "implementation": {"lite": 1, "flash": 11, "pro": 4},
+    "refactor": {"lite": 0, "flash": 9, "pro": 6},
 }
 
 SCOPE_BONUS = {
-    "small": {"lite": 6, "flash": 1, "pro": 0},
-    "medium": {"lite": 0, "flash": 3, "pro": 2},
-    "large": {"lite": -6, "flash": 0, "pro": 6},
+    "small": {"lite": 6, "flash": 2, "pro": -4},
+    "medium": {"lite": 0, "flash": 3, "pro": 0},
+    "large": {"lite": -6, "flash": 3, "pro": 2},
 }
 
 MODEL_RE = re.compile(r"(gemini-\S+)")
 PERCENT_RE = re.compile(r"(\d+)%")
+RESET_WINDOW_RE = re.compile(r"\((?:(?P<days>\d+)d)?\s*(?:(?P<hours>\d+)h)?\s*(?:(?P<minutes>\d+)m)?\)")
+
+TIER_ECONOMY_BONUS = {
+    "lite": 15,
+    "flash": 8,
+    "pro": -12,
+}
+
+COMPLEXITY_ESCALATION = {
+    ("implementation", "large"): {"pro": 10},
+    ("refactor", "large"): {"pro": 18},
+}
 
 
 @dataclass
@@ -44,6 +61,7 @@ class ModelQuota:
     limited: bool
     usage_percent: int | None
     reset_text: str
+    reset_window_minutes: int | None
 
     @property
     def tier(self) -> str:
@@ -72,45 +90,98 @@ def parse_snapshot(text: str) -> list[ModelQuota]:
     """Parse a Gemini quota table into model quota entries."""
     models: list[ModelQuota] = []
 
-    # Flatten and split by whitespace to handle dense tables
-    tokens = text.replace(",", " ").replace(":", " ").replace(")", " ").split()
-    
-    current_model = None
-    for i, token in enumerate(tokens):
-        if token.startswith("gemini-"):
-            # If we were tracking a model, save it
-            if current_model:
-                models.append(current_model)
-            
-            name = token
-            # Look ahead for percentage
-            usage_percent = None
-            limited = False
-            
-            # Search next 5 tokens for status
-            for j in range(1, 6):
-                if i + j >= len(tokens):
-                    break
-                next_token = tokens[i+j]
-                if next_token.startswith("gemini-"):
-                    break
-                if "limit" in next_token.lower():
-                    limited = True
-                percent_match = PERCENT_RE.search(next_token)
-                if percent_match and usage_percent is None:
-                    usage_percent = int(percent_match.group(1))
+    for raw_line in text.splitlines():
+        line = " ".join(raw_line.strip().split())
+        if "gemini-" not in line:
+            continue
 
-            current_model = ModelQuota(
+        model_match = MODEL_RE.search(line)
+        if not model_match:
+            continue
+
+        name = model_match.group(1).rstrip(",:)")
+        limited = " limit " in f" {line.lower()} "
+        percent_match = PERCENT_RE.search(line)
+        usage_percent = None if limited or not percent_match else int(percent_match.group(1))
+        reset_text = line.split(name, 1)[1].strip()
+        reset_window_minutes = parse_reset_window_minutes(reset_text)
+
+        models.append(
+            ModelQuota(
                 name=name,
                 limited=limited,
                 usage_percent=usage_percent,
-                reset_text=" ".join(tokens[i+1:i+6]) # Heuristic reset text
+                reset_text=reset_text,
+                reset_window_minutes=reset_window_minutes,
             )
-
-    if current_model:
-        models.append(current_model)
+        )
 
     return models
+
+
+def parse_reset_window_minutes(reset_text: str) -> int | None:
+    """Extract a relative reset window from free-form text."""
+    match = RESET_WINDOW_RE.search(reset_text)
+    if not match:
+        return None
+
+    days = int(match.group("days") or 0)
+    hours = int(match.group("hours") or 0)
+    minutes = int(match.group("minutes") or 0)
+    total_minutes = days * 24 * 60 + hours * 60 + minutes
+    return total_minutes if total_minutes > 0 else None
+
+
+def build_reason(
+    selected_quota: ModelQuota,
+    task_type: str,
+    scope: str,
+    allow_preview: bool,
+) -> str:
+    """Build a concise explanation for the winning model."""
+    usage = (
+        f"{selected_quota.usage_percent}% used"
+        if selected_quota.usage_percent is not None
+        else "usage unavailable"
+    )
+    reset = selected_quota.reset_text or "reset unknown"
+    preview_policy = "preview allowed" if allow_preview else "preview blocked"
+    return (
+        f"{selected_quota.name} best fits task={task_type}, scope={scope}; "
+        f"{usage}, {reset}, {preview_policy}."
+    )
+
+
+def compute_reset_bonus(model: ModelQuota) -> int:
+    """Score reset timing with stronger penalties for constrained models."""
+    if model.reset_window_minutes is None:
+        return 0
+
+    usage_percent = model.usage_percent or 0
+    hours_until_reset = model.reset_window_minutes / 60
+    if hours_until_reset <= 6:
+        return 18
+    if hours_until_reset <= 12:
+        return 12
+    if hours_until_reset <= 24:
+        return 6
+    if usage_percent >= 85:
+        return -18
+    if usage_percent >= 70:
+        return -10
+    return -4
+
+
+def compute_usage_penalty(model: ModelQuota) -> int:
+    """Penalize heavily-used models so scarce tiers are preserved longer."""
+    usage_percent = model.usage_percent or 0
+    if usage_percent >= 90:
+        return -30
+    if usage_percent >= 80:
+        return -20
+    if usage_percent >= 70:
+        return -10
+    return 0
 
 
 def choose_model(
@@ -160,9 +231,22 @@ def choose_model(
 
         task_weight = TIER_WEIGHTS.get(task_type, TIER_WEIGHTS["review"]).get(model.tier, 0)
         scope_weight = SCOPE_BONUS.get(scope, SCOPE_BONUS["medium"]).get(model.tier, 0)
+        economy_bonus = TIER_ECONOMY_BONUS.get(model.tier, 0)
+        escalation_bonus = COMPLEXITY_ESCALATION.get((task_type, scope), {}).get(model.tier, 0)
         usage_weight = 100 - (model.usage_percent or 0)
+        usage_penalty = compute_usage_penalty(model)
+        reset_bonus = compute_reset_bonus(model)
         preview_penalty = -20 if model.preview else 0
-        score = task_weight * 30 + scope_weight * 15 + usage_weight + preview_penalty
+        score = (
+            task_weight * 25
+            + scope_weight * 12
+            + economy_bonus
+            + escalation_bonus
+            + usage_weight
+            + usage_penalty
+            + reset_bonus
+            + preview_penalty
+        )
         ranked.append((score, model.name, model.reset_text))
 
     ranked.sort(reverse=True)
@@ -172,7 +256,7 @@ def choose_model(
             "route": "local",
             "selected_model": None,
             "reason": "No acceptable model remained after applying limits and preferences.",
-            "ranked_candidates": [m.name for m in visible],
+            "ranked_candidates": [m.name for m in valid_candidates],
         }
 
     selected_score, selected_model, _ = ranked[0]
@@ -180,9 +264,11 @@ def choose_model(
     return {
         "route": "subagent",
         "selected_model": selected_model,
-        "reason": (
-            f"{selected_model} scored highest for task={task_type}, scope={scope}, "
-            f"usage={selected_quota.usage_percent}%."
+        "reason": build_reason(
+            selected_quota=selected_quota,
+            task_type=task_type,
+            scope=scope,
+            allow_preview=allow_preview,
         ),
         "ranked_candidates": [name for _, name, _ in ranked],
         "score": selected_score,

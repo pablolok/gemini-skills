@@ -112,6 +112,26 @@ class TestSubagentBalancerWrapper(unittest.TestCase):
             self.assertEqual(result["route"], "local")
             self.assertIsNone(result["selected_model"])
 
+    def test_explain_output_uses_canonical_route_contract(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            snapshot_path = pathlib.Path(tmp) / "quota.txt"
+            snapshot_path.write_text(SNAPSHOT, encoding="utf-8")
+            args = types.SimpleNamespace(
+                snapshot_file=str(snapshot_path),
+                stats_command="ignored",
+                cache_file=str(pathlib.Path(tmp) / ".quota-cache.txt"),
+                timeout_seconds=1,
+                task_type="review",
+                scope="small",
+                preferred_model=None,
+                avoid_model=[],
+                no_preview=True,
+            )
+            result = MODULE.choose_route(args)
+            self.assertIn(result["route"], {"local", "subagent"})
+            self.assertIn("reason", result)
+            self.assertIn("ranked_candidates", result)
+
 
 if __name__ == "__main__":
     unittest.main()

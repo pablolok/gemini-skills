@@ -42,6 +42,7 @@ class TestSubagentBalancerSelector(unittest.TestCase):
         self.assertEqual(models[0].name, "gemini-2.5-flash")
         self.assertTrue(models[0].limited)
         self.assertEqual(models[1].usage_percent, 2)
+        self.assertEqual(models[1].reset_window_minutes, 21 * 60 + 30)
 
     def test_prefers_flash_lite_for_small_review(self) -> None:
         models = MODULE.parse_snapshot(SNAPSHOT)
@@ -56,11 +57,43 @@ class TestSubagentBalancerSelector(unittest.TestCase):
         self.assertEqual(result["route"], "subagent")
         self.assertEqual(result["selected_model"], "gemini-2.5-flash-lite")
 
-    def test_prefers_pro_for_large_implementation(self) -> None:
+    def test_prefers_pro_for_large_implementation_when_flash_is_unavailable(self) -> None:
         models = MODULE.parse_snapshot(SNAPSHOT)
         result = MODULE.choose_model(
             models=models,
             task_type="implementation",
+            scope="large",
+            preferred_model=None,
+            avoid_models=set(),
+            allow_preview=False,
+        )
+        self.assertEqual(result["selected_model"], "gemini-2.5-pro")
+
+    def test_prefers_flash_over_pro_for_typical_implementation_work(self) -> None:
+        snapshot = """
+gemini-2.5-flash         -    22%  4:00 PM (4h 0m)
+gemini-2.5-pro           -     7%  4:00 PM (4h 0m)
+"""
+        models = MODULE.parse_snapshot(snapshot)
+        result = MODULE.choose_model(
+            models=models,
+            task_type="implementation",
+            scope="medium",
+            preferred_model=None,
+            avoid_models=set(),
+            allow_preview=False,
+        )
+        self.assertEqual(result["selected_model"], "gemini-2.5-flash")
+
+    def test_prefers_pro_only_for_clearly_harder_case(self) -> None:
+        snapshot = """
+gemini-2.5-flash         -    84%  11:00 PM (18h 0m)
+gemini-2.5-pro           -    14%  1:00 PM (8h 0m)
+"""
+        models = MODULE.parse_snapshot(snapshot)
+        result = MODULE.choose_model(
+            models=models,
+            task_type="refactor",
             scope="large",
             preferred_model=None,
             avoid_models=set(),
@@ -91,6 +124,80 @@ class TestSubagentBalancerSelector(unittest.TestCase):
             allow_preview=True,
         )
         self.assertEqual(result["route"], "local")
+
+    def test_returns_local_when_preferred_model_is_blocked_by_preview_policy(self) -> None:
+        models = MODULE.parse_snapshot(SNAPSHOT)
+        result = MODULE.choose_model(
+            models=models,
+            task_type="review",
+            scope="small",
+            preferred_model="gemini-3.1-pro-preview",
+            avoid_models=set(),
+            allow_preview=False,
+        )
+        self.assertEqual(result["route"], "local")
+
+    def test_returns_local_when_all_models_are_blocked(self) -> None:
+        models = MODULE.parse_snapshot(SNAPSHOT)
+        result = MODULE.choose_model(
+            models=models,
+            task_type="review",
+            scope="small",
+            preferred_model=None,
+            avoid_models={"gemini-2.5-flash-lite", "gemini-2.5-pro"},
+            allow_preview=False,
+        )
+        self.assertEqual(result["route"], "local")
+        self.assertIn("ranked_candidates", result)
+
+    def test_reset_window_breaks_ties_toward_earlier_reset(self) -> None:
+        snapshot = """
+gemini-2.5-flash         -    35%  11:00 AM (2h 0m)
+gemini-2.0-flash         -    35%  5:00 AM (32h 0m)
+"""
+        models = MODULE.parse_snapshot(snapshot)
+        result = MODULE.choose_model(
+            models=models,
+            task_type="implementation",
+            scope="medium",
+            preferred_model=None,
+            avoid_models=set(),
+            allow_preview=False,
+        )
+        self.assertEqual(result["selected_model"], "gemini-2.5-flash")
+
+    def test_unknown_future_model_name_is_inferred(self) -> None:
+        snapshot = """
+gemini-4-flash           -    18%  3:00 PM (6h 0m)
+gemini-4-pro             -    18%  3:00 PM (6h 0m)
+"""
+        models = MODULE.parse_snapshot(snapshot)
+        result = MODULE.choose_model(
+            models=models,
+            task_type="implementation",
+            scope="medium",
+            preferred_model=None,
+            avoid_models=set(),
+            allow_preview=False,
+        )
+        self.assertEqual(result["selected_model"], "gemini-4-flash")
+
+    def test_unparseable_reset_text_does_not_crash(self) -> None:
+        snapshot = """
+gemini-2.5-flash         -    18%  resets sometime later
+gemini-2.5-pro           -    18%  resets sometime later
+"""
+        models = MODULE.parse_snapshot(snapshot)
+        result = MODULE.choose_model(
+            models=models,
+            task_type="implementation",
+            scope="medium",
+            preferred_model=None,
+            avoid_models=set(),
+            allow_preview=False,
+        )
+        self.assertEqual(result["route"], "subagent")
+        self.assertEqual(result["selected_model"], "gemini-2.5-flash")
 
 
 if __name__ == "__main__":

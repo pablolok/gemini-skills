@@ -7,11 +7,13 @@ A utility skill for Gemini that makes subagent routing quota-aware and model-awa
 - Deterministic model selection from a Gemini quota snapshot.
 - A wrapper that tries to capture `/stats model`, falls back to a cached snapshot, and chooses a safe route.
 - Guardrails to avoid silently burning expensive Pro or preview quota when a cheaper or local route is more appropriate.
+- Reset-aware scoring so near-limit models with distant reset windows are penalized.
+- Secondary agent-role guidance only after model and quota routing are already decided.
 
 ## Main Files
 
 - `SKILL.md`: Routing policy and usage rules.
-- `scripts/select_model.py`: Scores and ranks known Gemini models from a quota table.
+- `scripts/select_model.py`: Scores and ranks known Gemini models from a quota table, favoring local execution first, `flash` as the normal delegated tier, and `pro` only as an escalation tier.
 - `scripts/balance_subagent.py`: Wrapper that tries live stats capture, then cache fallback, then local fallback.
 
 ## Typical Usage
