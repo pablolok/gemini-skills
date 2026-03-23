@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.1] - 2026-03-23
+- Publish audit routing updates that defer balancing to the orchestrator
+
+
 ## [1.2.0] - 2026-03-23
 - Added support for the balancer split by preferring `subagent-balancer-orchestrator` and falling back to CLI-vs-API balancer selection when needed.
 

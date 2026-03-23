@@ -16,6 +16,12 @@ A Gemini API and Vertex AI model balancer for billed usage.
 - `scripts/select_model.py`: Selects the cheapest acceptable Gemini API model for a task.
 - `scripts/refresh_pricing.py`: Refreshes `pricing_catalog.json` from the official Google Gemini pricing page.
 
+## Codex Integration
+
+- In Codex-facing flows, prefer `subagent-balancer-orchestrator` as the entry point when the task may be either CLI/account or billed API usage.
+- Use this API balancer directly only when the environment is already explicit: Google AI Developer API, Vertex AI, API keys, billed token pricing, or `batch` delivery.
+- Audit and review skills should consume the orchestrator or this balancer's routing result instead of embedding API cost policy directly.
+
 ## Typical Usage
 
 ```bash

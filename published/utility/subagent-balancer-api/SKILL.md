@@ -50,6 +50,8 @@ Useful flags:
 - `--preferred-model`
 - `--avoid-model`
 - `--no-preview`
+- `--pricing-file`
+- `--refresh-pricing`
 
 Interpret the result as follows:
 
@@ -81,7 +83,19 @@ Apply these rules in order:
 
 ## Pricing Data
 
-The selector script contains a built-in model catalog based on the official Google Gemini API pricing page and supports both `standard` and `batch` delivery modes.
+The selector script uses a local `pricing_catalog.json` file and supports both `standard` and `batch` delivery modes.
+
+Refresh pricing with:
+
+```bash
+python skills/subagent-balancer-api/scripts/refresh_pricing.py
+```
+
+Or refresh inline during selection:
+
+```bash
+python skills/subagent-balancer-api/scripts/select_model.py --task-type implementation --scope medium --complexity normal --refresh-pricing
+```
 
 Because pricing changes over time, refresh the catalog whenever the official pricing changes. Do not assume the catalog is permanently current.
 

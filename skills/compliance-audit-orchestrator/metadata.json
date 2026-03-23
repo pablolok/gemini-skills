@@ -1,5 +1,5 @@
 {
   "name": "compliance-audit-orchestrator",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Use when finalizing an implementation phase in a Conductor track to determine and invoke the correct specialized compliance audit (C# or Scripts) based on the files modified."
 }

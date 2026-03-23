@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.1] - 2026-03-23
+- Publish Codex integration notes and robust CLI balancing updates
+
+
+## [1.6.0] - 2026-03-23
+- Added more robust stats capture with multiple Gemini CLI command candidates and JSON-like output normalization before cache fallback.
+- Clarified that this CLI balancer should pair with `subagent-balancer-orchestrator` when the environment is not already explicit.
+
 ## [1.5.3] - 2026-03-23
 - Clarify Gemini CLI quota balancing scope after splitting API billing into a separate skill
 

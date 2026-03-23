@@ -21,6 +21,12 @@ A utility skill for Gemini CLI and Google-account Gemini workflows that makes su
 - `scripts/select_model.py`: Scores and ranks known Gemini models from a quota table, using task type, scope, complexity, quota usage, reset timing, and per-model scarcity to keep `flash` as the normal delegated tier and `pro` as an escalation tier.
 - `scripts/balance_subagent.py`: Wrapper that tries live stats capture, then cache fallback, then local fallback.
 
+## Codex Integration
+
+- In Codex-facing flows, prefer `subagent-balancer-orchestrator` as the entry point when the environment is not already explicit.
+- Use this CLI balancer directly only when the task is clearly running through Gemini CLI or Google-account Gemini usage and quota preservation is the main objective.
+- Audit and review skills should consume the orchestrator or this balancer's routing result, not re-implement quota policy themselves.
+
 ## Typical Usage
 
 ```bash
