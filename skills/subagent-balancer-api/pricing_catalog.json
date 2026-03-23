@@ -1,0 +1,83 @@
+{
+  "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
+  "page_last_updated": "2026-03-18 UTC",
+  "fetched_at_utc": "2026-03-23T00:00:00Z",
+  "models": {
+    "gemini-2.5-flash-lite": {
+      "standard": {
+        "input": 0.1,
+        "output": 0.4
+      },
+      "batch": {
+        "input": 0.05,
+        "output": 0.2
+      }
+    },
+    "gemini-2.5-flash": {
+      "standard": {
+        "input": 0.3,
+        "output": 2.5
+      },
+      "batch": {
+        "input": 0.15,
+        "output": 1.25
+      }
+    },
+    "gemini-2.5-pro": {
+      "standard": {
+        "input": 1.25,
+        "output": 10.0
+      },
+      "standard_long": {
+        "input": 2.5,
+        "output": 15.0
+      },
+      "batch": {
+        "input": 0.625,
+        "output": 5.0
+      },
+      "batch_long": {
+        "input": 1.25,
+        "output": 7.5
+      }
+    },
+    "gemini-3-flash-preview": {
+      "standard": {
+        "input": 0.5,
+        "output": 3.0
+      },
+      "batch": {
+        "input": 0.25,
+        "output": 1.5
+      }
+    },
+    "gemini-3.1-flash-lite-preview": {
+      "standard": {
+        "input": 0.25,
+        "output": 1.5
+      },
+      "batch": {
+        "input": 0.125,
+        "output": 0.75
+      }
+    },
+    "gemini-3.1-pro-preview": {
+      "standard": {
+        "input": 2.0,
+        "output": 12.0
+      },
+      "standard_long": {
+        "input": 4.0,
+        "output": 18.0
+      },
+      "batch": {
+        "input": 1.0,
+        "output": 6.0
+      },
+      "batch_long": {
+        "input": 2.0,
+        "output": 9.0
+      }
+    }
+  }
+}

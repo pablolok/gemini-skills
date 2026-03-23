@@ -22,7 +22,48 @@ SPEC.loader.exec_module(SELECTOR)
 
 
 DEFAULT_STATS_COMMAND = 'gemini -p "/stats model" --output-format text'
+DEFAULT_STATS_COMMAND_CANDIDATES = (
+    'gemini -p "/stats model" --output-format text',
+    'gemini -p "/stats model" --output-format json',
+    'gemini -p "/stats model"',
+)
 DEFAULT_CACHE_FILE = THIS_DIR.parent / ".quota-cache.txt"
+
+
+def extract_snapshot_text(output: str) -> str:
+    """Normalize text or JSON-like command output into a quota snapshot string."""
+    stripped = output.strip()
+    if not stripped:
+        raise RuntimeError("Stats command returned no stdout.")
+    if "gemini-" in stripped:
+        return stripped
+
+    try:
+        payload = json.loads(stripped)
+    except json.JSONDecodeError as exc:
+        raise RuntimeError("Stats command output was not a usable quota snapshot.") from exc
+
+    def walk(value: Any) -> str | None:
+        if isinstance(value, str):
+            return value if "gemini-" in value else None
+        if isinstance(value, dict):
+            for nested in value.values():
+                found = walk(nested)
+                if found:
+                    return found
+            return None
+        if isinstance(value, list):
+            for nested in value:
+                found = walk(nested)
+                if found:
+                    return found
+            return None
+        return None
+
+    extracted = walk(payload)
+    if not extracted:
+        raise RuntimeError("Could not extract Gemini quota data from structured stats output.")
+    return extracted.strip()
 
 
 def run_stats_command(command: str, timeout_seconds: int) -> str:
@@ -35,10 +76,17 @@ def run_stats_command(command: str, timeout_seconds: int) -> str:
         shell=True,
         check=True,
     )
-    output = completed.stdout.strip()
-    if not output:
-        raise RuntimeError("Stats command returned no stdout.")
-    return output
+    return extract_snapshot_text(completed.stdout)
+
+
+def candidate_stats_commands(stats_command: str | None) -> list[str]:
+    """Build the ordered list of stats capture commands to try."""
+    env_command = os.environ.get("GEMINI_STATS_COMMAND")
+    commands: list[str] = []
+    for candidate in (stats_command, env_command, *DEFAULT_STATS_COMMAND_CANDIDATES):
+        if candidate and candidate not in commands:
+            commands.append(candidate)
+    return commands
 
 
 def read_text_file(path: pathlib.Path) -> str:
@@ -53,7 +101,7 @@ def write_text_file(path: pathlib.Path, text: str) -> None:
 
 def acquire_snapshot(
     snapshot_file: str | None,
-    stats_command: str,
+    stats_command: str | None,
     cache_file: pathlib.Path,
     timeout_seconds: int,
 ) -> tuple[str | None, str]:
@@ -63,14 +111,19 @@ def acquire_snapshot(
             return sys.stdin.read(), "stdin"
         return read_text_file(pathlib.Path(snapshot_file)), "snapshot-file"
 
-    try:
-        live_text = run_stats_command(stats_command, timeout_seconds)
-        write_text_file(cache_file, live_text)
-        return live_text, "live-stats"
-    except Exception as exc:  # pragma: no cover - exercised through wrapper tests
-        if cache_file.exists():
-            return read_text_file(cache_file), f"cache-fallback ({exc})"
-        return None, f"unavailable ({exc})"
+    errors: list[str] = []
+    for command in candidate_stats_commands(stats_command):
+        try:
+            live_text = run_stats_command(command, timeout_seconds)
+            write_text_file(cache_file, live_text)
+            return live_text, f"live-stats ({command})"
+        except Exception as exc:  # pragma: no cover - exercised through wrapper tests
+            errors.append(f"{command}: {exc}")
+
+    error_text = "; ".join(errors) if errors else "no stats commands configured"
+    if cache_file.exists():
+        return read_text_file(cache_file), f"cache-fallback ({error_text})"
+    return None, f"unavailable ({error_text})"
 
 
 def choose_route(args: argparse.Namespace) -> dict[str, Any]:
@@ -111,10 +164,7 @@ def build_parser() -> argparse.ArgumentParser:
     """Build the CLI parser."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--snapshot-file")
-    parser.add_argument(
-        "--stats-command",
-        default=os.environ.get("GEMINI_STATS_COMMAND", DEFAULT_STATS_COMMAND),
-    )
+    parser.add_argument("--stats-command", default=None)
     parser.add_argument("--cache-file", default=str(DEFAULT_CACHE_FILE))
     parser.add_argument("--timeout-seconds", type=int, default=20)
     parser.add_argument(

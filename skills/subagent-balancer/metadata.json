@@ -1,5 +1,5 @@
 {
   "name": "subagent-balancer",
-  "version": "1.5.3",
+  "version": "1.6.0",
   "description": "Quota-aware routing for Gemini CLI and Google-account Gemini subagent delegation with fallback-to-local execution."
 }

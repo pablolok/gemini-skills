@@ -9,18 +9,25 @@ When you invoke this skill, you must perform a strict, holistic audit of the scr
 
 ## Subagent Delegation
 
-You MUST apply a quota-aware routing decision before delegating review work.
+You MUST apply a routing decision before delegating review work.
 
-If the `subagent-balancer` skill is available, use it first.
+Resolve the balancer like this:
 
-If it is not available, apply this inline policy:
+- If `subagent-balancer-orchestrator` is available, use it first.
+- Otherwise, use `subagent-balancer` for Gemini CLI or Google-account Gemini workflows where quota preservation is the goal.
+- Otherwise, use `subagent-balancer-api` for Google AI Developer API or Vertex AI workflows where token pricing and spend control are the goal.
+
+If the matching balancer skill is available, use it before reviewing.
+
+If no matching balancer is available, apply this inline policy:
 
 1. If the modified file set is small and the audit can be completed reliably in the current agent, keep the review local.
 2. If delegation is justified, prefer a single lightweight review sub-agent for a bounded file set.
 3. Use a stronger sub-agent only for broad, ambiguous, or high-risk audits.
 4. If the user explicitly selected a Pro model or rejected Flash or preview models, do not silently downgrade to `gemini-3-flash-preview` or any other cheaper tier.
-5. If Gemini quota is constrained, reset is far away, or the preferred model is already near limit, do not delegate. Perform the audit locally instead.
-6. Never chain multiple review sub-agents for this audit unless the user explicitly requests a multi-agent review.
+5. For Gemini CLI or Google-account use, if quota is constrained, reset is far away, or the preferred model is already near limit, do not delegate. Perform the audit locally instead.
+6. For billed API use, pick the cheapest model that still clears the task quality floor. Prefer `batch` when latency is not important.
+7. Never chain multiple review sub-agents for this audit unless the user explicitly requests a multi-agent review.
 
 If you choose delegation, provide the sub-agent with the following prompt:
 

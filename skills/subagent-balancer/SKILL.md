@@ -170,6 +170,8 @@ When another skill normally says "MUST invoke a subagent", reinterpret that as:
 
 "You MUST apply the subagent-balancer policy first, then delegate only if the policy justifies it."
 
+If `subagent-balancer-orchestrator` is available, prefer it as the entry point when the environment may be either CLI/account or billed API usage.
+
 If this skill is unavailable in the target environment, inline the same policy rather than defaulting to unconditional delegation.
 
 This skill does not have privileged live access to Gemini quota by itself. The wrapper improves this by trying a shell-level stats capture first, but that still depends on the local Gemini CLI exposing `/stats model` in a scriptable way.

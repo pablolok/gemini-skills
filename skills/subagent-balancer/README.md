@@ -2,6 +2,8 @@
 
 This is the Gemini CLI / Google-account quota balancer.
 
+If the execution environment is not already known, pair it with `subagent-balancer-orchestrator` instead of hardcoding this skill directly.
+
 A utility skill for Gemini CLI and Google-account Gemini workflows that makes subagent routing quota-aware and model-aware.
 
 ## What It Adds

@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.0] - 2026-03-23
+- Added live pricing refresh from the official Google Gemini pricing page into `pricing_catalog.json`.
+- Added selector support for `--pricing-file` and `--refresh-pricing`.
+- Prepared the API balancer to be called through the new subagent balancer orchestrator.
+
 ## [1.0.1] - 2026-03-23
 - Add a cost-aware Gemini API balancer focused on price-quality tradeoffs
 

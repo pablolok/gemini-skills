@@ -16,17 +16,27 @@ When you invoke this skill, you MUST:
 3.  **Verify Skill Presence:** Before any invocation, you MUST verify if the required specialized skill is "installed" and available for use in the current environment. A skill is considered available if its `SKILL.md` file exists in either:
     *   The project's local `skills/` directory.
     *   The user's global `.gemini/skills/` directory.
-3.  **Apply Subagent Routing Guardrails:** Before dispatching to a specialized audit, check whether the user provided model-selection constraints or quota information. If so:
-    *   If `subagent-balancer` is available, invoke it first and carry its routing decision into the specialized audit.
-    *   If `subagent-balancer` is not available, inline its minimum policy: preserve explicit model selection, do not silently downgrade from Pro to Flash, and prefer a local audit over an unwanted fallback.
-4.  **Determine and Dispatch:**
+3.  **Resolve Balancer Context:** Before dispatching to a specialized audit:
+    *   If `subagent-balancer-orchestrator` is available, invoke it first and use its routing decision.
+    *   If the orchestrator is not available, choose between `subagent-balancer` and `subagent-balancer-api` from task context:
+        - Gemini CLI, account quotas, `/stats model`, model usage, or free-tier usage => `subagent-balancer`
+        - Google AI Developer API, Vertex AI, API keys, token pricing, batch, or billed usage => `subagent-balancer-api`
+    *   If the environment is still unclear, keep the audit local or ask the user before delegating.
+4.  **Apply Subagent Routing Guardrails:** Before dispatching to a specialized audit, check whether the user provided model-selection constraints or balancing inputs. If so:
+    *   If the resolved balancer skill is available, invoke it first and carry its routing decision into the specialized audit.
+    *   If no matching balancer skill is available, inline the minimum safe policy:
+        - preserve explicit model selection
+        - do not silently downgrade from Pro to Flash
+        - prefer a local audit over an unwanted fallback
+        - for billed API workflows, prefer the cheapest model that still clears the task quality floor
+5.  **Determine and Dispatch:**
     *   **C# Audit:** If any **C# files** (`.cs`, `.csproj`, `.sln`) were modified, verify the presence of `compliance-audit-c#`. If present, invoke it.
     *   **Scripts Audit:** If any **Script files** (`.ps1`, `.py`, `.sh`, `.bat`, `.js` for Node.js scripts) were modified, verify the presence of `compliance-audit-scripts`. If present, invoke it.
-5.  **Handling Missing Skills:** If a specialized audit is required based on the file changes but the skill is NOT found:
+6.  **Handling Missing Skills:** If a specialized audit is required based on the file changes but the skill is NOT found:
     *   DO NOT fail silently. 
     *   Inform the user clearly: *"The implementation modified <file types> but the required specialized audit skill '<skill name>' was not found."*
     *   Propose alternative verification or skip as per user preference.
-6.  **Sequential Execution:** If multiple specialized audits are required and available, run them sequentially (C# first, then Scripts).
+7.  **Sequential Execution:** If multiple specialized audits are required and available, run them sequentially (C# first, then Scripts).
 
 ## Future Extensibility Pattern
 

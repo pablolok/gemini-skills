@@ -138,6 +138,30 @@ class TestSubagentBalancerWrapper(unittest.TestCase):
             self.assertIn("ranked_candidates", result)
             self.assertIn("complexity=trivial", result["reason"])
 
+    def test_extract_snapshot_text_accepts_json_wrapped_output(self) -> None:
+        payload = {
+            "stats": {
+                "models": "gemini-2.5-flash-lite - 2% 9:10 PM (21h 30m)\ngemini-2.5-pro - 11% 7:24 PM (19h 45m)"
+            }
+        }
+        snapshot = MODULE.extract_snapshot_text(MODULE.json.dumps(payload))
+        self.assertIn("gemini-2.5-flash-lite", snapshot)
+
+    def test_acquire_snapshot_tries_multiple_stats_commands(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            cache_path = pathlib.Path(tmp) / ".quota-cache.txt"
+            side_effects = [RuntimeError("first failed"), SNAPSHOT]
+            with mock.patch.object(MODULE, "run_stats_command", side_effect=side_effects) as patched:
+                snapshot, source = MODULE.acquire_snapshot(
+                    snapshot_file=None,
+                    stats_command=None,
+                    cache_file=cache_path,
+                    timeout_seconds=1,
+                )
+            self.assertEqual(snapshot.strip(), SNAPSHOT.strip())
+            self.assertIn("live-stats", source)
+            self.assertGreaterEqual(patched.call_count, 2)
+
 
 if __name__ == "__main__":
     unittest.main()
