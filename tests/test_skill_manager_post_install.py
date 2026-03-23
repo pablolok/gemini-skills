@@ -31,11 +31,13 @@ SESSION_START_HOOK = _load_module(
 class TestSkillManagerPostInstall(unittest.TestCase):
     def test_integrate_writes_settings_command_and_runtime_config(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
+            fake_home = os.path.join(temp_dir, "fake-home")
             with patch.dict(
                 os.environ,
                 {
                     "GEMINI_SKILLS_REPO_ROOT": os.path.abspath("."),
                     "GEMINI_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
+                    "USERPROFILE": fake_home,
                 },
                 clear=False,
             ):
@@ -44,6 +46,7 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             settings_path = os.path.join(temp_dir, ".gemini", "settings.json")
             command_dir = os.path.join(temp_dir, ".gemini", "commands", "skill-manager")
             config_path = os.path.join(temp_dir, ".gemini", "skills", "skill-manager", "runtime_config.json")
+            policy_path = os.path.join(fake_home, ".gemini", "policies", "skill-manager-plan-mode.toml")
 
             self.assertTrue(os.path.exists(settings_path))
             self.assertTrue(os.path.exists(os.path.join(command_dir, "list.toml")))
@@ -51,6 +54,7 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(command_dir, "update.toml")))
             self.assertTrue(os.path.exists(os.path.join(command_dir, "uninstall.toml")))
             self.assertTrue(os.path.exists(config_path))
+            self.assertTrue(os.path.exists(policy_path))
 
             with open(settings_path, "r", encoding="utf-8") as handle:
                 settings = json.load(handle)
@@ -72,17 +76,23 @@ class TestSkillManagerPostInstall(unittest.TestCase):
 
             with open(config_path, "r", encoding="utf-8") as handle:
                 config = json.load(handle)
+            with open(policy_path, "r", encoding="utf-8") as handle:
+                policy = handle.read()
 
             self.assertTrue(config["source_repo_root"].endswith("gemini-skills"))
             self.assertTrue(config["published_dir"].endswith(os.path.join("gemini-skills", "published")))
+            self.assertIn('modes = ["plan"]', policy)
+            self.assertIn("list_skills.py", policy)
 
     def test_integrate_is_idempotent_for_session_start_hook(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
+            fake_home = os.path.join(temp_dir, "fake-home")
             with patch.dict(
                 os.environ,
                 {
                     "GEMINI_SKILLS_REPO_ROOT": os.path.abspath("."),
                     "GEMINI_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
+                    "USERPROFILE": fake_home,
                 },
                 clear=False,
             ):
@@ -105,11 +115,13 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             with open(settings_path, "w", encoding="utf-8") as handle:
                 json.dump({"tools": {"core": ["run_shell_command"]}}, handle)
 
+            fake_home = os.path.join(temp_dir, "fake-home")
             with patch.dict(
                 os.environ,
                 {
                     "GEMINI_SKILLS_REPO_ROOT": os.path.abspath("."),
                     "GEMINI_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
+                    "USERPROFILE": fake_home,
                 },
                 clear=False,
             ):

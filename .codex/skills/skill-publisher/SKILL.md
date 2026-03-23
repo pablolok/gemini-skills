@@ -18,8 +18,9 @@ Workflow:
 When publishing or syncing a skill from Codex:
 
 1. Publish from the development source to the stable destination exactly as the Gemini skill defines.
-2. Ensure `README.md` is updated alongside `SKILL.md`, scripts, metadata, and changelog changes.
-3. If the skill also has a Codex bridge in `.codex/skills/`, verify the bridge still points to the correct installed Gemini skill path and that its Codex-specific notes remain accurate.
-4. After publishing a skill that affects post-change verification, run the Codex sequence: compliance audit first, then review optimization.
+2. Use the Codex bridge for `changelog-manager` first when a `CHANGELOG.md` needs a new entry or format cleanup.
+3. Ensure `README.md` is updated alongside `SKILL.md`, scripts, metadata, and changelog changes.
+4. If the skill also has a Codex bridge in `.codex/skills/`, verify the bridge still points to the correct installed Gemini skill path and that its Codex-specific notes remain accurate.
+5. After publishing a skill that affects post-change verification, run the Codex sequence: compliance audit first, then review optimization.
 
 Do not publish Gemini-only Codex bridges by default. If a skill is Gemini-specific, such as the balancer family, keep it in `.gemini/skills/` and document that Codex should ignore it unless a real Codex integration is being added.

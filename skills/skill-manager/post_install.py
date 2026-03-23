@@ -16,6 +16,19 @@ from typing import Any, Dict
 HOOK_NAME = "skill-manager-update-check"
 HOOK_COMMAND = "python .gemini/skills/skill-manager/scripts/session_start_hook.py"
 PYTHON_SHELL_ALLOWLIST = "run_shell_command(python)"
+PLAN_POLICY_FILENAME = "skill-manager-plan-mode.toml"
+PLAN_POLICY_CONTENT = '''[[rule]]
+toolName = "run_shell_command"
+commandPrefix = [
+  "python .gemini/skills/skill-manager/scripts/list_skills.py",
+  "python .gemini/skills/skill-manager/scripts/install_skills.py",
+  "python .gemini/skills/skill-manager/scripts/update_skills.py",
+  "python .gemini/skills/skill-manager/scripts/uninstall_skills.py"
+]
+decision = "allow"
+priority = 100
+modes = ["plan"]
+'''
 COMMAND_TEMPLATES = {
     "list.toml": '''description = "List installed skills, available published skills, and pending updates."
 
@@ -172,6 +185,24 @@ def _write_runtime_config(target_project_path: str, source_repo_root: str) -> No
     _write_json(config_path, payload)
 
 
+def _gemini_home_dir() -> str:
+    cli_home = os.environ.get("GEMINI_CLI_HOME")
+    if cli_home:
+        return os.path.join(os.path.abspath(cli_home), ".gemini")
+
+    user_profile = os.environ.get("USERPROFILE") or os.path.expanduser("~")
+    return os.path.join(os.path.abspath(user_profile), ".gemini")
+
+
+def _write_plan_policy() -> str:
+    policies_dir = os.path.join(_gemini_home_dir(), "policies")
+    os.makedirs(policies_dir, exist_ok=True)
+    policy_path = os.path.join(policies_dir, PLAN_POLICY_FILENAME)
+    with open(policy_path, "w", encoding="utf-8") as handle:
+        handle.write(PLAN_POLICY_CONTENT)
+    return policy_path
+
+
 def integrate(target_project_path: str) -> None:
     target_project_path = os.path.abspath(target_project_path)
     source_repo_root = os.environ.get("GEMINI_SKILLS_REPO_ROOT")
@@ -191,11 +222,14 @@ def integrate(target_project_path: str) -> None:
 
     _write_custom_commands(target_project_path)
     _write_runtime_config(target_project_path, source_repo_root)
+    policy_path = _write_plan_policy()
 
     print("Configured Gemini startup update hook and /skill-manager:* commands.")
     print("Configured tools.core to allow Python shell commands required by /skill-manager:*.")
+    print(f"Installed a Plan Mode policy for skill-manager commands at {policy_path}.")
     print("If Gemini CLI is already open, run /commands reload to load the new commands.")
     print("The startup hook will take effect the next time Gemini opens this trusted workspace.")
+    print("If you use Plan Mode, restart Gemini or reload policies so the new plan policy is picked up.")
     print("If Gemini does not load the hook or commands, trust the workspace with /permissions and then retry /commands reload.")
     print("You can verify the setup with /skill-manager:list.")
 

@@ -37,8 +37,9 @@ When a user asks you to "publish" or "sync" a skill, follow these steps:
     -   If changes are detected, increment the version in the source `metadata.json` (use SemVer: patch for fixes, minor for features).
     -   Ensure the destination `metadata.json` matches the new version.
 -   **Step 4.2: Changelog**:
-    -   If a `CHANGELOG.md` exists in the skill folder, append the current date and version with a summary of changes.
-    -   If it doesn't exist, create one.
+    -   Use the workspace-local `changelog-manager` skill at `.gemini/skills/changelog-manager/SKILL.md` as the source of truth for changelog formatting.
+    -   If a `CHANGELOG.md` exists in the skill folder, append the current date and version with a summary of changes using the canonical changelog format.
+    -   If it doesn't exist, create one using that same canonical format.
 -   **Step 4.3: Documentation Check**:
     -   Re-read the source and published `README.md` files.
     -   Confirm they mention any newly added scripts, hooks, Codex integration notes, or workflow changes introduced by this publish.

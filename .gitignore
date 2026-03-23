@@ -149,4 +149,8 @@ cython_debug/
 .DS_Store
 
 # Ignore local skill links
-.gemini/skills/
+.gemini/skills/*
+!.gemini/skills/skill-publisher/
+!.gemini/skills/skill-publisher/SKILL.md
+!.gemini/skills/changelog-manager/
+!.gemini/skills/changelog-manager/SKILL.md

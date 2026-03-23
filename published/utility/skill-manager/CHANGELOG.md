@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.5.1] - 2026-03-23
+- Add Plan Mode policy support for skill-manager helper commands
+
+
+## [1.5.0] - 2026-03-23
+- Add a user-level Plan Mode policy at `~/.gemini/policies/skill-manager-plan-mode.toml` for `/skill-manager:*` helper commands
+- Document the distinction between workspace `tools.core` allowlists and user-level Plan Mode policies
+- Expand verification steps for blocked custom commands in Plan Mode
+
 ## [1.4.1] - 2026-03-23
 - Allow Python shell execution for namespaced skill-manager commands
 
