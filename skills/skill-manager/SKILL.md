@@ -53,6 +53,7 @@ Skills can include a `post_install.py` script that will be automatically execute
 - Injecting project-specific protocol entries into `conductor/workflow.md`.
 - Modifying local configurations (e.g., updating `.gitignore`).
 - Performing environment-specific setup tasks.
+- Configuring Gemini-local startup hooks and custom commands.
 
 ### 6. Checking for Updates (CLI)
 A standalone `check_updates.py` script is available for non-interactive updates checking:
@@ -61,5 +62,16 @@ python <path-to-gemini-skills>/check_updates.py
 ```
 It displays available updates in the standardized format: `[Update Available] <skill-name> (vX -> vY)`.
 
+### 7. Gemini CLI Integration
+Installing `skill-manager` should configure two project-local Gemini integration points:
+
+- A `SessionStart` hook in `<project>/.gemini/settings.json` that checks for updates when Gemini opens the trusted workspace.
+- A custom command at `<project>/.gemini/commands/skills/update.toml`, which is invoked as `/skills:update`.
+
+Important:
+- Gemini's built-in `/skills` command does not support an `update` subcommand, so `/skills update` is not expected to work.
+- Custom commands must be reloaded with `/commands reload` if Gemini is already open when the installer adds them.
+- The startup hook only loads in trusted workspaces because Gemini ignores local `.gemini/settings.json` in untrusted folders.
+
 ## Integration
-This skill ensures that official skills are physically copied into the target project (replacing legacy junctions) to enable robust version tracking. It automatically triggers `post_install.py` hooks to maintain workflow consistency across different project environments.
+This skill ensures that official skills are physically copied into the target project (replacing legacy junctions) to enable robust version tracking. It automatically triggers `post_install.py` hooks to maintain workflow consistency across different project environments, including Gemini-local update hooks and custom command setup when the installed skill supports them.
