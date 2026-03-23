@@ -8,7 +8,7 @@ Manage and install official Gemini skills from the global skills repository.
 - **Update Checking**: Use `check_updates.py` to see if your installed skills are out of date.
 - **Post-Installation Hooks**: Automatically executes `post_install.py` for project-specific setup.
 - **Physical Copying**: Replaces legacy junctions with robust file copying for better version tracking.
-- **Gemini CLI Integration**: Installing `skill-manager` now adds a startup update hook and a project-local `/skills:update` custom command.
+- **Gemini CLI Integration**: Installing `skill-manager` now adds a startup update hook and a project-local `/skill-manager:*` command set.
 
 ## Usage
 
@@ -17,6 +17,11 @@ Run the installer from your project's root:
 ```bash
 python <path-to-gemini-skills>/install.py
 ```
+
+Installer UX modes:
+- Default CLI behavior uses a richer terminal multi-select component when running in a real TTY.
+- Use `python <path-to-gemini-skills>/install.py --simple` to force the lightweight numbered prompt.
+- Gemini or other agent-driven integrations should keep using the lightweight ask-user contract through `SkillInstaller` rather than the terminal widget.
 
 ### Check for Updates
 Run the update checker from your project's root:
@@ -29,28 +34,66 @@ When `skill-manager` is installed into a project, its `post_install.py` hook add
 
 Behavior:
 - On Gemini startup for that trusted workspace, the hook checks installed skills against the source `gemini-skills` repository used during installation.
-- If updates are available, Gemini shows a startup message telling you to run `/skills:update`.
+- If updates are available, Gemini shows a startup message telling you to run `/skill-manager:update`.
 
 Important notes:
 - This only works in a trusted Gemini workspace. Untrusted workspaces do not load local `.gemini/settings.json` or project commands.
 - The startup hook takes effect the next time Gemini opens the project.
 
-### `/skills:update` Custom Command
+### `/skill-manager:*` Custom Commands
 Installing `skill-manager` also creates:
 ```text
-<project>/.gemini/commands/skills/update.toml
+<project>/.gemini/commands/skill-manager/list.toml
+<project>/.gemini/commands/skill-manager/install.toml
+<project>/.gemini/commands/skill-manager/update.toml
+<project>/.gemini/commands/skill-manager/uninstall.toml
 ```
 
-That command is invoked as:
+These commands are invoked as:
 ```text
-/skills:update
+/skill-manager:list
+/skill-manager:install <category/skill> [more-skills]
+/skill-manager:update
+/skill-manager:uninstall <skill-name> [more-skills]
 ```
 
 Important notes:
 - The built-in Gemini command is `/skills`, and it does not have an official `update` subcommand. `/skills update` will not work.
-- `/skills:update` is a custom namespaced command provided by `skill-manager`.
+- `/skill-manager:*` are custom namespaced commands provided by `skill-manager`.
 - If Gemini is already open when the skill is installed, run `/commands reload` once so Gemini picks up the new custom command without restarting.
 - After updates are applied, run `/skills reload` to refresh Gemini's discovered skill list in the current session.
+
+### Trust This Workspace
+
+Project-level hooks and custom commands only work in a trusted Gemini workspace.
+
+Recommended verification flow after installing or updating `skill-manager`:
+- open Gemini in the project
+- run `/permissions`
+- trust the workspace if it is not already trusted
+- run `/commands reload` if Gemini was already open during install or update
+- test with `/skill-manager:list`
+
+Expected behavior:
+- Gemini may show a warning that the project contains a hook such as `skill-manager-update-check`
+- that warning is expected for a trusted project using `skill-manager`
+- if updates are available, the startup hook should tell you to run `/skill-manager:update`
+
+If `/skill-manager:*` exists but the shell command is blocked, that usually means your current Gemini policy or approval mode is preventing custom-command shell execution. In that case, verify the workspace is trusted first, then re-check your Gemini permissions and approval settings.
+
+### Codex Bridge Integration
+
+If a project is used with both Gemini and Codex, keep the responsibilities split:
+
+- `.gemini/skills/` contains the real Gemini skill payloads.
+- `.codex/skills/` contains lightweight Codex bridge wrappers that point Codex at the installed Gemini skills.
+
+Recommended Codex flow:
+- install or update the Gemini skill first
+- add or refresh the matching Codex bridge
+- keep the bridge lightweight and descriptive instead of copying the Gemini implementation
+
+The standard Codex bridge skills in this repo are audit/review/publishing/install bridges. The balancer family is Gemini-specific and should not normally be treated as Codex bridge skills.
 
 ## Post-Installation Hooks
 

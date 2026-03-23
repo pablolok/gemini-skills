@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.3.2] - 2026-03-23
+- Add /skill-manager commands, fix runtime pathing, and document trust verification
+
+
+## [1.3.1] - 2026-03-23
+- Replace /skills:update with /skill-manager:* commands and fix runtime hook paths
+
+
+## 1.3.0 (2026-03-23)
+- Replace the misleading `/skills:update` custom command with a `/skill-manager:*` command namespace
+- Add generated `list`, `install`, `update`, and `uninstall` commands during skill-manager install/update
+- Fix the runtime config source-repo path so updates resolve the correct `published/` directory
+- Update the startup hook message to tell users to run `/skill-manager:update`
+
+## 1.2.0 (2026-03-23)
+- Add a richer terminal multi-select installer UI for direct CLI use
+- Keep a lightweight ask-user installer path for Gemini and programmatic integrations
+- Add `--simple` to force the lightweight numbered prompt
+
 ## [1.1.1] - 2026-03-23
 - Add Gemini startup update hook and /skills:update command
 

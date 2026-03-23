@@ -1,8 +1,8 @@
 """Post-install hook for skill-manager.
 
-Adds Gemini-local update integration for installed skills:
+Adds Gemini-local skill-manager integration for installed skills:
 - a SessionStart hook that reports available updates on startup
-- a custom `/skills:update` command that applies updates from the source repo
+- custom `/skill-manager:*` commands for list/install/update/uninstall
 """
 
 from __future__ import annotations
@@ -15,7 +15,22 @@ from typing import Any, Dict
 
 HOOK_NAME = "skill-manager-update-check"
 HOOK_COMMAND = "python .gemini/skills/skill-manager/scripts/session_start_hook.py"
-COMMAND_FILE_CONTENT = '''description = "Update installed Gemini skills from the configured gemini-skills repository."
+COMMAND_TEMPLATES = {
+    "list.toml": '''description = "List installed skills, available published skills, and pending updates."
+
+prompt = """
+Use the command output below as the source of truth.
+Summarize:
+- installed skills
+- available published skills
+- any updates available right now
+
+```text
+!{python .gemini/skills/skill-manager/scripts/list_skills.py}
+```
+"""
+''',
+    "update.toml": '''description = "Update installed Gemini skills from the configured gemini-skills repository."
 
 prompt = """
 A skill update was requested for the current project.
@@ -30,7 +45,38 @@ Use the command output below as the source of truth. Report the result clearly:
 !{python .gemini/skills/skill-manager/scripts/update_skills.py}
 ```
 """
-'''
+''',
+    "install.toml": '''description = "Install one or more published Gemini skills into the current project."
+
+prompt = """
+A skill installation was requested.
+
+The user may pass arguments after the command. The raw arguments are: {{args}}
+
+Use the command output below as the source of truth. If the install succeeds, summarize what was installed and recommend `/skills reload`.
+If the user did not provide any skill names, explain the available skills from the command output and tell them to rerun `/skill-manager:install <category/skill> [more-skills]`.
+
+```text
+!{python .gemini/skills/skill-manager/scripts/install_skills.py {{args}}}
+```
+"""
+''',
+    "uninstall.toml": '''description = "Uninstall one or more Gemini skills from the current project."
+
+prompt = """
+A skill uninstall was requested.
+
+The user may pass arguments after the command. The raw arguments are: {{args}}
+
+Use the command output below as the source of truth. If the uninstall succeeds, summarize what was removed and recommend `/skills reload`.
+If the user did not provide any skill names, explain the installed skills from the command output and tell them to rerun `/skill-manager:uninstall <skill-name> [more-skills]`.
+
+```text
+!{python .gemini/skills/skill-manager/scripts/uninstall_skills.py {{args}}}
+```
+"""
+''',
+}
 
 
 def _load_json(path: str) -> Dict[str, Any]:
@@ -81,17 +127,18 @@ def _ensure_session_start_hook(settings: Dict[str, Any]) -> Dict[str, Any]:
     return settings
 
 
-def _write_custom_command(target_project_path: str) -> None:
-    command_path = os.path.join(
+def _write_custom_commands(target_project_path: str) -> None:
+    command_dir = os.path.join(
         target_project_path,
         ".gemini",
         "commands",
-        "skills",
-        "update.toml",
+        "skill-manager",
     )
-    os.makedirs(os.path.dirname(command_path), exist_ok=True)
-    with open(command_path, "w", encoding="utf-8") as handle:
-        handle.write(COMMAND_FILE_CONTENT)
+    os.makedirs(command_dir, exist_ok=True)
+    for filename, content in COMMAND_TEMPLATES.items():
+        command_path = os.path.join(command_dir, filename)
+        with open(command_path, "w", encoding="utf-8") as handle:
+            handle.write(content)
 
 
 def _write_runtime_config(target_project_path: str, source_repo_root: str) -> None:
@@ -111,19 +158,28 @@ def _write_runtime_config(target_project_path: str, source_repo_root: str) -> No
 
 def integrate(target_project_path: str) -> None:
     target_project_path = os.path.abspath(target_project_path)
-    source_repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
+    source_repo_root = os.environ.get("GEMINI_SKILLS_REPO_ROOT")
+    if not source_repo_root:
+        published_dir = os.environ.get("GEMINI_SKILLS_PUBLISHED_DIR")
+        if published_dir:
+            source_repo_root = os.path.dirname(os.path.abspath(published_dir))
+        else:
+            source_repo_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+    source_repo_root = os.path.abspath(source_repo_root)
 
     settings_path = os.path.join(target_project_path, ".gemini", "settings.json")
     settings = _load_json(settings_path)
     updated_settings = _ensure_session_start_hook(settings)
     _write_json(settings_path, updated_settings)
 
-    _write_custom_command(target_project_path)
+    _write_custom_commands(target_project_path)
     _write_runtime_config(target_project_path, source_repo_root)
 
-    print("Configured Gemini startup update hook and /skills:update command.")
-    print("If Gemini CLI is already open, run /commands reload to load the new command.")
+    print("Configured Gemini startup update hook and /skill-manager:* commands.")
+    print("If Gemini CLI is already open, run /commands reload to load the new commands.")
     print("The startup hook will take effect the next time Gemini opens this trusted workspace.")
+    print("If Gemini does not load the hook or commands, trust the workspace with /permissions and then retry /commands reload.")
+    print("You can verify the setup with /skill-manager:list.")
 
 
 if __name__ == "__main__":

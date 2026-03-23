@@ -30,6 +30,8 @@ To install a skill, use the `SkillInstaller` and `SkillSelector` logic.
 installer.install_skill(skill_path, os.getcwd())
 ```
 
+For direct human CLI usage, `install.py` may use a richer terminal multi-select UI. For Gemini or programmatic usage, keep using the lightweight `ask_user`-compatible flow exposed by `SkillSelector` and `SkillInstaller`.
+
 ### 3. Check for Updates
 To check if installed skills have newer versions available in the global repository:
 
@@ -66,12 +68,23 @@ It displays available updates in the standardized format: `[Update Available] <s
 Installing `skill-manager` should configure two project-local Gemini integration points:
 
 - A `SessionStart` hook in `<project>/.gemini/settings.json` that checks for updates when Gemini opens the trusted workspace.
-- A custom command at `<project>/.gemini/commands/skills/update.toml`, which is invoked as `/skills:update`.
+- A command set under `<project>/.gemini/commands/skill-manager/`, invoked as `/skill-manager:list`, `/skill-manager:install`, `/skill-manager:update`, and `/skill-manager:uninstall`.
 
 Important:
 - Gemini's built-in `/skills` command does not support an `update` subcommand, so `/skills update` is not expected to work.
+- Custom `skill-manager` commands should use the `/skill-manager:*` namespace rather than trying to extend the built-in `/skills` tree.
 - Custom commands must be reloaded with `/commands reload` if Gemini is already open when the installer adds them.
 - The startup hook only loads in trusted workspaces because Gemini ignores local `.gemini/settings.json` in untrusted folders.
+
+### 8. Trust and Verification
+If a user reports that the startup hook or `/skill-manager:*` commands do not appear to work:
+
+1. Verify the workspace is trusted in Gemini via `/permissions`.
+2. Verify `<project>/.gemini/settings.json` exists and contains the `skill-manager-update-check` SessionStart hook.
+3. Verify `<project>/.gemini/commands/skill-manager/` exists with the generated `.toml` command files.
+4. If Gemini was already open when the skill was installed or updated, instruct the user to run `/commands reload`.
+5. Test with `/skill-manager:list`.
+6. If the command exists but Gemini reports the shell command is blocked, explain that the workspace trust or Gemini approval policy is still preventing custom-command shell execution.
 
 ## Integration
 This skill ensures that official skills are physically copied into the target project (replacing legacy junctions) to enable robust version tracking. It automatically triggers `post_install.py` hooks to maintain workflow consistency across different project environments, including Gemini-local update hooks and custom command setup when the installed skill supports them.

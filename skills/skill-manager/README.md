@@ -63,6 +63,24 @@ Important notes:
 - If Gemini is already open when the skill is installed, run `/commands reload` once so Gemini picks up the new custom command without restarting.
 - After updates are applied, run `/skills reload` to refresh Gemini's discovered skill list in the current session.
 
+### Trust This Workspace
+
+Project-level hooks and custom commands only work in a trusted Gemini workspace.
+
+Recommended verification flow after installing or updating `skill-manager`:
+- open Gemini in the project
+- run `/permissions`
+- trust the workspace if it is not already trusted
+- run `/commands reload` if Gemini was already open during install or update
+- test with `/skill-manager:list`
+
+Expected behavior:
+- Gemini may show a warning that the project contains a hook such as `skill-manager-update-check`
+- that warning is expected for a trusted project using `skill-manager`
+- if updates are available, the startup hook should tell you to run `/skill-manager:update`
+
+If `/skill-manager:*` exists but the shell command is blocked, that usually means your current Gemini policy or approval mode is preventing custom-command shell execution. In that case, verify the workspace is trusted first, then re-check your Gemini permissions and approval settings.
+
 ### Codex Bridge Integration
 
 If a project is used with both Gemini and Codex, keep the responsibilities split:

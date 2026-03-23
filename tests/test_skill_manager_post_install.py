@@ -31,14 +31,25 @@ SESSION_START_HOOK = _load_module(
 class TestSkillManagerPostInstall(unittest.TestCase):
     def test_integrate_writes_settings_command_and_runtime_config(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            POST_INSTALL.integrate(temp_dir)
+            with patch.dict(
+                os.environ,
+                {
+                    "GEMINI_SKILLS_REPO_ROOT": os.path.abspath("."),
+                    "GEMINI_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
+                },
+                clear=False,
+            ):
+                POST_INSTALL.integrate(temp_dir)
 
             settings_path = os.path.join(temp_dir, ".gemini", "settings.json")
-            command_path = os.path.join(temp_dir, ".gemini", "commands", "skills", "update.toml")
+            command_dir = os.path.join(temp_dir, ".gemini", "commands", "skill-manager")
             config_path = os.path.join(temp_dir, ".gemini", "skills", "skill-manager", "runtime_config.json")
 
             self.assertTrue(os.path.exists(settings_path))
-            self.assertTrue(os.path.exists(command_path))
+            self.assertTrue(os.path.exists(os.path.join(command_dir, "list.toml")))
+            self.assertTrue(os.path.exists(os.path.join(command_dir, "install.toml")))
+            self.assertTrue(os.path.exists(os.path.join(command_dir, "update.toml")))
+            self.assertTrue(os.path.exists(os.path.join(command_dir, "uninstall.toml")))
             self.assertTrue(os.path.exists(config_path))
 
             with open(settings_path, "r", encoding="utf-8") as handle:
@@ -49,11 +60,14 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             self.assertEqual(hooks[0]["matcher"], "startup")
             self.assertEqual(hooks[0]["hooks"][0]["name"], POST_INSTALL.HOOK_NAME)
 
-            with open(command_path, "r", encoding="utf-8") as handle:
-                command = handle.read()
+            with open(os.path.join(command_dir, "update.toml"), "r", encoding="utf-8") as handle:
+                update_command = handle.read()
+            with open(os.path.join(command_dir, "list.toml"), "r", encoding="utf-8") as handle:
+                list_command = handle.read()
 
-            self.assertIn("Update installed Gemini skills", command)
-            self.assertIn("python .gemini/skills/skill-manager/scripts/update_skills.py", command)
+            self.assertIn("Update installed Gemini skills", update_command)
+            self.assertIn("python .gemini/skills/skill-manager/scripts/update_skills.py", update_command)
+            self.assertIn("python .gemini/skills/skill-manager/scripts/list_skills.py", list_command)
 
             with open(config_path, "r", encoding="utf-8") as handle:
                 config = json.load(handle)
@@ -63,8 +77,16 @@ class TestSkillManagerPostInstall(unittest.TestCase):
 
     def test_integrate_is_idempotent_for_session_start_hook(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            POST_INSTALL.integrate(temp_dir)
-            POST_INSTALL.integrate(temp_dir)
+            with patch.dict(
+                os.environ,
+                {
+                    "GEMINI_SKILLS_REPO_ROOT": os.path.abspath("."),
+                    "GEMINI_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
+                },
+                clear=False,
+            ):
+                POST_INSTALL.integrate(temp_dir)
+                POST_INSTALL.integrate(temp_dir)
 
             settings_path = os.path.join(temp_dir, ".gemini", "settings.json")
             with open(settings_path, "r", encoding="utf-8") as handle:
@@ -91,5 +113,5 @@ class TestSkillManagerSessionStartHook(unittest.TestCase):
         with patch("sys.stdin", io.StringIO("{}")), io.StringIO() as stdout, redirect_stdout(stdout):
             SESSION_START_HOOK.main()
             payload = json.loads(stdout.getvalue())
-            self.assertIn("/skills:update", payload["systemMessage"])
+            self.assertIn("/skill-manager:update", payload["systemMessage"])
             self.assertIn("subagent-balancer", payload["systemMessage"])

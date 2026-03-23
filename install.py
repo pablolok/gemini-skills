@@ -470,12 +470,16 @@ class SkillInstaller:
         """Execute the post_install.py script for a skill."""
         self.logger.info(f"Running post-install hook: {os.path.basename(hook_path)}...")
         try:
+            hook_env = os.environ.copy()
+            hook_env["GEMINI_SKILLS_PUBLISHED_DIR"] = self.published_dir
+            hook_env["GEMINI_SKILLS_REPO_ROOT"] = os.path.dirname(self.published_dir)
             # Pass the target project path as an argument to the hook
             subprocess.run(
                 [sys.executable, os.path.abspath(hook_path), os.path.abspath(target_project_path)],
                 check=True,
                 capture_output=True,
-                text=True
+                text=True,
+                env=hook_env,
             )
             self.logger.info("Post-install hook completed successfully.")
         except subprocess.CalledProcessError as e:

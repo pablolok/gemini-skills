@@ -25,7 +25,7 @@ def _build_message(updates):
         names = f"{names}, and {remainder} more"
     return (
         f"Skill updates are available: {names}. "
-        "Run /skills:update to apply them in this project."
+        "Run /skill-manager:update to apply them in this project."
     )
 
 

@@ -45,9 +45,18 @@ def resolve_source_repo(root: str | None = None) -> str | None:
 
 
 def resolve_published_dir(root: str | None = None) -> str | None:
+    env_published = os.environ.get("GEMINI_SKILLS_PUBLISHED_DIR")
+    if env_published and os.path.exists(env_published):
+        return os.path.abspath(env_published)
+
     source_repo_root = resolve_source_repo(root)
     if not source_repo_root:
         return None
+
+    config = load_runtime_config(root)
+    configured = config.get("published_dir")
+    if configured and os.path.exists(configured):
+        return os.path.abspath(configured)
 
     published_dir = os.path.join(source_repo_root, "published")
     if os.path.exists(published_dir):
@@ -104,3 +113,68 @@ def format_updates(updates: List[Dict[str, str]]) -> str:
     for update in updates:
         lines.append(f"- {update['name']}: {update['installed']} -> {update['latest']}")
     return "\n".join(lines)
+
+
+def list_available_skill_paths(root: str | None = None) -> List[str]:
+    target_root = root or project_root()
+    installer = build_installer(target_root)
+    available = installer.get_available_skills()
+    paths: List[str] = []
+    for category, skills in available.items():
+        for skill in skills:
+            paths.append(f"{category}/{skill}")
+    return sorted(paths)
+
+
+def list_installed_skills(root: str | None = None) -> List[Dict[str, str]]:
+    target_root = root or project_root()
+    target_skills_dir = os.path.join(target_root, ".gemini", "skills")
+    if not os.path.exists(target_skills_dir):
+        return []
+
+    installer = build_installer(target_root)
+    installed: List[Dict[str, str]] = []
+    for skill_name in sorted(os.listdir(target_skills_dir)):
+        skill_path = os.path.join(target_skills_dir, skill_name)
+        if not os.path.isdir(skill_path):
+            continue
+        metadata = installer.get_installed_skill_metadata(skill_name, target_root) or {}
+        installed.append({
+            "name": skill_name,
+            "version": metadata.get("version", "unknown"),
+        })
+    return installed
+
+
+def install_named_skills(skill_paths: List[str], root: str | None = None) -> List[str]:
+    target_root = root or project_root()
+    installer = build_installer(target_root)
+    available = set(list_available_skill_paths(target_root))
+    installed: List[str] = []
+
+    for skill_path in skill_paths:
+        normalized = skill_path.strip()
+        if not normalized:
+            continue
+        if normalized not in available:
+            raise ValueError(f"Unknown skill path: {normalized}")
+        if installer.install_skill(normalized, target_root):
+            installed.append(normalized)
+    return installed
+
+
+def uninstall_named_skills(skill_names: List[str], root: str | None = None) -> List[str]:
+    target_root = root or project_root()
+    target_skills_dir = os.path.join(target_root, ".gemini", "skills")
+    removed: List[str] = []
+
+    for skill_name in skill_names:
+        normalized = skill_name.strip()
+        if not normalized:
+            continue
+        target_path = os.path.join(target_skills_dir, normalized)
+        if os.path.isdir(target_path):
+            import shutil
+            shutil.rmtree(target_path)
+            removed.append(normalized)
+    return removed
