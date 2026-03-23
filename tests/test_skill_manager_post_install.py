@@ -47,6 +47,7 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             command_dir = os.path.join(temp_dir, ".gemini", "commands", "skill-manager")
             config_path = os.path.join(temp_dir, ".gemini", "skills", "skill-manager", "runtime_config.json")
             policy_path = os.path.join(fake_home, ".gemini", "policies", "skill-manager-plan-mode.toml")
+            gitignore_path = os.path.join(temp_dir, ".gitignore")
 
             self.assertTrue(os.path.exists(settings_path))
             self.assertTrue(os.path.exists(os.path.join(command_dir, "list.toml")))
@@ -55,6 +56,7 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(command_dir, "uninstall.toml")))
             self.assertTrue(os.path.exists(config_path))
             self.assertTrue(os.path.exists(policy_path))
+            self.assertTrue(os.path.exists(gitignore_path))
 
             with open(settings_path, "r", encoding="utf-8") as handle:
                 settings = json.load(handle)
@@ -78,11 +80,15 @@ class TestSkillManagerPostInstall(unittest.TestCase):
                 config = json.load(handle)
             with open(policy_path, "r", encoding="utf-8") as handle:
                 policy = handle.read()
+            with open(gitignore_path, "r", encoding="utf-8") as handle:
+                gitignore = handle.read()
 
             self.assertTrue(config["source_repo_root"].endswith("gemini-skills"))
             self.assertTrue(config["published_dir"].endswith(os.path.join("gemini-skills", "published")))
             self.assertIn('modes = ["plan"]', policy)
             self.assertIn("list_skills.py", policy)
+            self.assertIn(".gemini/commands/", gitignore)
+            self.assertIn(".gemini/settings.json", gitignore)
 
     def test_integrate_is_idempotent_for_session_start_hook(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -102,11 +108,40 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             settings_path = os.path.join(temp_dir, ".gemini", "settings.json")
             with open(settings_path, "r", encoding="utf-8") as handle:
                 settings = json.load(handle)
+            with open(os.path.join(temp_dir, ".gitignore"), "r", encoding="utf-8") as handle:
+                gitignore = handle.read()
 
             hooks = settings["hooks"]["SessionStart"]
             self.assertEqual(len(hooks), 1)
             self.assertEqual(len(hooks[0]["hooks"]), 1)
             self.assertEqual(settings["tools"]["core"].count("run_shell_command(python)"), 1)
+            self.assertEqual(gitignore.count(POST_INSTALL.GITIGNORE_MARKER_START), 1)
+
+    def test_integrate_preserves_existing_gitignore_outside_managed_block(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            gitignore_path = os.path.join(temp_dir, ".gitignore")
+            with open(gitignore_path, "w", encoding="utf-8") as handle:
+                handle.write("node_modules/\n\n# custom\ncustom-file.txt\n")
+
+            fake_home = os.path.join(temp_dir, "fake-home")
+            with patch.dict(
+                os.environ,
+                {
+                    "GEMINI_SKILLS_REPO_ROOT": os.path.abspath("."),
+                    "GEMINI_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
+                    "USERPROFILE": fake_home,
+                },
+                clear=False,
+            ):
+                POST_INSTALL.integrate(temp_dir)
+
+            with open(gitignore_path, "r", encoding="utf-8") as handle:
+                gitignore = handle.read()
+
+            self.assertIn("node_modules/", gitignore)
+            self.assertIn("custom-file.txt", gitignore)
+            self.assertIn(".gemini/commands/", gitignore)
+            self.assertIn(".gemini/settings.json", gitignore)
 
     def test_integrate_preserves_existing_broad_shell_allowlist(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

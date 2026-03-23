@@ -154,3 +154,9 @@ cython_debug/
 !.gemini/skills/skill-publisher/SKILL.md
 !.gemini/skills/changelog-manager/
 !.gemini/skills/changelog-manager/SKILL.md
+
+# Ignore local Gemini workspace commands
+.gemini/commands/
+
+# Ignore local Gemini workspace settings
+.gemini/settings.json

@@ -77,6 +77,7 @@ Important:
 - The startup hook only loads in trusted workspaces because Gemini ignores local `.gemini/settings.json` in untrusted folders.
 - The installer should add `run_shell_command(python)` to workspace `tools.core` so the generated `/skill-manager:*` commands can execute their Python helper scripts.
 - The installer should also add a narrow user policy in `~/.gemini/policies/skill-manager-plan-mode.toml` so those same commands can run while Gemini is in Plan Mode.
+- The installer should also maintain a small managed block in the project `.gitignore` for the Gemini workspace files it creates, specifically `.gemini/commands/` and `.gemini/settings.json`.
 
 ### 8. Trust and Verification
 If a user reports that the startup hook or `/skill-manager:*` commands do not appear to work:
@@ -86,9 +87,18 @@ If a user reports that the startup hook or `/skill-manager:*` commands do not ap
 3. Verify `<project>/.gemini/settings.json` contains `tools.core` with `run_shell_command(python)` unless a broader shell allowlist is already present.
 4. Verify `~/.gemini/policies/skill-manager-plan-mode.toml` exists and contains the allowlist rule for the `skill-manager` Python helper commands in `modes = ["plan"]`.
 5. Verify `<project>/.gemini/commands/skill-manager/` exists with the generated `.toml` command files.
-6. If Gemini was already open when the skill was installed or updated, instruct the user to run `/commands reload` and restart Gemini if Plan Mode policies appear unchanged.
-7. Test with `/skill-manager:list`.
-8. If the command exists but Gemini reports the shell command is blocked, explain that the user-level or system-level Gemini policy is still overriding the new plan policy.
+6. Verify the project `.gitignore` contains the managed `skill-manager` block that ignores `.gemini/commands/` and `.gemini/settings.json`.
+7. If Gemini was already open when the skill was installed or updated, instruct the user to run `/commands reload` and restart Gemini if Plan Mode policies appear unchanged.
+8. Test with `/skill-manager:list`.
+9. If the command exists but Gemini reports the shell command is blocked, explain that the user-level or system-level Gemini policy is still overriding the new plan policy.
+
+### 9. Codex Bridge Hygiene
+
+For projects that also use Codex:
+- Keep real Gemini skills in `.gemini/skills/`.
+- Keep `.codex/skills/` lightweight and descriptive.
+- Only commit Codex bridge wrappers when they are intentionally repo-owned.
+- If a Codex bridge is just local helper state for one project, instruct the user to add it to `.gitignore` rather than versioning it.
 
 ## Integration
 This skill ensures that official skills are physically copied into the target project (replacing legacy junctions) to enable robust version tracking. It automatically triggers `post_install.py` hooks to maintain workflow consistency across different project environments, including Gemini-local update hooks and custom command setup when the installed skill supports them.
