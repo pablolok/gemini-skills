@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.0 (2026-03-23)
+- Add a richer terminal multi-select installer UI for direct CLI use
+- Keep a lightweight ask-user installer path for Gemini and programmatic integrations
+- Add `--simple` to force the lightweight numbered prompt
+
 ## [1.1.1] - 2026-03-23
 - Add Gemini startup update hook and /skills:update command
 

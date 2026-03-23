@@ -18,6 +18,11 @@ Run the installer from your project's root:
 python <path-to-gemini-skills>/install.py
 ```
 
+Installer UX modes:
+- Default CLI behavior uses a richer terminal multi-select component when running in a real TTY.
+- Use `python <path-to-gemini-skills>/install.py --simple` to force the lightweight numbered prompt.
+- Gemini or other agent-driven integrations should keep using the lightweight ask-user contract through `SkillInstaller` rather than the terminal widget.
+
 ### Check for Updates
 Run the update checker from your project's root:
 ```bash

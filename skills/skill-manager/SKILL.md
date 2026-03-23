@@ -30,6 +30,8 @@ To install a skill, use the `SkillInstaller` and `SkillSelector` logic.
 installer.install_skill(skill_path, os.getcwd())
 ```
 
+For direct human CLI usage, `install.py` may use a richer terminal multi-select UI. For Gemini or programmatic usage, keep using the lightweight `ask_user`-compatible flow exposed by `SkillSelector` and `SkillInstaller`.
+
 ### 3. Check for Updates
 To check if installed skills have newer versions available in the global repository:
 

@@ -3,11 +3,12 @@
 import os
 import sys
 import unittest
+import io
 from unittest.mock import MagicMock, patch
 
 # We'll implement these in install.py
 # For now, we'll try to import them, which will fail initially (Red phase)
-from install import SkillSelector, SkillInstaller
+from install import SkillSelector, SkillInstaller, TerminalMultiSelect, get_cli_ask_user, parse_selection_input
 
 class TestSkillInstaller(unittest.TestCase):
     """Test suite for the SkillInstaller logic."""
@@ -180,11 +181,19 @@ class TestSkillInstaller(unittest.TestCase):
             }]
         }
         
-        mock_input.return_value = "0"
+        mock_input.return_value = "1"
         response = manual_ask_user(config)
         
         self.assertEqual(response["answers"]["0"], ["opt1"])
         mock_print.assert_called()
+
+    def test_parse_selection_input_supports_multiple_styles(self) -> None:
+        """Verify the lightweight prompt can parse spaces, commas, ranges, and all."""
+        self.assertEqual(parse_selection_input("1 3", 4, True), [0, 2])
+        self.assertEqual(parse_selection_input("1,3", 4, True), [0, 2])
+        self.assertEqual(parse_selection_input("2-4", 5, True), [1, 2, 3])
+        self.assertEqual(parse_selection_input("all", 3, True), [0, 1, 2])
+        self.assertEqual(parse_selection_input("0", 3, False), [0])
 
     @patch("builtins.input", side_effect=KeyboardInterrupt)
     @patch("builtins.print")
@@ -203,6 +212,59 @@ class TestSkillInstaller(unittest.TestCase):
             manual_ask_user(config)
 
         mock_print.assert_called_with("\nUser closed the installer.")
+
+    def test_terminal_multi_select_confirms_selected_items(self) -> None:
+        """Verify the richer terminal selector can toggle and confirm multiple items."""
+        question = {
+            "question": "Pick skills",
+            "multiSelect": True,
+            "options": [
+                {"label": "audit/skill1", "description": "desc1"},
+                {"label": "utility/skill2", "description": "desc2"},
+            ],
+        }
+        output = io.StringIO()
+        selector = TerminalMultiSelect(question, input_stream=io.StringIO(), output_stream=output)
+        keys = iter(["SPACE", "DOWN", "SPACE", "ENTER"])
+
+        selected = selector.run(read_key=lambda: next(keys))
+
+        self.assertEqual(selected, ["audit/skill1", "utility/skill2"])
+        self.assertIn("Use arrows, space to toggle", output.getvalue())
+
+    def test_terminal_multi_select_raises_on_quit(self) -> None:
+        """Verify the richer terminal selector exits cleanly on quit."""
+        question = {
+            "question": "Pick skills",
+            "multiSelect": True,
+            "options": [{"label": "audit/skill1", "description": "desc1"}],
+        }
+        selector = TerminalMultiSelect(question, input_stream=io.StringIO(), output_stream=io.StringIO())
+
+        with self.assertRaises(KeyboardInterrupt):
+            selector.run(read_key=lambda: "q")
+
+    @patch.dict("os.environ", {}, clear=True)
+    @patch("sys.stdin.isatty", return_value=True)
+    @patch("sys.stdout.isatty", return_value=True)
+    def test_get_cli_ask_user_prefers_terminal_selector(self, _mock_stdout, _mock_stdin) -> None:
+        """Verify the CLI uses the richer selector in a real terminal."""
+        from install import terminal_ask_user
+
+        ask_user = get_cli_ask_user([])
+
+        self.assertIs(ask_user, terminal_ask_user)
+
+    @patch.dict("os.environ", {}, clear=True)
+    @patch("sys.stdin.isatty", return_value=True)
+    @patch("sys.stdout.isatty", return_value=True)
+    def test_get_cli_ask_user_supports_simple_flag(self, _mock_stdout, _mock_stdin) -> None:
+        """Verify the simple flag keeps the lightweight prompt."""
+        from install import manual_ask_user
+
+        ask_user = get_cli_ask_user(["--simple"])
+
+        self.assertIs(ask_user, manual_ask_user)
 
     @patch("install.SkillInstaller")
     @patch("install.SkillSelector")

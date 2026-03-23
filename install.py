@@ -11,6 +11,59 @@ import json
 import shutil
 
 
+KeyReader = typing.Callable[[], str]
+
+
+def parse_selection_input(
+    raw_selection: str,
+    option_count: int,
+    is_multi: bool,
+) -> typing.List[int]:
+    """Parse human-friendly selection input into zero-based indices."""
+    if option_count <= 0:
+        return []
+
+    tokens = raw_selection.replace(",", " ").split()
+    if not tokens:
+        return []
+
+    indices: typing.List[int] = []
+
+    def add_index(index: int) -> None:
+        if 0 <= index < option_count and index not in indices:
+            indices.append(index)
+
+    for token in tokens:
+        lowered = token.lower()
+        if is_multi and lowered in {"all", "*"}:
+            return list(range(option_count))
+
+        if "-" in token:
+            start_text, end_text = token.split("-", 1)
+            if start_text.isdigit() and end_text.isdigit():
+                start_raw = int(start_text)
+                end_raw = int(end_text)
+                start = 0 if start_raw == 0 else start_raw - 1
+                end = 0 if end_raw == 0 else end_raw - 1
+                if start <= end:
+                    for index in range(start, end + 1):
+                        add_index(index)
+                else:
+                    for index in range(start, end - 1, -1):
+                        add_index(index)
+            continue
+
+        if token.isdigit():
+            raw_index = int(token)
+            index = 0 if raw_index == 0 else raw_index - 1
+            add_index(index)
+
+    if not is_multi and indices:
+        return [indices[0]]
+
+    return indices
+
+
 class SkillSelector:
     """Handle skill selection via interactive prompt."""
 
@@ -66,6 +119,168 @@ class SkillSelector:
             return response["answers"]["0"]
         
         return []
+
+
+class TerminalMultiSelect:
+    """Interactive multi-select widget for human CLI use."""
+
+    def __init__(
+        self,
+        question: typing.Dict[str, typing.Any],
+        input_stream: typing.Optional[typing.TextIO] = None,
+        output_stream: typing.Optional[typing.TextIO] = None,
+    ) -> None:
+        self.question = question
+        self.options = question.get("options", [])
+        self.multi_select = bool(question.get("multiSelect", False))
+        self.cursor = 0
+        self.selected: typing.Set[int] = set()
+        self.input_stream = input_stream or sys.stdin
+        self.output_stream = output_stream or sys.stdout
+
+    def run(self, read_key: typing.Optional[KeyReader] = None) -> typing.List[str]:
+        """Run the interactive selector and return selected labels."""
+        if not self.options:
+            return []
+
+        if read_key is None:
+            read_key = self._create_key_reader()
+
+        self._hide_cursor()
+        try:
+            while True:
+                self._render()
+                key = read_key()
+
+                if key in {"\x03", "CTRL_C"}:
+                    raise KeyboardInterrupt
+                if key in {"UP", "k"}:
+                    self.cursor = (self.cursor - 1) % len(self.options)
+                    continue
+                if key in {"DOWN", "j"}:
+                    self.cursor = (self.cursor + 1) % len(self.options)
+                    continue
+                if key == "SPACE":
+                    if self.multi_select:
+                        if self.cursor in self.selected:
+                            self.selected.remove(self.cursor)
+                        else:
+                            self.selected.add(self.cursor)
+                    else:
+                        self.selected = {self.cursor}
+                    continue
+                if key in {"ENTER", "\r", "\n"}:
+                    if not self.multi_select:
+                        self.selected = {self.cursor}
+                    elif not self.selected:
+                        self.selected = {self.cursor}
+                    break
+                if key in {"a", "A"} and self.multi_select:
+                    if len(self.selected) == len(self.options):
+                        self.selected.clear()
+                    else:
+                        self.selected = set(range(len(self.options)))
+                    continue
+                if key in {"q", "Q", "ESC"}:
+                    raise KeyboardInterrupt
+        finally:
+            self._clear_screen()
+            self._show_cursor()
+
+        return [self.options[index]["label"] for index in sorted(self.selected)]
+
+    def _render(self) -> None:
+        self._clear_screen()
+        question = self.question.get("question", "Select option(s):")
+        self.output_stream.write(f"{question}\n")
+        if self.multi_select:
+            self.output_stream.write("Use arrows, space to toggle, A to select all, Enter to confirm.\n\n")
+        else:
+            self.output_stream.write("Use arrows and Enter to confirm.\n\n")
+
+        for index, option in enumerate(self.options):
+            pointer = ">" if index == self.cursor else " "
+            selected = "[x]" if index in self.selected else "[ ]"
+            if not self.multi_select:
+                selected = "(*)" if index in self.selected else "( )"
+            description = option.get("description", "")
+            self.output_stream.write(
+                f"{pointer} {selected} {option['label']}\n    {description}\n"
+            )
+        self.output_stream.flush()
+
+    def _clear_screen(self) -> None:
+        self.output_stream.write("\x1b[2J\x1b[H")
+        self.output_stream.flush()
+
+    def _hide_cursor(self) -> None:
+        self.output_stream.write("\x1b[?25l")
+        self.output_stream.flush()
+
+    def _show_cursor(self) -> None:
+        self.output_stream.write("\x1b[?25h")
+        self.output_stream.flush()
+
+    def _create_key_reader(self) -> KeyReader:
+        if sys.platform == "win32":
+            return self._create_windows_key_reader()
+        return self._create_posix_key_reader()
+
+    def _create_windows_key_reader(self) -> KeyReader:
+        import msvcrt
+
+        def read_key() -> str:
+            char = msvcrt.getwch()
+            if char == "\x03":
+                return "CTRL_C"
+            if char in {"\r", "\n"}:
+                return "ENTER"
+            if char == " ":
+                return "SPACE"
+            if char == "\x1b":
+                return "ESC"
+            if char in {"\x00", "\xe0"}:
+                special = msvcrt.getwch()
+                return {
+                    "H": "UP",
+                    "P": "DOWN",
+                }.get(special, special)
+            return char
+
+        return read_key
+
+    def _create_posix_key_reader(self) -> KeyReader:
+        import termios
+        import tty
+
+        input_stream = self.input_stream
+
+        def read_key() -> str:
+            fd = input_stream.fileno()
+            old_settings = termios.tcgetattr(fd)
+            try:
+                tty.setraw(fd)
+                char = input_stream.read(1)
+                if char == "\x03":
+                    return "CTRL_C"
+                if char in {"\r", "\n"}:
+                    return "ENTER"
+                if char == " ":
+                    return "SPACE"
+                if char == "\x1b":
+                    next_char = input_stream.read(1)
+                    if next_char == "[":
+                        arrow = input_stream.read(1)
+                        return {
+                            "A": "UP",
+                            "B": "DOWN",
+                        }.get(arrow, "ESC")
+                    return "ESC"
+                return char
+            finally:
+                termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
+
+        return read_key
 
 
 class SkillInstaller:
@@ -282,10 +497,10 @@ def manual_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, ty
     
     print(f"\n{question['question']}")
     if is_multi:
-        print("(You can select multiple options by separating numbers with spaces)")
+        print("(Select multiple with spaces or commas, ranges like 1-3, or 'all')")
     
     for i, opt in enumerate(question['options']):
-        print(f"{i}: {opt['label']} - {opt['description']}")
+        print(f"{i + 1}: {opt['label']} - {opt['description']}")
     
     try:
         selection = input("\nEnter choice(s): ")
@@ -293,15 +508,35 @@ def manual_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, ty
         print("\nUser closed the installer.")
         raise
 
-    indices: typing.List[int] = [
-        int(x.strip()) for x in selection.split() 
-        if x.strip().isdigit() and 0 <= int(x.strip()) < len(question['options'])
-    ]
-    
-    if not is_multi and indices:
-        indices = [indices[0]]
+    indices = parse_selection_input(selection, len(question["options"]), is_multi)
         
     return {"answers": {"0": [question['options'][i]['label'] for i in indices]}}
+
+
+def terminal_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, typing.Any]:
+    """Provide a richer terminal selector for direct CLI installs."""
+    question = config["questions"][0]
+    selector = TerminalMultiSelect(question)
+    labels = selector.run()
+    return {"answers": {"0": labels}}
+
+
+def get_cli_ask_user(argv: typing.Optional[typing.Sequence[str]] = None) -> typing.Callable:
+    """Choose the best interactive prompt for the current execution context."""
+    args = set(argv or sys.argv[1:])
+    if "--simple" in args or "--plain" in args:
+        return manual_ask_user
+
+    if os.environ.get("GEMINI_SKILLS_SIMPLE_INSTALLER") == "1":
+        return manual_ask_user
+
+    if not sys.stdin.isatty() or not sys.stdout.isatty():
+        return manual_ask_user
+
+    if os.environ.get("CI", "").lower() in {"1", "true", "yes"}:
+        return manual_ask_user
+
+    return terminal_ask_user
 
 
 def main() -> None:
@@ -324,7 +559,8 @@ def main() -> None:
         sys.exit(1)
 
     # Run the installation flow
-    installer = SkillInstaller(published_dir, manual_ask_user, logger)
+    ask_user_fn = get_cli_ask_user()
+    installer = SkillInstaller(published_dir, ask_user_fn, logger)
     available = installer.get_available_skills()
     
     if not available:
@@ -341,7 +577,7 @@ def main() -> None:
                 meta = installer.get_installed_skill_metadata(skill_name, target_project)
                 installed_skills[skill_name] = meta.get("version", "unknown") if meta else "unknown"
 
-    selector = SkillSelector(manual_ask_user)
+    selector = SkillSelector(ask_user_fn)
     selected = selector.select_skills(available, installed_skills, updates)
     
     for skill_path in selected:
