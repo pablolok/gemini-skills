@@ -96,6 +96,9 @@ All tasks follow a strict lifecycle:
     -   **Step 3.3: Post-Execution Review & Optimization:**
         -   You **must** invoke the `review-optimization` skill to analyze the phase's execution path, audit skill efficiency, and receive workflow optimization advice.
         -   Follow the interactive recommendations provided by the skill to refine the workflow or update existing skills.
+    -   **Step 3.4: Workflow Drift Audit:**
+        -   If Gemini emits an "unexpected tool call" error, references a missing tool, or the CLI help contradicts the workflow instructions, you **must** invoke the `conductor-workflow-optimization` skill before retrying.
+        -   Use the skill to scan `conductor/workflow.md`, installed skills, policies, and generated commands for stale tool references and patch the narrowest broken workflow artifact first.
     -   **Error Handling:** If either tests fail, compliance audits report persistent violations, or the optimization review identifies critical workflow drift, you **must** inform the user and begin debugging. You may attempt to propose a fix a **maximum of two times**. If the failure persists after your second proposed fix, you **must stop**, report the persistent failure, and ask the user for guidance.
 
 4.  **Propose a Detailed, Actionable Manual Verification Plan:**
@@ -126,9 +129,9 @@ All tasks follow a strict lifecycle:
 5.  **Await Explicit User Feedback:**
     -   After presenting the detailed plan, ask the user for confirmation using the `ask_user` tool:
         - **header:** "Verify"
-        - **question:** "Does this meet your expectations? Please type 'yes' to confirm or provide your feedback here."
+        - **question:** "Does this meet your expectations? Reply with `yes` to confirm, `no` to reject, or provide free-text feedback."
         - **type:** "text"
-    -   **PAUSE** and await the user's response. Do not proceed without an explicit "yes" or equivalent confirmation. If feedback is provided, address it and repeat the verification process.
+    -   **PAUSE** and await the user's response. Do not proceed without an explicit `yes` or equivalent confirmation. If the user replies `no` or provides free-text feedback, address it and repeat the verification process.
 
 6.  **Create Checkpoint Commit:**
     -   Stage all changes. If no changes occurred in this step, proceed with an empty commit.

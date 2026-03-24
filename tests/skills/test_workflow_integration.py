@@ -36,6 +36,9 @@ class TestWorkflowIntegration(unittest.TestCase):
             
             # Verify mandatory language
             self.assertIn("You **must** invoke the `review-optimization` skill", checkpoint_section)
+            self.assertIn("Step 3.4: Workflow Drift Audit", checkpoint_section)
+            self.assertIn("conductor-workflow-optimization", checkpoint_section)
+            self.assertIn("Reply with `yes` to confirm, `no` to reject, or provide free-text feedback.", checkpoint_section)
 
     def test_checkpoint_protocol_steps(self) -> None:
         """Verify the integrity and sequence of the checkpoint protocol steps."""
@@ -48,6 +51,8 @@ class TestWorkflowIntegration(unittest.TestCase):
                 "npm test",
                 "compliance-audit-orchestrator",
                 "review-optimization",
+                "conductor-workflow-optimization",
+                "free-text feedback",
                 "Propose a Detailed, Actionable Manual Verification Plan",
                 "Create Checkpoint Commit",
                 "git notes add -f"
