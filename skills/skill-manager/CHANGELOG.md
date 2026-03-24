@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.5.4] - 2026-03-24
+- Preserve existing Gemini tool settings during install so built-in tools like ask_user are not shadowed
+
+
 ## [1.5.3] - 2026-03-23
 - Manage local Gemini workspace ignores during install and update
 

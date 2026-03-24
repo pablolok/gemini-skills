@@ -61,7 +61,7 @@ These commands are invoked as:
 Important notes:
 - The built-in Gemini command is `/skills`, and it does not have an official `update` subcommand. `/skills update` will not work.
 - `/skill-manager:*` are custom namespaced commands provided by `skill-manager`.
-- `skill-manager` adds `run_shell_command(python)` to workspace `tools.core` so these commands can execute their helper scripts.
+- `skill-manager` does not write `tools.core` anymore. Workspace tool overrides can shadow built-in Gemini tools such as `ask_user`, so the installer preserves existing tool settings.
 - `skill-manager` also installs a user-level Plan Mode policy at `~/.gemini/policies/skill-manager-plan-mode.toml` so these commands can run while Gemini is in Plan Mode.
 - `skill-manager` updates the project `.gitignore` to ignore the generated `.gemini/commands/` folder and `.gemini/settings.json`.
 - If Gemini is already open when the skill is installed, run `/commands reload` once so Gemini picks up the new custom command without restarting.
@@ -83,18 +83,29 @@ Expected behavior:
 - that warning is expected for a trusted project using `skill-manager`
 - if updates are available, the startup hook should tell you to run `/skill-manager:update`
 
-If `/skill-manager:*` exists but the shell command is blocked, that usually means your current Gemini policy or approval mode is preventing custom-command shell execution. In that case, verify the workspace is trusted first, then re-check your Gemini permissions and approval settings.
+If `/skill-manager:*` exists but the shell command is blocked, that usually means your current Gemini policy or approval mode is preventing custom-command shell execution. In that case, verify the workspace is trusted first, then re-check your Gemini permissions, approval settings, and any user-level Gemini policies.
 
 Expected settings change:
 ```json
 {
-  "tools": {
-    "core": ["run_shell_command(python)"]
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup",
+        "hooks": [
+          {
+            "name": "skill-manager-update-check",
+            "type": "command",
+            "command": "python .gemini/skills/skill-manager/scripts/session_start_hook.py"
+          }
+        ]
+      }
+    ]
   }
 }
 ```
 
-`skill-manager` adds that allowlist entry during install or update if it is missing. It does not remove broader existing tool allowances if you already configured them.
+`skill-manager` now limits its `settings.json` writes to the startup hook. It intentionally preserves existing tool settings so it does not disable built-in Gemini behavior such as `ask_user`.
 
 Expected `.gitignore` block:
 ```gitignore

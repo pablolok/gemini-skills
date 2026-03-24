@@ -75,7 +75,7 @@ Important:
 - Custom `skill-manager` commands should use the `/skill-manager:*` namespace rather than trying to extend the built-in `/skills` tree.
 - Custom commands must be reloaded with `/commands reload` if Gemini is already open when the installer adds them.
 - The startup hook only loads in trusted workspaces because Gemini ignores local `.gemini/settings.json` in untrusted folders.
-- The installer should add `run_shell_command(python)` to workspace `tools.core` so the generated `/skill-manager:*` commands can execute their Python helper scripts.
+- The installer should not write `tools.core`. Workspace tool overrides can shadow built-in Gemini tools such as `ask_user`, so `skill-manager` must preserve any existing tool configuration.
 - The installer should also add a narrow user policy in `~/.gemini/policies/skill-manager-plan-mode.toml` so those same commands can run while Gemini is in Plan Mode.
 - The installer should also maintain a small managed block in the project `.gitignore` for the Gemini workspace files it creates, specifically `.gemini/commands/` and `.gemini/settings.json`.
 
@@ -84,7 +84,7 @@ If a user reports that the startup hook or `/skill-manager:*` commands do not ap
 
 1. Verify the workspace is trusted in Gemini via `/permissions`.
 2. Verify `<project>/.gemini/settings.json` exists and contains the `skill-manager-update-check` SessionStart hook.
-3. Verify `<project>/.gemini/settings.json` contains `tools.core` with `run_shell_command(python)` unless a broader shell allowlist is already present.
+3. Verify `<project>/.gemini/settings.json` still contains the `skill-manager-update-check` SessionStart hook and that existing tool settings were preserved rather than overwritten.
 4. Verify `~/.gemini/policies/skill-manager-plan-mode.toml` exists and contains the allowlist rule for the `skill-manager` Python helper commands in `modes = ["plan"]`.
 5. Verify `<project>/.gemini/commands/skill-manager/` exists with the generated `.toml` command files.
 6. Verify the project `.gitignore` contains the managed `skill-manager` block that ignores `.gemini/commands/` and `.gemini/settings.json`.
