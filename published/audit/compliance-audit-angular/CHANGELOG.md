@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.2] - 2026-03-24
+- Mark the Angular audit as read-only for skill infrastructure and workflow definitions.
+
+
 ## [1.0.1] - 2026-03-24
 - Add a specialized Angular compliance audit for Angular UI reviews.
 

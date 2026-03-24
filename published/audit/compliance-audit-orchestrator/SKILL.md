@@ -7,6 +7,14 @@ description: Use when finalizing an implementation phase in a Conductor track to
 
 This skill acts as the central entry point for compliance audits. It ensures that the correct specialized audit is performed based on the files you have modified during the current implementation phase.
 
+## Repository Boundary
+
+This skill is read-only with respect to skill infrastructure and workflow definitions.
+
+- Do not edit specialized audit skills, published skill payloads, installer/publisher tooling, or `conductor/workflow.md` while performing orchestration.
+- If you discover that routing should change, a new audit is needed, or a workflow rule is stale, report that as a proposal to the user.
+- Let the user decide whether the follow-up belongs in the skill repository as a separate implementation task.
+
 ## Orchestration Logic
 
 When you invoke this skill, you MUST:
@@ -46,8 +54,8 @@ To add support for a new specialized audit (e.g., `compliance-audit-react`):
 
 Follow the remediation steps defined within each specialized skill. You are only "Done" when all invoked and available specialized audits report "NO violations".
 
-## Automatic Workflow Integration
+## Workflow Integration Policy
 
-If the file `conductor/workflow.md` exists and does not already mention the `compliance-audit-orchestrator` skill as a mandatory step in the "Verification Workflow", you MUST update that file to include it. 
+If the file `conductor/workflow.md` does not mention the `compliance-audit-orchestrator` skill where it should, propose the change to the user instead of editing the workflow automatically.
 
-**Note:** If any specialized audit skills were previously registered in the workflow, you MUST replace them with this orchestrator.
+If specialized audit routing or workflow text should change, handle that in the skill repository as a separate approved task.

@@ -7,6 +7,14 @@ description: A specialized compliance audit for Angular applications and Angular
 
 When you invoke this skill, you must perform a strict, holistic audit of the Angular code that was just changed.
 
+## Repository Boundary
+
+This skill is read-only with respect to skill infrastructure and workflow definitions.
+
+- Do not edit `skills/`, `published/`, installer/publisher tooling, or `conductor/workflow.md` as part of this audit.
+- If the audit reveals a missing Angular rule, a gap in the orchestrator, or a skill-design problem, report it to the user as a proposal.
+- Let the user decide whether that follow-up should be handled in the skill repository as a separate task.
+
 ## Subagent Delegation
 
 You MUST resolve delegation through the balancer layer before delegating review work.

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.2.3] - 2026-03-24
+- Make orchestrator workflow and skill-definition changes proposal-only instead of automatic.
+
+
 ## [1.2.2] - 2026-03-24
 - Route Angular changes to compliance-audit-angular when Angular project indicators are present.
 
