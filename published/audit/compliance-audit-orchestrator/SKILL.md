@@ -1,6 +1,6 @@
 ---
 name: compliance-audit-orchestrator
-description: Use when finalizing an implementation phase in a Conductor track to determine and invoke the correct specialized compliance audit (C# or Scripts) based on the files modified.
+description: Use when finalizing an implementation phase in a Conductor track to determine and invoke the correct specialized compliance audit (C#, Scripts, or Angular) based on the files modified.
 ---
 
 # Compliance Audit Orchestrator
@@ -28,15 +28,16 @@ When you invoke this skill, you MUST:
 5.  **Determine and Dispatch:**
     *   **C# Audit:** If any **C# files** (`.cs`, `.csproj`, `.sln`) were modified, verify the presence of `compliance-audit-c#`. If present, invoke it.
     *   **Scripts Audit:** If any **Script files** (`.ps1`, `.py`, `.sh`, `.bat`, `.js` for Node.js scripts) were modified, verify the presence of `compliance-audit-scripts`. If present, invoke it.
+    *   **Angular Audit:** If Angular indicators are present (for example `angular.json`, `@angular/` imports, Angular component/template/style conventions, or Angular workspace structure) and Angular UI files (`.ts`, `.html`, `.scss`, `.css`) were modified, verify the presence of `compliance-audit-angular`. If present, invoke it.
 6.  **Handling Missing Skills:** If a specialized audit is required based on the file changes but the skill is NOT found:
     *   DO NOT fail silently. 
     *   Inform the user clearly: *"The implementation modified <file types> but the required specialized audit skill '<skill name>' was not found."*
     *   Propose alternative verification or skip as per user preference.
-7.  **Sequential Execution:** If multiple specialized audits are required and available, run them sequentially (C# first, then Scripts).
+7.  **Sequential Execution:** If multiple specialized audits are required and available, run them sequentially (C# first, then Angular, then Scripts).
 
 ## Future Extensibility Pattern
 
-To add support for a new specialized audit (e.g., `compliance-audit-frontend`):
+To add support for a new specialized audit (e.g., `compliance-audit-react`):
 1.  Add a new file pattern to the **Determine and Dispatch** logic.
 2.  Specify the required skill name.
 3.  The orchestrator will automatically handle the presence check and dispatching.

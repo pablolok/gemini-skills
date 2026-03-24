@@ -4,7 +4,7 @@ A central dispatcher for the **Gemini CLI** that determines and executes the cor
 
 ## Overview
 
-This skill is designed to solve the problem of selecting between multiple specialized compliance audits (like C# or Scripts). It acts as a smart orchestrator that inspects your changes and delegates the audit to the appropriate specialized skill.
+This skill is designed to solve the problem of selecting between multiple specialized compliance audits (like C#, Scripts, or Angular). It acts as a smart orchestrator that inspects your changes and delegates the audit to the appropriate specialized skill.
 
 ## How it Works
 
@@ -13,12 +13,13 @@ This skill is designed to solve the problem of selecting between multiple specia
 3.  **Smart Delegation:**
     *   **C# Files:** Triggers the `compliance-audit-c#` skill if it's available.
     *   **Script Files:** Triggers the `compliance-audit-scripts` skill if it's available.
-4.  **Sequential Execution:** If you modify both C# and script files, it runs both available audits in sequence.
+    *   **Angular Files:** Triggers the `compliance-audit-angular` skill when Angular indicators are present and Angular UI files were changed.
+4.  **Sequential Execution:** If you modify multiple supported file groups, it runs all available audits in sequence.
 5.  **Graceful Error Handling:** If a specialized audit is required based on your file changes but the skill is NOT found, the orchestrator will inform you and ask for guidance.
 
 ## Future Extensibility
 
-To add support for a new specialized audit (e.g., `compliance-audit-frontend`), simply:
+To add support for a new specialized audit (e.g., `compliance-audit-react`), simply:
 1.  Add a new file pattern to the **Determine and Dispatch** logic.
 2.  The orchestrator will automatically handle the presence check and dispatching.
 
