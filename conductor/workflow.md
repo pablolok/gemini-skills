@@ -8,6 +8,7 @@
 4. **High Code Coverage:** Aim for >80% code coverage for all modules
 5. **User Experience First:** Every decision should prioritize user experience
 6. **Non-Interactive & CI-Aware:** Prefer non-interactive commands. Use `CI=true` for watch-mode tools (tests, linters) to ensure single execution.
+7. **Shell Portability Before Alias Convenience:** When Gemini invokes shell commands, prefer commands that match the active shell. In PowerShell, avoid Unix-style alias patterns like multi-path `ls`; use shell-native commands or one-path-per-command.
 
 ## Task Workflow
 

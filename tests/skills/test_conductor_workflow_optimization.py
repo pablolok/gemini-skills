@@ -42,6 +42,7 @@ class TestWorkflowGuard(unittest.TestCase):
                     "# Workflow\n"
                     "To exit plan mode, call `exit_plan_mode`.\n"
                     "Please type 'yes' to confirm.\n"
+                    "ls conductor/product.md conductor/tech-stack.md conductor/workflow.md\n"
                 )
 
             findings = WORKFLOW_GUARD.collect_findings(
@@ -54,6 +55,7 @@ class TestWorkflowGuard(unittest.TestCase):
             self.assertIn("forbidden_tool", kinds)
             self.assertIn("plan_mode_gap", kinds)
             self.assertIn("binary_confirmation_prompt", kinds)
+            self.assertIn("shell_portability_issue", kinds)
 
     def test_main_emits_json(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

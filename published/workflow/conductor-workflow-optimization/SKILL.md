@@ -26,14 +26,21 @@ This skill supports two integration paths:
 2. Scan the project for stale workflow references before editing.
    - Run `python .gemini/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root .`
    - If the failure names a specific missing tool, run `python .gemini/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root . --forbid <tool-name>`
-3. Verify live CLI behavior before patching prompts or policies.
+3. Classify the workflow failure.
+   - Distinguish between tool mismatch, shell portability, prompt design, missing workflow context, and command-policy issues.
+   - Treat shell alias failures and shell-specific syntax drift as workflow problems when they were induced by the workflow instructions.
+4. Verify live CLI behavior before patching prompts or policies.
    - Consult Gemini CLI help and command output in the current environment.
    - Treat the live CLI as the source of truth when it conflicts with workflow text.
-4. Patch the workflow layer that introduced the bad reference.
+5. Propose the workflow repair before applying it.
+   - Summarize the failure, the root cause, and the narrowest workflow change that would prevent recurrence.
+   - Ask the user whether they want the workflow updated now.
+   - Do not edit `conductor/workflow.md`, installed skills, or generated commands until the user approves.
+6. Patch the workflow layer that introduced the bad reference.
    - Check `conductor/workflow.md`.
    - Check installed skill `SKILL.md`, `README.md`, hooks, and generated commands.
    - Check any policy or command files that preserve plan-mode behavior.
-5. Make the fix durable.
+7. Make the fix durable.
    - Replace invalid tool calls with the valid current workflow actions.
    - Add or tighten guardrails so the same stale reference is caught earlier next time.
 
@@ -44,6 +51,7 @@ This skill supports two integration paths:
 - "Unexpected tool call" failures that point to generated workflow prompts, installed skills, or post-install hooks.
 - Divergence between `conductor/workflow.md` and the behavior described in skill docs or generated commands.
 - Binary confirmation prompts that force a yes/no response instead of preserving a free-text feedback path.
+- Shell portability failures caused by shell-specific aliases or argument patterns, such as multi-path `ls` usage in PowerShell.
 
 ## Guard Script
 
@@ -53,6 +61,7 @@ Default checks:
 - known forbidden tool names
 - plan-mode sections that omit both `finish_plan` and `cancel_plan`
 - binary confirmation prompts such as "type yes to confirm" that should be upgraded to `yes`, `no`, or free-text feedback
+- risky shell alias patterns that are likely to fail under a different shell than the workflow assumed
 
 Useful invocations:
 
@@ -69,3 +78,5 @@ python .gemini/skills/conductor-workflow-optimization/scripts/workflow_guard.py 
 - If the issue originated from a generated command or post-install hook, update the source skill and published copy so future installs inherit the fix.
 - If the workflow text says to "exit" plan mode, rewrite it in terms of the valid current actions instead of adding a generic exit abstraction.
 - Prefer tri-state confirmation prompts over binary ones. For user confirmation, default to `yes`, `no`, or free-text feedback instead of yes/no-only wording.
+- Prefer shell-native commands and explicit file tools over shell aliases when workflow instructions may run under different shells. In PowerShell, avoid Unix-style multi-path `ls` patterns.
+- When the skill is used interactively, ask the user before applying workflow edits. Treat approval as mandatory for workflow changes.

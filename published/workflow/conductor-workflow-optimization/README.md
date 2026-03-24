@@ -8,6 +8,7 @@ Detect and remediate Gemini Conductor workflow drift caused by stale tool names,
 - plan-mode instructions that no longer match Gemini CLI behavior
 - drift between `conductor/workflow.md`, installed skills, and generated Gemini commands
 - binary confirmation prompts that should allow `yes`, `no`, or free-text feedback
+- shell portability issues such as Unix-style alias usage in PowerShell
 - repetitive manual debugging of workflow-level failures after a CLI update
 
 ## Usage
@@ -36,6 +37,8 @@ python .gemini/skills/conductor-workflow-optimization/post_install.py .
 ```
 
 If you prefer Gemini to apply the workflow change conversationally, install the skill first, then ask Gemini to update `conductor/workflow.md` according to the skill instructions.
+
+When used conversationally, the skill should propose workflow fixes first and ask the user whether to apply them. It should not silently rewrite the workflow during ordinary failure triage.
 
 Typical first pass:
 

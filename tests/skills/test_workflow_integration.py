@@ -60,3 +60,11 @@ class TestWorkflowIntegration(unittest.TestCase):
             
             for element in mandatory_elements:
                 self.assertIn(element, content, f"Mandatory protocol element '{element}' missing from workflow.md")
+
+    def test_guiding_principles_include_shell_portability(self) -> None:
+        """Verify shell portability guidance is present in the workflow principles."""
+        with open(self.WORKFLOW_PATH, "r", encoding="utf-8") as f:
+            content: str = f.read()
+
+        self.assertIn("Shell Portability Before Alias Convenience", content)
+        self.assertIn("avoid Unix-style alias patterns like multi-path `ls`", content)

@@ -123,6 +123,35 @@ def detect_binary_confirmation_prompts(path: str, content: str) -> list[Finding]
     return findings
 
 
+def detect_shell_portability_issues(path: str, content: str) -> list[Finding]:
+    """Detect shell command examples that are likely to be non-portable."""
+    findings: list[Finding] = []
+    for line_number, line in enumerate(content.splitlines(), start=1):
+        stripped = line.strip()
+        if not stripped:
+            continue
+        lowered = stripped.lower()
+        if "ls " not in lowered:
+            continue
+        tokens = re.split(r"\s+", stripped.replace("`", ""))
+        if not tokens or tokens[0].lower() != "ls":
+            continue
+        path_like_args = [token for token in tokens[1:] if any(char in token for char in ("/", "\\", "."))]
+        if len(path_like_args) < 2:
+            continue
+        findings.append(
+            Finding(
+                kind="shell_portability_issue",
+                path=path,
+                line=line_number,
+                message="Shell command example may be non-portable. Prefer shell-native commands or one-path-per-command.",
+                snippet=stripped,
+            )
+        )
+        break
+    return findings
+
+
 def collect_findings(root: str, forbidden_tools: Sequence[str], target_dirs: Sequence[str]) -> list[Finding]:
     """Scan the repository for workflow drift findings."""
     findings: list[Finding] = []
@@ -132,6 +161,7 @@ def collect_findings(root: str, forbidden_tools: Sequence[str], target_dirs: Seq
         findings.extend(detect_forbidden_tools(path, content, forbidden_tools))
         findings.extend(detect_plan_mode_gaps(path, content))
         findings.extend(detect_binary_confirmation_prompts(path, content))
+        findings.extend(detect_shell_portability_issues(path, content))
     return sorted(findings, key=lambda item: (item.path, item.line, item.kind))
 
 
