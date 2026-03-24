@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.2] - 2026-03-24
+- Refine lite routing for bounded trivial implementation work and fix decimal percentage parsing.
+
+
 ## [1.6.1] - 2026-03-23
 - Publish Codex integration notes and robust CLI balancing updates
 
