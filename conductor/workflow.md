@@ -92,7 +92,8 @@ All tasks follow a strict lifecycle:
     -   **Step 3.2: Compliance Audit Orchestration:**
         -   After automated tests pass, you **must** apply the `subagent-balancer` policy whenever an audit may delegate review work.
         -   If the user explicitly selected a model tier, that choice is binding. Do not silently downgrade from Pro to Flash or from a non-preview choice to a preview model.
-        -   Then invoke the `compliance-audit-orchestrator` skill to perform specialized audits (C# or Scripts) based on the files modified in this phase.
+        -   Then invoke the `compliance-audit-orchestrator` skill. It must run `compliance-audit-verification-gates` first for code changes, then any relevant specialized audits based on the files modified in this phase.
+        -   Required automated verification must be green before manual verification is proposed. If the changed stack has a build, compile, bundle, or packaging gate, that gate must succeed without warnings unless the repository explicitly documents an allowed warning exception.
         -   Follow the remediation steps within the orchestrator if any violations are found.
     -   **Step 3.3: Post-Execution Review & Optimization:**
         -   You **must** invoke the `review-optimization` skill to analyze the phase's execution path, audit skill efficiency, and receive workflow optimization advice.
@@ -100,7 +101,7 @@ All tasks follow a strict lifecycle:
     -   **Step 3.4: Workflow Drift Audit:**
         -   If Gemini emits an "unexpected tool call" error, references a missing tool, or the CLI help contradicts the workflow instructions, you **must** invoke the `conductor-workflow-optimization` skill before retrying.
         -   Use the skill to scan `conductor/workflow.md`, installed skills, policies, and generated commands for stale tool references and patch the narrowest broken workflow artifact first.
-    -   **Error Handling:** If either tests fail, compliance audits report persistent violations, or the optimization review identifies critical workflow drift, you **must** inform the user and begin debugging. You may attempt to propose a fix a **maximum of two times**. If the failure persists after your second proposed fix, you **must stop**, report the persistent failure, and ask the user for guidance.
+    -   **Error Handling:** If tests fail, verification-gate or specialized compliance audits report persistent violations, or the optimization review identifies critical workflow drift, you **must** inform the user and begin debugging. You may attempt to propose a fix a **maximum of two times**. If the failure persists after your second proposed fix, you **must stop**, report the persistent failure, and ask the user for guidance.
 
 4.  **Propose a Detailed, Actionable Manual Verification Plan:**
     -   **CRITICAL:** To generate the plan, first analyze `product.md`, `product-guidelines.md`, and `plan.md` to determine the user-facing goals of the completed phase.
@@ -185,6 +186,7 @@ Before marking any task complete, verify:
 - [ ] All public functions/methods are documented (e.g., docstrings, JSDoc, GoDoc)
 - [ ] Type safety is enforced (e.g., type hints, TypeScript types, Go types)
 - [ ] No linting or static analysis errors (using the project's configured tools)
+- [ ] Required builds/compiles/bundles succeed without warnings unless the repository explicitly allows them
 - [ ] Works correctly on mobile (if applicable)
 - [ ] Documentation updated if needed
 - [ ] No security vulnerabilities introduced

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.0] - 2026-03-24
+- Run the verification-gate audit before specialized audits and document the warning-free verification policy
+
+
 ## [1.2.3] - 2026-03-24
 - Make orchestrator workflow and skill-definition changes proposal-only instead of automatic.
 

@@ -38,6 +38,8 @@ class TestWorkflowIntegration(unittest.TestCase):
             self.assertIn("You **must** invoke the `review-optimization` skill", checkpoint_section)
             self.assertIn("Step 3.4: Workflow Drift Audit", checkpoint_section)
             self.assertIn("conductor-workflow-optimization", checkpoint_section)
+            self.assertIn("compliance-audit-verification-gates", checkpoint_section)
+            self.assertIn("must succeed without warnings", checkpoint_section)
             self.assertIn("Reply with `yes` to confirm, `no` to reject, or provide free-text feedback.", checkpoint_section)
 
     def test_checkpoint_protocol_steps(self) -> None:
@@ -50,6 +52,7 @@ class TestWorkflowIntegration(unittest.TestCase):
                 "git diff --name-only <previous_checkpoint_sha> HEAD",
                 "npm test",
                 "compliance-audit-orchestrator",
+                "compliance-audit-verification-gates",
                 "review-optimization",
                 "conductor-workflow-optimization",
                 "free-text feedback",
@@ -68,3 +71,13 @@ class TestWorkflowIntegration(unittest.TestCase):
 
         self.assertIn("Shell Portability Before Alias Convenience", content)
         self.assertIn("avoid Unix-style alias patterns like multi-path `ls`", content)
+
+    def test_quality_gates_require_warning_free_builds(self) -> None:
+        """Verify warning-free build requirements are present in quality gates."""
+        with open(self.WORKFLOW_PATH, "r", encoding="utf-8") as f:
+            content: str = f.read()
+
+        self.assertIn(
+            "Required builds/compiles/bundles succeed without warnings unless the repository explicitly allows them",
+            content,
+        )
