@@ -19,6 +19,7 @@ A utility skill for Gemini CLI and Google-account Gemini workflows that makes su
 
 - `SKILL.md`: Routing policy and usage rules.
 - `scripts/select_model.py`: Scores and ranks known Gemini models from a quota table, using task type, scope, complexity, quota usage, reset timing, and per-model scarcity to keep `flash` as the normal delegated tier and `pro` as an escalation tier.
+  It now also preserves decimal usage percentages from `/stats model` and allows `lite` to win only for tightly bounded trivial implementation work under heavier `flash` pressure.
 - `scripts/balance_subagent.py`: Wrapper that tries live stats capture, then cache fallback, then local fallback.
 
 ## Codex Integration

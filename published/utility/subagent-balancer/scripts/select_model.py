@@ -38,7 +38,7 @@ SCOPE_BONUS = {
 }
 
 MODEL_RE = re.compile(r"(gemini-\S+)")
-PERCENT_RE = re.compile(r"(\d+)%")
+PERCENT_RE = re.compile(r"(\d+(?:\.\d+)?)%")
 RESET_WINDOW_RE = re.compile(r"\((?:(?P<days>\d+)d)?\s*(?:(?P<hours>\d+)h)?\s*(?:(?P<minutes>\d+)m)?\)")
 
 TIER_ECONOMY_BONUS = {
@@ -64,6 +64,11 @@ COMPLEXITY_ESCALATION_BY_LEVEL = {
     "ambiguous": {"pro": 56},
 }
 
+LOW_RISK_IMPLEMENTATION_BONUS = {
+    ("implementation", "small", "trivial"): {"lite": 28, "flash": 8, "pro": -18},
+    ("implementation", "small", "normal"): {"lite": 6, "flash": 4, "pro": -10},
+}
+
 
 @dataclass
 class ModelQuota:
@@ -71,7 +76,7 @@ class ModelQuota:
 
     name: str
     limited: bool
-    usage_percent: int | None
+    usage_percent: float | None
     reset_text: str
     reset_window_minutes: int | None
 
@@ -129,7 +134,7 @@ def parse_snapshot(text: str) -> list[ModelQuota]:
         name = model_match.group(1).rstrip(",:)")
         limited = " limit " in f" {line.lower()} "
         percent_match = PERCENT_RE.search(line)
-        usage_percent = None if limited or not percent_match else int(percent_match.group(1))
+        usage_percent = None if limited or not percent_match else float(percent_match.group(1))
         reset_text = line.split(name, 1)[1].strip()
         reset_window_minutes = parse_reset_window_minutes(reset_text)
 
@@ -208,6 +213,11 @@ def compute_usage_penalty(model: ModelQuota) -> int:
     return 0
 
 
+def compute_low_risk_bonus(task_type: str, scope: str, complexity: str, tier: str) -> int:
+    """Apply a cautious lite bonus only for genuinely low-risk implementation work."""
+    return LOW_RISK_IMPLEMENTATION_BONUS.get((task_type, scope, complexity), {}).get(tier, 0)
+
+
 def choose_model(
     models: list[ModelQuota],
     task_type: str,
@@ -261,6 +271,7 @@ def choose_model(
         scarcity_bonus = model.scarcity_bonus
         escalation_bonus = COMPLEXITY_ESCALATION.get((task_type, scope), {}).get(model.tier, 0)
         complexity_escalation = COMPLEXITY_ESCALATION_BY_LEVEL.get(complexity, {}).get(model.tier, 0)
+        low_risk_bonus = compute_low_risk_bonus(task_type, scope, complexity, model.tier)
         usage_weight = 100 - (model.usage_percent or 0)
         usage_penalty = compute_usage_penalty(model)
         reset_bonus = compute_reset_bonus(model)
@@ -273,6 +284,7 @@ def choose_model(
             + scarcity_bonus
             + escalation_bonus
             + complexity_escalation
+            + low_risk_bonus
             + usage_weight
             + usage_penalty
             + reset_bonus

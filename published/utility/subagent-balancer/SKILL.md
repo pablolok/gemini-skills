@@ -122,6 +122,7 @@ An automatic downgrade to `gemini-3-flash-preview` is not allowed.
 
 - `lite`:
   Use for narrow review, file triage, grep-style exploration, metadata extraction, or checklist validation. This is the most quota-efficient tier.
+  It may also be used for small, trivial implementation subtasks when the task is tightly bounded and `flash` quota is under materially higher pressure.
 - `flash`:
   The default choice for most delegated development tasks. Prefer this over `pro` when it can do the job reliably because it preserves scarcer `pro` quota.
 - `pro`:

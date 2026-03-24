@@ -44,6 +44,15 @@ class TestSubagentBalancerSelector(unittest.TestCase):
         self.assertEqual(models[1].usage_percent, 2)
         self.assertEqual(models[1].reset_window_minutes, 21 * 60 + 30)
 
+    def test_parse_snapshot_preserves_decimal_percentages(self) -> None:
+        snapshot = """
+gemini-2.5-flash-lite    -    0.7%  7:23 AM (20h 23m)
+gemini-2.5-flash         -    83%   7:12 AM (20h 12m)
+"""
+        models = MODULE.parse_snapshot(snapshot)
+        self.assertEqual(models[0].usage_percent, 0.7)
+        self.assertEqual(models[1].usage_percent, 83.0)
+
     def test_prefers_flash_lite_for_small_review(self) -> None:
         models = MODULE.parse_snapshot(SNAPSHOT)
         result = MODULE.choose_model(
@@ -254,6 +263,24 @@ gemini-2.5-pro           -     2%  7:00 PM (4h 0m)
         result = MODULE.choose_model(
             models=models,
             task_type="verification",
+            scope="small",
+            complexity="trivial",
+            preferred_model=None,
+            avoid_models=set(),
+            allow_preview=False,
+        )
+        self.assertEqual(result["selected_model"], "gemini-2.5-flash-lite")
+
+    def test_flash_lite_can_win_for_small_trivial_implementation_when_flash_is_heavily_used(self) -> None:
+        snapshot = """
+gemini-2.5-flash-lite    -    1.2%  7:00 PM (18h 0m)
+gemini-2.5-flash         -    88%   7:00 PM (18h 0m)
+gemini-2.5-pro           -    61%   7:00 PM (18h 0m)
+"""
+        models = MODULE.parse_snapshot(snapshot)
+        result = MODULE.choose_model(
+            models=models,
+            task_type="implementation",
             scope="small",
             complexity="trivial",
             preferred_model=None,
