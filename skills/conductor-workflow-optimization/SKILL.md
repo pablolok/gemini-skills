@@ -7,6 +7,17 @@ description: Detect and remediate Gemini Conductor workflow drift caused by stal
 
 Use this skill to repair workflow-level failures, not feature code.
 
+## Installation Model
+
+This skill supports two integration paths:
+
+1. Installer-driven integration.
+   - When installed through `install.py` or `/skill-manager:install`, the installer executes this skill's `post_install.py` hook after copying files.
+   - The hook attempts to update `conductor/workflow.md` automatically.
+2. Manual or conversational integration.
+   - If the skill was copied manually, or the hook could not patch the workflow safely, update `conductor/workflow.md` yourself or ask Gemini to do it using this skill's rules.
+   - You may also run `python .gemini/skills/conductor-workflow-optimization/post_install.py .` manually from the project root.
+
 ## Core Workflow
 
 1. Reproduce or capture the exact workflow failure.
