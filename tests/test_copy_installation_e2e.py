@@ -14,9 +14,11 @@ class TestCopyInstallationE2E(unittest.TestCase):
         self.test_dir = tempfile.mkdtemp()
         self.published_dir = os.path.join(self.test_dir, "published")
         self.project_dir = os.path.join(self.test_dir, "project")
+        self.codex_source_dir = os.path.join(self.test_dir, ".codex", "skills")
         
         os.makedirs(self.published_dir)
         os.makedirs(self.project_dir)
+        os.makedirs(self.codex_source_dir)
         
         # Create a mock skill
         self.skill_cat = "audit"
@@ -32,6 +34,11 @@ class TestCopyInstallationE2E(unittest.TestCase):
         
         with open(os.path.join(self.skill_src_path, "CHANGELOG.md"), "w") as f:
             f.write("# Changelog\n\n- Initial version")
+
+        self.codex_bridge_path = os.path.join(self.codex_source_dir, self.skill_name)
+        os.makedirs(self.codex_bridge_path)
+        with open(os.path.join(self.codex_bridge_path, "SKILL.md"), "w") as f:
+            f.write("# Test Codex Bridge")
             
         self.installer = SkillInstaller(self.published_dir, lambda x: {})
 
@@ -76,6 +83,20 @@ class TestCopyInstallationE2E(unittest.TestCase):
         with open(target_skill_md, "r") as f:
             content = f.read()
         self.assertEqual(content, "# Updated Test Skill")
+
+    def test_install_codex_bridge_copies_wrapper(self) -> None:
+        """Verify that install_codex_bridge copies the lightweight wrapper."""
+        success = self.installer.install_codex_bridge(self.skill_name, self.project_dir)
+
+        self.assertTrue(success)
+
+        target_path = os.path.join(self.project_dir, ".codex", "skills", self.skill_name)
+        self.assertTrue(os.path.exists(target_path))
+        self.assertTrue(os.path.isfile(os.path.join(target_path, "SKILL.md")))
+
+        with open(os.path.join(target_path, "SKILL.md"), "r") as f:
+            content = f.read()
+        self.assertEqual(content, "# Test Codex Bridge")
 
     @unittest.skipUnless(os.name == "nt", "Windows junction tests only run on Windows")
     def test_transition_from_junction_to_copy(self) -> None:

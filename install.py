@@ -12,6 +12,7 @@ import shutil
 
 
 KeyReader = typing.Callable[[], str]
+AskUserResponse = typing.Dict[str, typing.Any]
 
 
 def parse_selection_input(
@@ -337,6 +338,28 @@ class SkillInstaller:
         metadata_path = os.path.join(self.published_dir, skill_rel_path, "metadata.json")
         return self._read_metadata(metadata_path)
 
+    def codex_bridges_dir(self) -> str:
+        """Resolve the source directory containing Codex bridge wrappers."""
+        return os.path.join(os.path.dirname(self.published_dir), ".codex", "skills")
+
+    def get_available_codex_bridges(self) -> typing.Set[str]:
+        """Return skill names that have an explicit Codex bridge wrapper."""
+        bridges_dir = self.codex_bridges_dir()
+        if not os.path.isdir(bridges_dir):
+            return set()
+
+        bridges: typing.Set[str] = set()
+        for item in os.listdir(bridges_dir):
+            bridge_path = os.path.join(bridges_dir, item)
+            skill_md = os.path.join(bridge_path, "SKILL.md")
+            if os.path.isdir(bridge_path) and not item.startswith(".") and os.path.isfile(skill_md):
+                bridges.add(item)
+        return bridges
+
+    def supports_codex_bridge(self, skill_name: str) -> bool:
+        """Check whether a skill has a bridge wrapper intended for Codex."""
+        return skill_name in self.get_available_codex_bridges()
+
     def get_installed_skill_metadata(
         self,
         skill_name: str,
@@ -408,6 +431,28 @@ class SkillInstaller:
         for update in updates:
             self.logger.info(f"  - {update['name']}: {update['installed']} -> {update['latest']}")
         self.logger.info("\nRun 'python install.py' or 'python check_updates.py' to update.\n")
+
+    def install_codex_bridge(self, skill_name: str, target_project_path: str) -> bool:
+        """Install a lightweight Codex bridge wrapper for a skill when available."""
+        source_path = os.path.join(self.codex_bridges_dir(), skill_name)
+        if not os.path.isfile(os.path.join(source_path, "SKILL.md")):
+            self.logger.info(
+                f"Skipping Codex bridge for '{skill_name}': no bridge wrapper is published for this skill."
+            )
+            return False
+
+        target_skills_dir = os.path.join(target_project_path, ".codex", "skills")
+        os.makedirs(target_skills_dir, exist_ok=True)
+        target_path = os.path.join(target_skills_dir, skill_name)
+
+        self.logger.info(f"Installing Codex bridge for '{skill_name}'...")
+        try:
+            self._copy_skill_files(os.path.abspath(source_path), os.path.abspath(target_path))
+            self.logger.info(f"Successfully installed Codex bridge for '{skill_name}'.")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to install Codex bridge for '{skill_name}': {e}")
+            return False
 
     def install_skill(self, skill_rel_path: str, target_project_path: str) -> bool:
         """Install a skill by copying files to the target project."""
@@ -513,8 +558,13 @@ def manual_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, ty
         raise
 
     indices = parse_selection_input(selection, len(question["options"]), is_multi)
-        
-    return {"answers": {"0": [question['options'][i]['label'] for i in indices]}}
+
+    if question.get("type") == "choice" and not is_multi:
+        answer: typing.Any = question["options"][indices[0]]["label"] if indices else ""
+    else:
+        answer = [question['options'][i]['label'] for i in indices]
+
+    return {"answers": {"0": answer}}
 
 
 def terminal_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, typing.Any]:
@@ -522,7 +572,48 @@ def terminal_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, 
     question = config["questions"][0]
     selector = TerminalMultiSelect(question)
     labels = selector.run()
-    return {"answers": {"0": labels}}
+    if question.get("type") == "choice" and not question.get("multiSelect", False):
+        answer: typing.Any = labels[0] if labels else ""
+    else:
+        answer = labels
+    return {"answers": {"0": answer}}
+
+
+def prompt_for_codex_support(
+    ask_user_fn: typing.Callable[[typing.Dict[str, typing.Any]], AskUserResponse],
+    skill_names: typing.Sequence[str],
+) -> typing.Set[str]:
+    """Ask whether supported skills should also receive Codex bridge wrappers."""
+    bridgeable = sorted(set(skill_names))
+    if not bridgeable:
+        return set()
+
+    response = ask_user_fn({
+        "questions": [{
+            "header": "Codex Support",
+            "question": (
+                "Install matching Codex bridge wrappers in .codex/skills for supported selected skills?"
+            ),
+            "type": "choice",
+            "multiSelect": False,
+            "options": [
+                {
+                    "label": "yes",
+                    "description": "Add lightweight Codex bridge wrappers for the supported selected skills.",
+                },
+                {
+                    "label": "no",
+                    "description": "Install only the Gemini skill payloads into .gemini/skills.",
+                },
+            ],
+        }]
+    })
+
+    answer = ""
+    if isinstance(response, dict):
+        answer = str(response.get("answers", {}).get("0", "")).strip().lower()
+
+    return set(bridgeable) if answer == "yes" else set()
 
 
 def get_cli_ask_user(argv: typing.Optional[typing.Sequence[str]] = None) -> typing.Callable:
@@ -583,9 +674,17 @@ def main() -> None:
 
     selector = SkillSelector(ask_user_fn)
     selected = selector.select_skills(available, installed_skills, updates)
-    
+    selected_skill_names = [os.path.basename(skill_path) for skill_path in selected]
+    codex_candidates = [
+        skill_name for skill_name in selected_skill_names if installer.supports_codex_bridge(skill_name)
+    ]
+    install_codex_for = prompt_for_codex_support(ask_user_fn, codex_candidates)
+
     for skill_path in selected:
-        installer.install_skill(skill_path, target_project)
+        if installer.install_skill(skill_path, target_project):
+            skill_name = os.path.basename(skill_path)
+            if skill_name in install_codex_for:
+                installer.install_codex_bridge(skill_name, target_project)
 
 
 if __name__ == "__main__":

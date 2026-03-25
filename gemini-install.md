@@ -17,7 +17,10 @@ When a user asks you to install skills from this repository, you should:
     -   Notify user: If updates are available, inform the user and ask if they'd like to update.
     -   Scan for new skills: Scan the `./published/` directory for available skills.
     -   Prompt the user (via `ask_user`) to select the skills they want to install or update.
-    -   Perform the installation/update using `installer.install_skill(skill_path, target_project_path)`.
+    -   If any selected skill has a matching wrapper in `./.codex/skills/`, ask the user whether they also want Codex support added for those supported skills.
+    -   Perform the Gemini installation/update using `installer.install_skill(skill_path, target_project_path)`.
+    -   If the user opted into Codex support, add the matching lightweight bridge wrapper with `installer.install_codex_bridge(skill_name, target_project_path)`.
+    -   Do not invent Codex bridges for skills that do not have a wrapper in `./.codex/skills/`. For example, the subagent-balancer family is Gemini-specific and should not be copied into `.codex/skills/` as part of the standard install flow.
     -   `target_project_path` should be the current working directory where you were first activated.
 
 4.  **Post-Install**:

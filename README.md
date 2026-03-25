@@ -4,11 +4,11 @@ A collection of custom skills for the Gemini CLI to automate and enhance softwar
 
 ## Recommended Workflow
 
-For most users, we recommend installing the **Compliance Audit Orchestrator**. It automatically detects which specialized audit (C# or Scripts) to run based on your project changes.
+For most users, we recommend installing the **Compliance Audit Orchestrator**. It automatically detects which specialized audit (C#, Scripts, Angular, or Avalonia UI) to run based on your project changes.
 
 | Skill | Description |
 | :--- | :--- |
-| **[Compliance Audit Orchestrator](./skills/compliance-audit-orchestrator/)** | **[Recommended]** Smart dispatcher that determines the correct specialized audit (C# or Scripts) to perform. |
+| **[Compliance Audit Orchestrator](./skills/compliance-audit-orchestrator/)** | **[Recommended]** Smart dispatcher that determines the correct specialized audit (C#, Scripts, Angular, or Avalonia UI) to perform. |
 
 ## Specialized Skills
 
@@ -17,6 +17,8 @@ These are called automatically by the orchestrator but can also be invoked manua
 | Skill | Description |
 | :--- | :--- |
 | **[Compliance Audit (C#)](./skills/compliance-audit-c#/)** | Specialized audit for C#/.NET architectural rigor. |
+| **[Compliance Audit (Angular)](./skills/compliance-audit-angular/)** | Specialized audit for Angular UI reviews. |
+| **[Compliance Audit (Avalonia UI)](./skills/compliance-audit-avalonia/)** | Specialized audit for Avalonia desktop UI reviews. |
 | **[Compliance Audit (Scripts)](./skills/compliance-audit-scripts/)** | Specialized audit for automation and script-based projects. |
 
 ## Installation & Usage
@@ -60,6 +62,7 @@ python <path-to-gemini-skills>/install.py
 ```
 
 The installer will guide you through the interactive selection and handle copying/updating automatically.
+If the selected skills have explicit bridge wrappers in this repository, the installer will also ask whether you want matching `.codex/skills/` support added.
 
 ## Codex Bridge Layer
 
@@ -77,6 +80,7 @@ Recommended flow for Codex-enabled projects:
 For Codex, the useful bridge skills in this repo are currently centered on:
 - `skill-manager`
 - `skill-publisher`
+- `compliance-audit-avalonia`
 - `compliance-audit-orchestrator`
 - `compliance-audit-scripts`
 - `review-optimization`

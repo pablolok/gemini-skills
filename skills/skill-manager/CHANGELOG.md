@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.6.0] - 2026-03-25
+- Ask whether to install supported Codex bridge wrappers during interactive installs.
+- Add `--with-codex` support to the installed `/skill-manager:install` helper so Gemini skills and matching Codex bridges can be installed together.
+
+
 ## [1.5.4] - 2026-03-24
 - Preserve existing Gemini tool settings during install so built-in tools like ask_user are not shadowed
 

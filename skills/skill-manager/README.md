@@ -23,6 +23,7 @@ Installer UX modes:
 - Default CLI behavior uses a richer terminal multi-select component when running in a real TTY.
 - Use `python <path-to-gemini-skills>/install.py --simple` to force the lightweight numbered prompt.
 - Gemini or other agent-driven integrations should keep using the lightweight ask-user contract through `SkillInstaller` rather than the terminal widget.
+- After skill selection, the installer now asks whether matching Codex bridge wrappers should also be installed for supported skills.
 
 ### Check for Updates
 Run the update checker from your project's root:
@@ -53,7 +54,7 @@ Installing `skill-manager` also creates:
 These commands are invoked as:
 ```text
 /skill-manager:list
-/skill-manager:install <category/skill> [more-skills]
+/skill-manager:install [--with-codex] <category/skill> [more-skills]
 /skill-manager:update
 /skill-manager:uninstall <skill-name> [more-skills]
 ```
@@ -148,6 +149,11 @@ Recommended Codex flow:
 - add or refresh the matching Codex bridge
 - keep the bridge lightweight and descriptive instead of copying the Gemini implementation
 - if a Codex bridge is only project-local helper state and is not intentionally repo-owned, add it to `.gitignore` instead of committing it
+
+Supported install flows:
+- `install.py` asks whether supported selected skills should also get `.codex/skills/` bridge wrappers
+- `/skill-manager:install --with-codex ...` installs the Gemini skill and any matching Codex bridge wrappers in one step
+- if a skill has no bridge wrapper in this repository, no `.codex` copy is created
 
 The standard Codex bridge skills in this repo are audit/review/publishing/install bridges. The balancer family is Gemini-specific and should not normally be treated as Codex bridge skills.
 

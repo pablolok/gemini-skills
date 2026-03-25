@@ -67,7 +67,8 @@ A skill installation was requested.
 The user may pass arguments after the command. The raw arguments are: {{args}}
 
 Use the command output below as the source of truth. If the install succeeds, summarize what was installed and recommend `/skills reload`.
-If the user did not provide any skill names, explain the available skills from the command output and tell them to rerun `/skill-manager:install <category/skill> [more-skills]`.
+If the user did not provide any skill names, explain the available skills from the command output and tell them to rerun `/skill-manager:install [--with-codex] <category/skill> [more-skills]`.
+If the project also uses Codex and the command was run without `--with-codex`, tell the user they can rerun the same install command with `--with-codex` to add matching lightweight `.codex/skills/` bridge wrappers for supported skills only.
 
 ```text
 !{python .gemini/skills/skill-manager/scripts/install_skills.py {{args}}}

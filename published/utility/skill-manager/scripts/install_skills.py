@@ -25,10 +25,18 @@ def main(argv: list[str] | None = None) -> int:
             print("Available skills:")
             for path in list_available_skill_paths():
                 print(f"- {path}")
-            print("Use: /skill-manager:install <category/skill> [more-skills]")
+            print("Use: /skill-manager:install [--with-codex] <category/skill> [more-skills]")
             return 0
 
-        installed = install_named_skills(args)
+        include_codex_bridges = False
+        filtered_args: list[str] = []
+        for arg in args:
+            if arg == "--with-codex":
+                include_codex_bridges = True
+                continue
+            filtered_args.append(arg)
+
+        installed = install_named_skills(filtered_args, include_codex_bridges=include_codex_bridges)
         if not installed:
             print("No skills were installed.")
             return 1
@@ -36,6 +44,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Installed {len(installed)} skill(s):")
         for item in installed:
             print(f"- {item}")
+        if include_codex_bridges:
+            print("Requested matching Codex bridge wrappers for supported skills.")
+        else:
+            print("To add matching Codex bridge wrappers too, rerun with --with-codex.")
         print("Run /skills reload and /commands reload if Gemini CLI is already open.")
         return 0
     except Exception as exc:  # pragma: no cover

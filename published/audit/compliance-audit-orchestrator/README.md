@@ -15,6 +15,7 @@ This skill is designed to solve the problem of selecting between multiple specia
     *   **C# Files:** Triggers the `compliance-audit-c#` skill if it's available.
     *   **Script Files:** Triggers the `compliance-audit-scripts` skill if it's available.
     *   **Angular Files:** Triggers the `compliance-audit-angular` skill when Angular indicators are present and Angular UI files were changed.
+    *   **Avalonia UI Files:** Triggers the `compliance-audit-avalonia` skill when Avalonia markers are present and Avalonia UI files were changed.
 4.  **Sequential Execution:** If you modify multiple supported file groups, it runs all available audits in sequence with verification gates first.
 5.  **Graceful Error Handling:** If a specialized audit is required based on your file changes but the skill is NOT found, the orchestrator will inform you and ask for guidance.
 

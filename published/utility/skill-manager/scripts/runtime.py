@@ -146,7 +146,11 @@ def list_installed_skills(root: str | None = None) -> List[Dict[str, str]]:
     return installed
 
 
-def install_named_skills(skill_paths: List[str], root: str | None = None) -> List[str]:
+def install_named_skills(
+    skill_paths: List[str],
+    root: str | None = None,
+    include_codex_bridges: bool = False,
+) -> List[str]:
     target_root = root or project_root()
     installer = build_installer(target_root)
     available = set(list_available_skill_paths(target_root))
@@ -160,6 +164,8 @@ def install_named_skills(skill_paths: List[str], root: str | None = None) -> Lis
             raise ValueError(f"Unknown skill path: {normalized}")
         if installer.install_skill(normalized, target_root):
             installed.append(normalized)
+            if include_codex_bridges:
+                installer.install_codex_bridge(os.path.basename(normalized), target_root)
     return installed
 
 

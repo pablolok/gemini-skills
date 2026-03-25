@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.0] - 2026-03-25
+- Route Avalonia UI changes to `compliance-audit-avalonia` when Avalonia project indicators are present.
+
+
 ## [1.3.0] - 2026-03-24
 - Run the verification-gate audit before specialized audits and document the warning-free verification policy
 
