@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "defaults": {
+    "distribution": "shared",
+    "supports": {
+      "codex_bridge": true,
+      "claude_reference": true
+    }
+  },
+  "skills": {
+    "compliance-audit-angular": {
+      "category": "audit",
+      "distribution": "shared"
+    },
+    "compliance-audit-avalonia": {
+      "category": "audit",
+      "distribution": "shared"
+    },
+    "compliance-audit-c#": {
+      "category": "audit",
+      "distribution": "shared"
+    },
+    "compliance-audit-orchestrator": {
+      "category": "audit",
+      "distribution": "shared"
+    },
+    "compliance-audit-scripts": {
+      "category": "audit",
+      "distribution": "shared"
+    },
+    "compliance-audit-verification-gates": {
+      "category": "audit",
+      "distribution": "shared"
+    },
+    "review-optimization": {
+      "category": "audit",
+      "distribution": "shared"
+    },
+    "skill-manager": {
+      "category": "utility",
+      "distribution": "shared"
+    },
+    "subagent-balancer": {
+      "category": "utility",
+      "distribution": "gemini-only",
+      "supports": {
+        "codex_bridge": false,
+        "claude_reference": false
+      }
+    },
+    "subagent-balancer-api": {
+      "category": "utility",
+      "distribution": "gemini-only",
+      "supports": {
+        "codex_bridge": false,
+        "claude_reference": false
+      }
+    },
+    "subagent-balancer-orchestrator": {
+      "category": "utility",
+      "distribution": "gemini-only",
+      "supports": {
+        "codex_bridge": false,
+        "claude_reference": false
+      }
+    },
+    "conductor-workflow-optimization": {
+      "category": "workflow",
+      "distribution": "shared"
+    },
+    "pre-implementation-review": {
+      "category": "workflow",
+      "distribution": "shared"
+    }
+  }
+}

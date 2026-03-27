@@ -26,6 +26,7 @@ Installer UX modes:
 - Gemini or other agent-driven integrations should keep using the lightweight ask-user contract through `SkillInstaller` rather than the terminal widget.
 - After skill selection, the installer now asks whether matching Codex bridge wrappers should also be installed for supported skills.
 - After skill selection, the installer can also generate matching Claude reference skills in `.claude/skills/`.
+- Support for those companion artifacts is controlled by the repo-level `install.config.json` catalog, so Gemini-only skills can stay Gemini-only during install flows.
 
 ### Check for Updates
 Run the update checker from your project's root:
@@ -68,6 +69,7 @@ Important notes:
 - `skill-manager` also installs a user-level Plan Mode policy at `~/.gemini/policies/skill-manager-plan-mode.toml` so these commands can run while Gemini is in Plan Mode.
 - `skill-manager` updates the project `.gitignore` to ignore its generated command/settings files plus the exact `.gemini/skills/<skill>/`, `.codex/skills/<skill>/`, and `.claude/skills/<skill>/` directories that it installed.
 - `skill-manager` keeps those exact entries in `.gemini/skill-manager-manifest.json`, and if that manifest is missing it bootstraps from the currently installed local skill folders before rewriting the managed block.
+- `skill-manager` must never rewrite the full project `.gitignore`; it may only replace the content inside its managed marker block.
 - If Gemini is already open when the skill is installed, run `/commands reload` once so Gemini picks up the new custom command without restarting.
 - After updates are applied, run `/skills reload` to refresh Gemini's discovered skill list in the current session.
 
@@ -166,6 +168,11 @@ Supported install flows:
 
 The standard Codex bridge skills in this repo are audit/review/publishing/install bridges. The balancer family is Gemini-specific and should not normally be treated as Codex bridge skills.
 
+Skill scope is controlled by the repo-level `install.config.json` file:
+- `distribution: "shared"` means the skill can participate in normal cross-tool install flows.
+- `distribution: "gemini-only"` means the skill is intended for Gemini workflows only.
+- `supports.codex_bridge` and `supports.claude_reference` decide whether `skill-manager` should offer those companion artifacts.
+
 ### Claude Reference Skill Integration
 
 If a project is used with both Gemini and Claude, keep the responsibilities split:
@@ -182,6 +189,8 @@ Recommended Claude flow:
 Supported install flows:
 - `install.py` asks whether selected skills should also get generated `.claude/skills/` reference skills
 - `/skill-manager:install --with-claude ...` installs the Gemini skill and generates matching Claude reference skills in one step
+
+Gemini-only skills can disable that companion generation through `install.config.json`, so the installer will not offer or generate Claude references for skills like the balancer family.
 
 ## Post-Installation Hooks
 

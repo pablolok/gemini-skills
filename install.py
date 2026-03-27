@@ -22,6 +22,7 @@ GITIGNORE_ENTRIES = [
     ".gemini/settings.json",
     MANAGED_SKILL_MANIFEST,
 ]
+INSTALL_CONFIG_FILENAME = "install.config.json"
 
 
 def parse_selection_input(
@@ -298,6 +299,7 @@ class SkillInstaller:
     ask_user: typing.Callable
     logger: logging.Logger
     version_comparator: typing.Any
+    install_config: typing.Dict[str, typing.Any]
 
     def __init__(
         self,
@@ -310,12 +312,56 @@ class SkillInstaller:
         self.published_dir = os.path.abspath(published_dir)
         self.ask_user = ask_user_fn
         self.logger = logger or logging.getLogger("skill_installer")
+        self.install_config = self._load_install_config()
         
         if version_comparator is None:
             from versioning import VersionComparator
             self.version_comparator = VersionComparator
         else:
             self.version_comparator = version_comparator
+
+    def _load_install_config(self) -> typing.Dict[str, typing.Any]:
+        """Load optional repo-level installer capabilities and distribution config."""
+        config_path = os.path.join(os.path.dirname(self.published_dir), INSTALL_CONFIG_FILENAME)
+        if not os.path.exists(config_path):
+            return {"defaults": {"distribution": "shared", "supports": {}}, "skills": {}}
+
+        try:
+            with open(config_path, "r", encoding="utf-8") as handle:
+                payload = json.load(handle)
+        except Exception as exc:
+            self.logger.error("Error parsing install config at '%s': %s", config_path, exc)
+            return {"defaults": {"distribution": "shared", "supports": {}}, "skills": {}}
+
+        defaults = payload.get("defaults", {})
+        skills = payload.get("skills", {})
+        return {
+            "defaults": {
+                "distribution": defaults.get("distribution", "shared"),
+                "supports": defaults.get("supports", {}),
+            },
+            "skills": skills if isinstance(skills, dict) else {},
+        }
+
+    def get_skill_config(self, skill_name: str) -> typing.Dict[str, typing.Any]:
+        """Return the merged install config for a skill."""
+        defaults = self.install_config.get("defaults", {})
+        default_supports = defaults.get("supports", {})
+        skill_config = self.install_config.get("skills", {}).get(skill_name, {})
+        skill_supports = skill_config.get("supports", {})
+        return {
+            "distribution": skill_config.get("distribution", defaults.get("distribution", "shared")),
+            "supports": {
+                "codex_bridge": skill_supports.get(
+                    "codex_bridge",
+                    default_supports.get("codex_bridge", True),
+                ),
+                "claude_reference": skill_supports.get(
+                    "claude_reference",
+                    default_supports.get("claude_reference", True),
+                ),
+            },
+        }
 
     def get_available_skills(self) -> typing.Dict[str, typing.List[str]]:
         """Scan the published directory for categories and skills."""
@@ -389,11 +435,17 @@ class SkillInstaller:
 
     def supports_codex_bridge(self, skill_name: str) -> bool:
         """Check whether a skill has a bridge wrapper intended for Codex."""
+        skill_config = self.get_skill_config(skill_name)
+        if not skill_config["supports"].get("codex_bridge", True):
+            return False
         return skill_name in self.get_available_codex_bridges()
 
     def supports_claude_reference(self, skill_name: str) -> bool:
         """Check whether a skill can get a generated Claude reference skill."""
-        return bool(skill_name)
+        if not skill_name:
+            return False
+        skill_config = self.get_skill_config(skill_name)
+        return bool(skill_config["supports"].get("claude_reference", True))
 
     def get_installed_skill_metadata(
         self,

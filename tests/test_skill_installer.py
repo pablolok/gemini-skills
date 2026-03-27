@@ -167,6 +167,17 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertTrue(installer.supports_claude_reference("review-optimization"))
         self.assertFalse(installer.supports_claude_reference(""))
 
+    def test_install_config_marks_balancer_family_as_gemini_only(self) -> None:
+        """Verify Gemini-only skills are not treated as Codex/Claude companion candidates."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        self.assertFalse(installer.supports_codex_bridge("subagent-balancer"))
+        self.assertFalse(installer.supports_claude_reference("subagent-balancer"))
+        self.assertFalse(installer.supports_codex_bridge("subagent-balancer-api"))
+        self.assertFalse(installer.supports_claude_reference("subagent-balancer-api"))
+        self.assertFalse(installer.supports_codex_bridge("subagent-balancer-orchestrator"))
+        self.assertFalse(installer.supports_claude_reference("subagent-balancer-orchestrator"))
+
     def test_ensure_managed_gitignore_entries_preserves_existing_content(self) -> None:
         """Verify gitignore updates keep user content outside the managed block."""
         import tempfile

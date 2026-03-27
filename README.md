@@ -92,6 +92,19 @@ Important:
 - `subagent-balancer`, `subagent-balancer-api`, and `subagent-balancer-orchestrator` should be treated as Gemini skills, not standard Codex bridge skills.
 - Codex should generally ignore those balancers unless you are explicitly building a Codex integration for them.
 
+## Skill Scope Catalog
+
+This repository now includes a machine-readable installer catalog at [`install.config.json`](./install.config.json).
+
+- `distribution: "shared"` means the skill is intended to be shared across AI-tool integrations.
+- `distribution: "gemini-only"` means the skill is personal to Gemini flows and should not automatically be treated as a Codex bridge or Claude reference candidate.
+- `supports.codex_bridge` and `supports.claude_reference` control whether `skill-manager` should offer or generate those companion artifacts during install flows.
+
+The balancer family is the canonical `gemini-only` example:
+- `subagent-balancer`
+- `subagent-balancer-api`
+- `subagent-balancer-orchestrator`
+
 ### 🔄 Checking for Updates
 
 To check for newer versions of installed skills without running the full installer:

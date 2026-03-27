@@ -165,10 +165,11 @@ def install_named_skills(
             raise ValueError(f"Unknown skill path: {normalized}")
         if installer.install_skill(normalized, target_root):
             installed.append(normalized)
-            if include_codex_bridges:
-                installer.install_codex_bridge(os.path.basename(normalized), target_root)
-            if include_claude_references:
-                installer.install_claude_reference(os.path.basename(normalized), target_root)
+            skill_name = os.path.basename(normalized)
+            if include_codex_bridges and installer.supports_codex_bridge(skill_name):
+                installer.install_codex_bridge(skill_name, target_root)
+            if include_claude_references and installer.supports_claude_reference(skill_name):
+                installer.install_claude_reference(skill_name, target_root)
     return installed
 
 

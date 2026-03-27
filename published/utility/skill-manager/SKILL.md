@@ -33,6 +33,7 @@ installer.install_skill(skill_path, os.getcwd())
 For direct human CLI usage, `install.py` may use a richer terminal multi-select UI. For Gemini or programmatic usage, keep using the lightweight `ask_user`-compatible flow exposed by `SkillSelector` and `SkillInstaller`.
 
 If the user also wants Codex or Claude companion artifacts, install the Gemini skill first and then use `install_codex_bridge(...)` and/or `install_claude_reference(...)`, or pass `--with-codex` and `--with-claude` through the installed `/skill-manager:install` helper.
+Only offer those companion artifacts when the repo-level `install.config.json` marks the skill as eligible for them.
 
 ### 3. Check for Updates
 To check if installed skills have newer versions available in the global repository:
@@ -83,6 +84,9 @@ Important:
 - That block should ignore `.gemini/commands/`, `.gemini/settings.json`, `.gemini/skill-manager-manifest.json`, and only the exact `.gemini/skills/<skill>/`, `.codex/skills/<skill>/`, and `.claude/skills/<skill>/` directories that were installed by `skill-manager`.
 - If the managed block already exists, replace only the content between the markers and preserve the rest of the user's `.gitignore`.
 - If `.gemini/skill-manager-manifest.json` is missing, bootstrap exact skill entries from the existing local `.gemini/skills/`, `.codex/skills/`, and `.claude/skills/` directories before writing the managed block.
+- Use `install.config.json` as the source of truth for whether a skill is `shared` or `gemini-only`, and for whether Codex bridges or Claude references should be offered at install time.
+- Hard stop: never rewrite, regenerate, or replace the full `.gitignore` file to satisfy `skill-manager` behavior.
+- Hard stop: if an edit path would touch anything outside the managed marker block, abort that path and fix the implementation instead.
 
 ### 8. Trust and Verification
 If a user reports that the startup hook or `/skill-manager:*` commands do not appear to work:
@@ -112,6 +116,7 @@ For projects that also use Claude:
 - Keep `.claude/skills/` lightweight and reference-only.
 - Prefer generated Claude reference skills that point Claude at the installed Gemini skill path instead of copying the Gemini payload.
 - If a Claude reference skill is only local helper state for one project, instruct the user to add it to `.gitignore` rather than versioning it.
+- Do not generate Claude references for skills marked `distribution: "gemini-only"` or for skills with `supports.claude_reference: false` in `install.config.json`.
 
 ## Integration
 This skill ensures that official skills are physically copied into the target project (replacing legacy junctions) to enable robust version tracking. It automatically triggers `post_install.py` hooks to maintain workflow consistency across different project environments, including Gemini-local update hooks and custom command setup when the installed skill supports them.

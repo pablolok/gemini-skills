@@ -9,6 +9,14 @@ This repository is skill-driven. When a task matches an installed repo-local ski
 - If a task involves skill installation, updates, Codex bridge setup, Claude reference-skill setup, or managed `.gitignore` behavior, use `skill-manager`.
 - If a task involves changelog normalization or version-entry cleanup, use `changelog-manager` before publishing when needed.
 
+## Gitignore Guardrail
+
+- Never rewrite the full project `.gitignore` when working on `skill-manager`.
+- Only add or replace the lines inside the `# >>> skill-manager managed workspace files >>>` and `# <<< skill-manager managed workspace files <<<` markers.
+- Preserve all `.gitignore` content outside that managed block exactly as-is.
+- If the current edit path would replace, truncate, regenerate, or otherwise rewrite the full `.gitignore`, stop and fix the implementation instead of touching the file.
+- Before any commit or push involving installer or `skill-manager` changes, re-read `.gitignore` from disk and verify that non-`skill-manager` baseline content is still present.
+
 ## Usable Repo Skills
 
 These repo-local skills are expected to be usable when their task type matches:
@@ -28,6 +36,13 @@ These repo-local skills are expected to be usable when their task type matches:
 - `subagent-balancer`
 - `subagent-balancer-api`
 - `subagent-balancer-orchestrator`
+
+## Shared Vs Tool-Specific Skills
+
+- Use `install.config.json` as the source of truth for installer-facing skill scope.
+- Treat skills marked `distribution: "shared"` as normal cross-tool skills.
+- Treat skills marked `distribution: "gemini-only"` as Gemini-specific skills that should not automatically be treated as Codex bridge or Claude reference candidates.
+- The balancer family is Gemini-only unless a future task explicitly adds real cross-tool integration for it.
 
 ## Publish Expectations
 
