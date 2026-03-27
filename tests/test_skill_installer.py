@@ -266,7 +266,7 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertEqual(response["answers"]["0"], ["opt1"])
         mock_print.assert_called()
         printed = "\n".join(str(call.args[0]) for call in mock_print.call_args_list if call.args)
-        self.assertIn("Gemini Skill Installer", printed)
+        self.assertIn("Skill-Manager Installer", printed)
 
     def test_parse_selection_input_supports_multiple_styles(self) -> None:
         """Verify the lightweight prompt can parse spaces, commas, ranges, and all."""
@@ -313,7 +313,7 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertEqual(selected, ["audit/skill1", "utility/skill2"])
         self.assertIn("Categories", output.getvalue())
         self.assertIn("Use arrows to move, left/right to switch tabs", output.getvalue())
-        self.assertIn("Gemini Skill Installer", output.getvalue())
+        self.assertIn("Skill-Manager Installer", output.getvalue())
         self.assertIn(INSTALLER_BANNER.splitlines()[0].strip(), output.getvalue())
         self.assertIn("[ AUDIT | 1 ]", output.getvalue())
         self.assertIn("utility (1)", output.getvalue())

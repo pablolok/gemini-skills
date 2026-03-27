@@ -20,12 +20,12 @@ ANSI_CYAN = "\x1b[36m"
 ANSI_GREEN = "\x1b[32m"
 ANSI_YELLOW = "\x1b[33m"
 INSTALLER_BANNER = (
-    "  ____                 _       _   _      _ _ _           \n"
-    " / ___| ___ _ __ ___  (_)_ __ | | | | ___| | (_)_ __ ___  \n"
-    "| |  _ / _ \\ '_ ` _ \\ | | '_ \\| |_| |/ _ \\ | | | '_ ` _ \\ \n"
-    "| |_| |  __/ | | | | || | | | |  _  |  __/ | | | | | | | |\n"
-    " \\____|\\___|_| |_| |_|/ |_| |_|_| |_|\\___|_|_|_|_| |_| |_|\n"
-    "                    |__/                                   "
+    " ____  _    _ _ _ _      __  __                                    \n"
+    "/ ___|| | _(_) | | |    |  \\/  | __ _ _ __   __ _  __ _  ___ _ __  \n"
+    "\\___ \\| |/ / | | | |____| |\\/| |/ _` | '_ \\ / _` |/ _` |/ _ \\ '__| \n"
+    " ___) |   <| | | | |____| |  | | (_| | | | | (_| | (_| |  __/ |    \n"
+    "|____/|_|\\_\\_|_|_|_|    |_|  |_|\\__,_|_| |_|\\__,_|\\__, |\\___|_|    \n"
+    "                                                  |___/             "
 )
 GITIGNORE_MARKER_START = "# >>> skill-manager managed workspace files >>>"
 GITIGNORE_MARKER_END = "# <<< skill-manager managed workspace files <<<"
@@ -65,7 +65,7 @@ def installer_banner_text(enable_color: bool) -> str:
     """Build the ASCII installer title."""
     title = style_text(INSTALLER_BANNER, ANSI_CYAN, ANSI_BOLD, enable_color=enable_color)
     subtitle = style_text(
-        "Gemini Skill Installer",
+        "Skill-Manager Installer",
         ANSI_GREEN,
         ANSI_BOLD,
         enable_color=enable_color,
