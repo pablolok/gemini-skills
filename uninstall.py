@@ -34,11 +34,31 @@ RUNTIME = _load_runtime_module()
 
 def build_uninstall_options(
     managed_skills: typing.Sequence[typing.Mapping[str, str]],
+    available_skill_paths: typing.Sequence[str],
 ) -> typing.Dict[str, typing.List[str]]:
     """Convert managed installed skills into a selector-compatible category map."""
-    names = [str(item.get("name", "")).strip() for item in managed_skills]
-    normalized = sorted({name for name in names if name})
-    return {"managed": normalized} if normalized else {}
+    category_lookup: typing.Dict[str, str] = {}
+    for skill_path in available_skill_paths:
+        if "/" not in skill_path:
+            continue
+        category, skill_name = skill_path.split("/", 1)
+        skill_name = skill_name.strip()
+        if skill_name:
+            category_lookup[skill_name] = category.strip() or "managed"
+
+    grouped: typing.Dict[str, typing.List[str]] = {}
+    for item in managed_skills:
+        skill_name = str(item.get("name", "")).strip()
+        if not skill_name:
+            continue
+        category = category_lookup.get(skill_name, "managed")
+        grouped.setdefault(category, []).append(skill_name)
+
+    return {
+        category: sorted(set(skill_names))
+        for category, skill_names in grouped.items()
+        if skill_names
+    }
 
 
 def main() -> None:
@@ -54,7 +74,10 @@ def main() -> None:
 
     ask_user_fn = get_cli_ask_user()
     managed_installed = RUNTIME.list_managed_installed_skills(target_project)
-    available = build_uninstall_options(managed_installed)
+    available = build_uninstall_options(
+        managed_installed,
+        RUNTIME.list_available_skill_paths(target_project),
+    )
 
     if not available:
         logger.info("No managed skills found to uninstall.")
@@ -67,7 +90,30 @@ def main() -> None:
         if item.get("name")
     }
     selector = SkillSelector(ask_user_fn)
-    selected = selector.select_skills(available, installed_versions, [])
+    selected, action = selector.select_skills_with_action(
+        available,
+        installed_versions,
+        [],
+        header="Select Skills",
+        question_text="Which managed skills would you like to uninstall?",
+        banner_subtitle="Skill-Manager Uninstaller",
+        close_label="uninstaller",
+        description_formatter=lambda category, skill, status: (
+            f"Managed {category} skill: {skill}{status}"
+        ),
+        switch_action={
+            "key": "BACKSPACE",
+            "keys": ["\x08", "\x7f", "BACKSPACE"],
+            "label": "go back to Skill-Manager",
+            "action": "back_to_manager",
+            "aliases": ["back", "backspace"],
+        },
+    )
+    if action == "back_to_manager":
+        import manage as manage_module
+
+        manage_module.main()
+        return
     selected_names = [os.path.basename(skill_path) for skill_path in selected]
 
     removed = RUNTIME.uninstall_named_skills(selected_names, target_project) if selected_names else []

@@ -10,7 +10,8 @@ When a user asks you to install skills from this repository, you should:
     Read and activate the skill defined in `./published/utility/skill-manager/SKILL.md`.
 
 2.  **Initialize the Installer**:
-    Use the `SkillInstaller` and `SkillSelector` classes from `./install.py` in this repository.
+    For a direct human CLI flow, prefer `./manage.py` as the shared launcher.
+    For Gemini-driven install logic, use the `SkillInstaller` and `SkillSelector` classes from `./install.py` in this repository.
 
 3.  **Process**:
     -   Check for updates: Use `installer.check_for_updates(target_project_path)` to see if any installed skills have newer versions.

@@ -5,14 +5,14 @@ description: Manage and install official Gemini skills from the global skills re
 
 # Skill Manager
 
-This skill allows Gemini to manage and install official skills into the current project by interacting with the `install.py` script from the global `gemini-skills` repository.
+This skill allows Gemini to manage official skills into the current project by interacting with the `manage.py`, `install.py`, and `uninstall.py` scripts from the global `gemini-skills` repository.
 
 ## Usage
 
 ### 1. List Available Skills
 To see what's available, you must first locate the `gemini-skills` repository on the user's machine.
 
-**Search Pattern:** `**/gemini-skills/install.py`
+**Search Pattern:** `**/gemini-skills/manage.py`
 
 Once found, you can scan for skills:
 ```python
@@ -20,6 +20,8 @@ from install import SkillInstaller
 installer = SkillInstaller("<path-to-gemini-skills>/published", ask_user_fn)
 available = installer.get_available_skills()
 ```
+
+For direct human CLI usage, prefer `python <path-to-gemini-skills>/manage.py` as the shared launcher entry point.
 
 ### 2. Install Skills
 To install a skill, use the `SkillInstaller` and `SkillSelector` logic.
@@ -35,6 +37,14 @@ For direct human CLI usage, `install.py` may use a richer terminal multi-select 
 If the user also wants Codex or Claude companion artifacts, install the Gemini skill first and then use `install_codex_bridge(...)` and/or `install_claude_reference(...)`, or pass `--with-codex` and `--with-claude` through the installed `/skill-manager:install` helper.
 Only offer those companion artifacts when the repo-level `install.config.json` marks the skill as eligible for them.
 For Codex, prefer an explicit repo-owned wrapper when one exists; otherwise generate a lightweight bridge for supported shared skills instead of skipping Codex support entirely.
+
+### 2b. Uninstall Skills
+To remove managed skills, use the `uninstall.py` entry point or the installed `/skill-manager:uninstall` helper.
+
+Rules:
+- Only offer skills currently tracked as managed.
+- Do not treat arbitrary local `.gemini/skills/`, `.codex/skills/`, or `.claude/skills/` folders as uninstall candidates.
+- Reuse the existing uninstall runtime path instead of duplicating manifest, companion cleanup, or `.gitignore` refresh logic.
 
 ### 3. Check for Updates
 To check if installed skills have newer versions available in the global repository:

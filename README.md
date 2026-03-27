@@ -56,13 +56,18 @@ If you are using the Gemini CLI, you can automate the entire installation proces
 
 ## 🛠️ Manual Installation
 
-If you prefer to install or update skills manually from your terminal, run this command from your project's root:
+If you prefer to manage skills manually from your terminal, run this command from your project's root:
 
 ```bash
-python <path-to-gemini-skills>/install.py
+python <path-to-gemini-skills>/manage.py
 ```
 
-The installer will guide you through the interactive selection and handle copying/updating automatically.
+The manager opens a small launcher UI first, then sends you to either:
+
+- `install.py` to add or update managed skills
+- `uninstall.py` to remove managed skills already tracked by `skill-manager`
+
+If you go through the installer flow, it will guide you through interactive selection and handle copying/updating automatically.
 If the selected skills support Codex bridges, the installer will also ask whether you want matching `.codex/skills/` support added.
 
 ## Codex Bridge Layer

@@ -352,6 +352,31 @@ class TestSkillInstaller(unittest.TestCase):
         printed = "\n".join(str(call.args[0]) for call in mock_print.call_args_list if call.args)
         self.assertIn("Skill-Manager Installer", printed)
 
+    @patch("builtins.input", return_value="back")
+    @patch("builtins.print")
+    def test_manual_ask_user_returns_switch_action(self, mock_print, mock_input) -> None:
+        """Verify the manual prompt can return a back-to-manager action."""
+        from install import manual_ask_user
+
+        config = {
+            "questions": [{
+                "question": "Choose?",
+                "switch_action": {
+                    "key": "BACKSPACE",
+                    "label": "go back to Skill-Manager",
+                    "action": "back_to_manager",
+                    "aliases": ["back", "backspace"],
+                },
+                "options": [{"label": "opt1", "description": "desc1"}]
+            }]
+        }
+
+        response = manual_ask_user(config)
+
+        self.assertEqual(response["action"], "back_to_manager")
+        printed = "\n".join(str(call.args[0]) for call in mock_print.call_args_list if call.args)
+        self.assertIn("Backspace", printed)
+
     def test_parse_selection_input_supports_multiple_styles(self) -> None:
         """Verify the lightweight prompt can parse spaces, commas, ranges, and all."""
         self.assertEqual(parse_selection_input("1 3", 4, True), [0, 2])
@@ -518,6 +543,28 @@ class TestSkillInstaller(unittest.TestCase):
         with self.assertRaises(KeyboardInterrupt):
             selector.run(read_key=lambda: "q")
 
+    def test_terminal_multi_select_returns_switch_action(self) -> None:
+        """Verify Backspace can return to the shared manager launcher."""
+        question = {
+            "question": "Pick skills",
+            "multiSelect": True,
+            "switch_action": {
+                "key": "BACKSPACE",
+                "keys": ["BACKSPACE", "\x08", "\x7f"],
+                "label": "go back to Skill-Manager",
+                "action": "back_to_manager",
+            },
+            "options": [{"label": "audit/skill1", "description": "desc1"}],
+        }
+        output = io.StringIO()
+        selector = TerminalMultiSelect(question, input_stream=io.StringIO(), output_stream=output)
+
+        selected, action = selector.run_with_action(read_key=lambda: "BACKSPACE")
+
+        self.assertEqual(selected, [])
+        self.assertEqual(action, "back_to_manager")
+        self.assertIn("Press Backspace to go back to Skill-Manager.", output.getvalue())
+
     @patch.dict("os.environ", {}, clear=True)
     @patch("sys.stdin.isatty", return_value=True)
     @patch("sys.stdout.isatty", return_value=True)
@@ -566,12 +613,12 @@ class TestSkillInstaller(unittest.TestCase):
             mock_inst_instance.supports_claude_reference.return_value = False
 
             mock_sel_instance = mock_selector.return_value
-            mock_sel_instance.select_skills.return_value = ["audit/skill1"]
+            mock_sel_instance.select_skills_with_action.return_value = (["audit/skill1"], None)
 
             main()
 
             mock_inst_instance.get_available_skills.assert_called_once()
-            mock_sel_instance.select_skills.assert_called_once()
+            mock_sel_instance.select_skills_with_action.assert_called_once()
             mock_inst_instance.install_skill.assert_called_once_with("audit/skill1", temp_dir)
             mock_inst_instance.ensure_managed_gitignore_entries.assert_called_with(temp_dir)
 
@@ -609,7 +656,7 @@ class TestSkillInstaller(unittest.TestCase):
             mock_inst_instance.ensure_managed_gitignore_entries.return_value = False
 
             mock_sel_instance = mock_selector.return_value
-            mock_sel_instance.select_skills.return_value = []
+            mock_sel_instance.select_skills_with_action.return_value = ([], None)
 
             main()
 
@@ -624,6 +671,40 @@ class TestSkillInstaller(unittest.TestCase):
             )
             mock_print.assert_any_call("No skills selected.")
             mock_print.assert_any_call("Managed .gitignore entries were verified.")
+
+    @patch("install.SkillInstaller")
+    @patch("install.SkillSelector")
+    @patch("manage.main")
+    @patch("install.get_cli_ask_user")
+    @patch("os.getcwd")
+    @patch("os.path.exists")
+    def test_main_function_returns_to_manager_on_back_action(
+        self,
+        mock_exists,
+        mock_getcwd,
+        mock_get_cli_ask_user,
+        mock_manage_main,
+        mock_selector,
+        mock_installer,
+    ) -> None:
+        """Verify Backspace action returns to manage.py instead of installing."""
+        from install import main
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mock_exists.side_effect = lambda path: str(path).endswith("published")
+            mock_getcwd.return_value = temp_dir
+            mock_get_cli_ask_user.return_value = MagicMock(return_value={"answers": {"0": "no"}})
+
+            mock_inst_instance = mock_installer.return_value
+            mock_inst_instance.get_available_skills.return_value = {"audit": ["skill1"]}
+
+            mock_sel_instance = mock_selector.return_value
+            mock_sel_instance.select_skills_with_action.return_value = ([], "back_to_manager")
+
+            main()
+
+            mock_manage_main.assert_called_once()
+            mock_inst_instance.install_skill.assert_not_called()
 
     @patch("sys.exit")
     @patch("os.path.exists")

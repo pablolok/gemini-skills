@@ -63,11 +63,14 @@ def style_text(
     return f"{''.join(styles)}{text}{ANSI_RESET}"
 
 
-def installer_banner_text(enable_color: bool) -> str:
+def installer_banner_text(
+    enable_color: bool,
+    subtitle: str = "Skill-Manager Installer",
+) -> str:
     """Build the ASCII installer title."""
     title = style_text(INSTALLER_BANNER, ANSI_CYAN, ANSI_BOLD, enable_color=enable_color)
     subtitle = style_text(
-        "Skill-Manager Installer",
+        subtitle,
         ANSI_GREEN,
         ANSI_BOLD,
         enable_color=enable_color,
@@ -138,8 +141,44 @@ class SkillSelector:
         self,
         available_skills: typing.Dict[str, typing.List[str]],
         installed_skills: typing.Optional[typing.Dict[str, str]] = None,
-        updates: typing.Optional[typing.List[typing.Dict[str, str]]] = None
+        updates: typing.Optional[typing.List[typing.Dict[str, str]]] = None,
+        *,
+        header: str = "Select Skills",
+        question_text: str = "Which skills would you like to install or update?",
+        banner_subtitle: str = "Skill-Manager Installer",
+        close_label: str = "installer",
+        description_formatter: typing.Optional[
+            typing.Callable[[str, str, str], str]
+        ] = None,
     ) -> typing.List[typing.List[str]]:
+        """Prompt user and return only the selected labels."""
+        selected, _action = self.select_skills_with_action(
+            available_skills,
+            installed_skills,
+            updates,
+            header=header,
+            question_text=question_text,
+            banner_subtitle=banner_subtitle,
+            close_label=close_label,
+            description_formatter=description_formatter,
+        )
+        return selected
+
+    def select_skills_with_action(
+        self,
+        available_skills: typing.Dict[str, typing.List[str]],
+        installed_skills: typing.Optional[typing.Dict[str, str]] = None,
+        updates: typing.Optional[typing.List[typing.Dict[str, str]]] = None,
+        *,
+        header: str = "Select Skills",
+        question_text: str = "Which skills would you like to install or update?",
+        banner_subtitle: str = "Skill-Manager Installer",
+        close_label: str = "installer",
+        description_formatter: typing.Optional[
+            typing.Callable[[str, str, str], str]
+        ] = None,
+        switch_action: typing.Optional[typing.Mapping[str, typing.Any]] = None,
+    ) -> typing.Tuple[typing.List[str], typing.Optional[str]]:
         """Prompt user to select skills from available categories with status info."""
         options: typing.List[typing.Dict[str, str]] = []
         installed = installed_skills or {}
@@ -159,10 +198,15 @@ class SkillSelector:
                 elif skill in installed:
                     status = f" [Installed v{installed[skill]}]"
                     state = "installed"
-                
+
+                description = (
+                    description_formatter(category, skill, status)
+                    if description_formatter is not None
+                    else f"Official {category} skill: {skill}{status}"
+                )
                 options.append({
                     "label": label,
-                    "description": f"Official {category} skill: {skill}{status}",
+                    "description": description,
                     "state": state,
                 })
 
@@ -171,8 +215,11 @@ class SkillSelector:
 
         response = self.ask_user({
             "questions": [{
-                "header": "Select Skills",
-                "question": "Which skills would you like to install or update?",
+                "header": header,
+                "question": question_text,
+                "banner_subtitle": banner_subtitle,
+                "close_label": close_label,
+                "switch_action": dict(switch_action or {}),
                 "type": "choice",
                 "multiSelect": True,
                 "options": options
@@ -181,9 +228,17 @@ class SkillSelector:
 
         # Parse the standard tool response structure
         if isinstance(response, dict) and "answers" in response:
-            return response["answers"]["0"]
+            return response["answers"]["0"], self._extract_action(response)
         
-        return []
+        return [], None
+
+    @staticmethod
+    def _extract_action(response: typing.Mapping[str, typing.Any]) -> typing.Optional[str]:
+        action = response.get("action")
+        if action is None:
+            return None
+        value = str(action).strip()
+        return value or None
 
 
 class TerminalMultiSelect:
@@ -211,12 +266,21 @@ class TerminalMultiSelect:
 
     def run(self, read_key: typing.Optional[KeyReader] = None) -> typing.List[str]:
         """Run the interactive selector and return selected labels."""
+        labels, _action = self.run_with_action(read_key=read_key)
+        return labels
+
+    def run_with_action(
+        self,
+        read_key: typing.Optional[KeyReader] = None,
+    ) -> typing.Tuple[typing.List[str], typing.Optional[str]]:
+        """Run the interactive selector and return selected labels plus any UI action."""
         if not self.options:
-            return []
+            return [], None
 
         if read_key is None:
             read_key = self._create_key_reader()
 
+        switch_action = self._normalized_switch_action()
         self._hide_cursor()
         try:
             while True:
@@ -257,17 +321,25 @@ class TerminalMultiSelect:
                     else:
                         self.selected = set(range(len(self.options)))
                     continue
+                if switch_action and key in switch_action["keys"]:
+                    return [], switch_action["action"]
                 if key in {"q", "Q", "ESC"}:
                     raise KeyboardInterrupt
         finally:
             self._clear_screen()
             self._show_cursor()
 
-        return [self.options[index]["label"] for index in sorted(self.selected)]
+        return [self.options[index]["label"] for index in sorted(self.selected)], None
 
     def _render(self) -> None:
         self._prepare_screen()
-        frame_lines = [*installer_banner_text(self.enable_color).splitlines(), ""]
+        frame_lines = [
+            *installer_banner_text(
+                self.enable_color,
+                self.question.get("banner_subtitle", "Skill-Manager Installer"),
+            ).splitlines(),
+            "",
+        ]
         question = self.question.get("question", "Select option(s):")
         frame_lines.append(style_text(question, ANSI_BOLD, enable_color=self.enable_color))
         if self._has_multiple_groups():
@@ -294,6 +366,15 @@ class TerminalMultiSelect:
                 )
                 .splitlines()
             )
+            switch_hint = self._switch_hint_text()
+            if switch_hint:
+                frame_lines.extend(
+                    style_text(
+                        switch_hint,
+                        ANSI_CYAN,
+                        enable_color=self.enable_color,
+                    ).splitlines()
+                )
             frame_lines.append("")
         else:
             frame_lines.extend(
@@ -308,6 +389,15 @@ class TerminalMultiSelect:
                 )
                 .splitlines()
             )
+            switch_hint = self._switch_hint_text()
+            if switch_hint:
+                frame_lines.extend(
+                    style_text(
+                        switch_hint,
+                        ANSI_CYAN,
+                        enable_color=self.enable_color,
+                    ).splitlines()
+                )
             frame_lines.append("")
 
         for index in self.grouped_indices[self.active_group]:
@@ -370,6 +460,37 @@ class TerminalMultiSelect:
         self.output_stream.write("\x1b[?25h")
         self.output_stream.flush()
 
+    def _normalized_switch_action(self) -> typing.Optional[typing.Dict[str, typing.Any]]:
+        raw = self.question.get("switch_action")
+        if not isinstance(raw, dict):
+            return None
+
+        key = str(raw.get("key", "")).strip()
+        action = str(raw.get("action", "")).strip()
+        if not key or not action:
+            return None
+
+        keys = {key, key.lower(), key.upper()}
+        for extra in raw.get("keys", []):
+            value = str(extra).strip()
+            if value:
+                keys.add(value)
+        return {
+            "key": key,
+            "keys": keys,
+            "action": action,
+            "label": str(raw.get("label", "")).strip(),
+        }
+
+    def _switch_hint_text(self) -> str:
+        switch_action = self._normalized_switch_action()
+        if not switch_action:
+            return ""
+        label = switch_action["label"] or "go back"
+        key = switch_action["key"]
+        pretty_key = "Backspace" if key.upper() == "BACKSPACE" else key.upper()
+        return f"Press {pretty_key} to {label}."
+
     def _create_key_reader(self) -> KeyReader:
         if sys.platform == "win32":
             return self._create_windows_key_reader()
@@ -386,6 +507,8 @@ class TerminalMultiSelect:
                 return "ENTER"
             if char == " ":
                 return "SPACE"
+            if char == "\x08":
+                return "BACKSPACE"
             if char == "\x1b":
                 return "ESC"
             if char in {"\x00", "\xe0"}:
@@ -414,6 +537,8 @@ class TerminalMultiSelect:
                 char = input_stream.read(1)
                 if char == "\x03":
                     return "CTRL_C"
+                if char in {"\x08", "\x7f"}:
+                    return "BACKSPACE"
                 if char in {"\r", "\n"}:
                     return "ENTER"
                 if char == " ":
@@ -1173,7 +1298,7 @@ def manual_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, ty
     is_multi = question.get("multiSelect", False)
     enable_color = supports_ansi(sys.stdout)
 
-    print(installer_banner_text(enable_color))
+    print(installer_banner_text(enable_color, question.get("banner_subtitle", "Skill-Manager Installer")))
     print()
     print(style_text(question["question"], ANSI_BOLD, enable_color=enable_color))
     if is_multi:
@@ -1184,7 +1309,19 @@ def manual_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, ty
                 enable_color=enable_color,
             )
         )
-    
+    switch_action = question.get("switch_action")
+    if isinstance(switch_action, dict):
+        switch_key = str(switch_action.get("key", "")).strip()
+        switch_label = str(switch_action.get("label", "")).strip()
+        if switch_key and switch_label:
+            pretty_key = "Backspace" if switch_key.upper() == "BACKSPACE" else switch_key
+            print(
+                style_text(
+                    f"(Type '{pretty_key}' to {switch_label})",
+                    ANSI_CYAN,
+                    enable_color=enable_color,
+                )
+            )
     for i, opt in enumerate(question['options']):
         print(
             f"{style_text(str(i + 1), ANSI_GREEN, ANSI_BOLD, enable_color=enable_color)}: "
@@ -1194,8 +1331,12 @@ def manual_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, ty
     try:
         selection = input("\nEnter choice(s): ")
     except KeyboardInterrupt:
-        print("\nUser closed the installer.")
+        print(f"\nUser closed the {question.get('close_label', 'installer')}.")
         raise
+
+    switch_response = _manual_switch_response(question, selection)
+    if switch_response is not None:
+        return switch_response
 
     indices = parse_selection_input(selection, len(question["options"]), is_multi)
 
@@ -1211,12 +1352,40 @@ def terminal_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, 
     """Provide a richer terminal selector for direct CLI installs."""
     question = config["questions"][0]
     selector = TerminalMultiSelect(question)
-    labels = selector.run()
+    labels, action = selector.run_with_action()
     if question.get("type") == "choice" and not question.get("multiSelect", False):
         answer: typing.Any = labels[0] if labels else ""
     else:
         answer = labels
-    return {"answers": {"0": answer}}
+    response: typing.Dict[str, typing.Any] = {"answers": {"0": answer}}
+    if action:
+        response["action"] = action
+    return response
+
+
+def _manual_switch_response(
+    question: typing.Mapping[str, typing.Any],
+    raw_selection: str,
+) -> typing.Optional[typing.Dict[str, typing.Any]]:
+    switch_action = question.get("switch_action")
+    if not isinstance(switch_action, dict):
+        return None
+
+    action = str(switch_action.get("action", "")).strip()
+    value = raw_selection.strip().lower()
+    if not action or not value:
+        return None
+
+    aliases = {
+        str(alias).strip().lower()
+        for alias in switch_action.get("aliases", [])
+        if str(alias).strip()
+    }
+    key = str(switch_action.get("key", "")).strip().lower()
+    if value not in ({key} | aliases):
+        return None
+
+    return {"answers": {"0": []}, "action": action}
 
 
 def prompt_for_codex_support(
@@ -1359,7 +1528,23 @@ def main() -> None:
                 installed_skills[skill_name] = meta.get("version", "unknown") if meta else "unknown"
 
     selector = SkillSelector(ask_user_fn)
-    selected = selector.select_skills(available, installed_skills, updates)
+    selected, action = selector.select_skills_with_action(
+        available,
+        installed_skills,
+        updates,
+        switch_action={
+            "key": "BACKSPACE",
+            "keys": ["\x08", "\x7f", "BACKSPACE"],
+            "label": "go back to Skill-Manager",
+            "action": "back_to_manager",
+            "aliases": ["back", "backspace"],
+        },
+    )
+    if action == "back_to_manager":
+        import manage as manage_module
+
+        manage_module.main()
+        return
     selected_skill_names = [os.path.basename(skill_path) for skill_path in selected]
     codex_candidates = [
         skill_name for skill_name in selected_skill_names if installer.supports_codex_bridge(skill_name)
