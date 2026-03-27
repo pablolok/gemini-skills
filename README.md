@@ -9,6 +9,7 @@ For most users, we recommend installing the **Compliance Audit Orchestrator**. I
 | Skill | Description |
 | :--- | :--- |
 | **[Compliance Audit Orchestrator](./skills/compliance-audit-orchestrator/)** | **[Recommended]** Smart dispatcher that determines the correct specialized audit (C#, Scripts, Angular, or Avalonia UI) to perform. |
+| **[Pre-Implementation Review](./skills/pre-implementation-review/)** | Reuse-first planning skill that checks for existing abstractions and duplication risk before implementation starts. |
 
 ## Specialized Skills
 
@@ -83,6 +84,7 @@ For Codex, the useful bridge skills in this repo are currently centered on:
 - `compliance-audit-avalonia`
 - `compliance-audit-orchestrator`
 - `compliance-audit-scripts`
+- `pre-implementation-review`
 - `review-optimization`
 
 Important:

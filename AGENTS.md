@@ -21,6 +21,7 @@ These repo-local skills are expected to be usable when their task type matches:
 - `compliance-audit-scripts`
 - `compliance-audit-verification-gates`
 - `conductor-workflow-optimization`
+- `pre-implementation-review`
 - `review-optimization`
 - `skill-manager`
 - `skill-publisher`

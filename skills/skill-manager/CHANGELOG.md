@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.3] - 2026-03-27
+- Refresh the managed gitignore block whenever Gemini skills, Codex bridges, or Claude reference skills are installed.
+
+
 ## [1.6.2] - 2026-03-27
 - Expand the managed `.gitignore` block to ignore installed `.gemini/skills/` plus managed `.codex/skills/` and `.claude/skills/` companion artifacts.
 
