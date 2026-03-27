@@ -421,6 +421,7 @@ class SkillInstaller:
 
     def ensure_managed_gitignore_entries(self, target_project_path: str) -> None:
         """Ensure the managed skill-manager gitignore block exists in the target project."""
+        os.makedirs(target_project_path, exist_ok=True)
         gitignore_path = os.path.join(target_project_path, ".gitignore")
         managed_block = "\n".join(
             [
@@ -800,6 +801,7 @@ def main() -> None:
     available = installer.get_available_skills()
     
     if not available:
+        installer.ensure_managed_gitignore_entries(target_project)
         logger.info("No skills found to install.")
         return
 
@@ -832,6 +834,8 @@ def main() -> None:
                 installer.install_codex_bridge(skill_name, target_project)
             if skill_name in install_claude_for:
                 installer.install_claude_reference(skill_name, target_project)
+
+    installer.ensure_managed_gitignore_entries(target_project)
 
 
 if __name__ == "__main__":

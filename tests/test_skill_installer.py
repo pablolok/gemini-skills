@@ -131,8 +131,11 @@ class TestSkillInstaller(unittest.TestCase):
             return True
         mock_exists.side_effect = side_effect
         
-        # Mock _copy_skill_files to do nothing
-        with patch.object(installer, '_copy_skill_files'):
+        # Mock _copy_skill_files to do nothing and isolate this test from gitignore maintenance
+        with patch.object(installer, '_copy_skill_files'), patch.object(
+            installer,
+            'ensure_managed_gitignore_entries',
+        ):
             installer.install_skill(skill_path, target_project)
             
             # Should have called subprocess.run with python and the hook path
@@ -299,6 +302,37 @@ class TestSkillInstaller(unittest.TestCase):
         mock_inst_instance.get_available_skills.assert_called_once()
         mock_sel_instance.select_skills.assert_called_once()
         mock_inst_instance.install_skill.assert_called_once_with("audit/skill1", os.getcwd())
+        mock_inst_instance.ensure_managed_gitignore_entries.assert_called_with(os.getcwd())
+
+    @patch("install.SkillInstaller")
+    @patch("install.SkillSelector")
+    @patch("install.get_cli_ask_user")
+    @patch("os.path.exists")
+    def test_main_function_refreshes_gitignore_even_when_nothing_is_selected(
+        self,
+        mock_exists,
+        mock_get_cli_ask_user,
+        mock_selector,
+        mock_installer,
+    ) -> None:
+        """Verify the managed gitignore block is refreshed even on an empty selection."""
+        from install import main
+
+        mock_exists.return_value = True
+        mock_get_cli_ask_user.return_value = MagicMock(return_value={"answers": {"0": "no"}})
+
+        mock_inst_instance = mock_installer.return_value
+        mock_inst_instance.get_available_skills.return_value = {"audit": ["skill1"]}
+        mock_inst_instance.supports_codex_bridge.return_value = False
+        mock_inst_instance.supports_claude_reference.return_value = False
+
+        mock_sel_instance = mock_selector.return_value
+        mock_sel_instance.select_skills.return_value = []
+
+        main()
+
+        mock_inst_instance.install_skill.assert_not_called()
+        mock_inst_instance.ensure_managed_gitignore_entries.assert_called_with(os.getcwd())
 
     @patch("sys.exit")
     @patch("os.path.exists")
