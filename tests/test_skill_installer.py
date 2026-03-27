@@ -4,6 +4,7 @@ import os
 import sys
 import unittest
 import io
+import tempfile
 from unittest.mock import MagicMock, patch
 
 # We'll implement these in install.py
@@ -310,11 +311,13 @@ class TestSkillInstaller(unittest.TestCase):
         selected = selector.run(read_key=lambda: next(keys))
 
         self.assertEqual(selected, ["audit/skill1", "utility/skill2"])
+        self.assertIn("Categories", output.getvalue())
         self.assertIn("Use arrows to move, left/right to switch tabs", output.getvalue())
         self.assertIn("Gemini Skill Installer", output.getvalue())
         self.assertIn(INSTALLER_BANNER.splitlines()[0].strip(), output.getvalue())
-        self.assertIn("[audit]", output.getvalue())
-        self.assertIn("[utility]", output.getvalue())
+        self.assertIn("[ AUDIT | 1 ]", output.getvalue())
+        self.assertIn("utility (1)", output.getvalue())
+        self.assertIn("Active tab: utility (1)", output.getvalue())
 
     def test_terminal_multi_select_allows_empty_confirmation(self) -> None:
         """Verify Enter with no toggled selections returns an empty selection."""
@@ -351,10 +354,11 @@ class TestSkillInstaller(unittest.TestCase):
 
         self.assertEqual(selected, ["audit/skill1", "audit/skill2", "workflow/skill3"])
         rendered = output.getvalue()
-        self.assertIn("[audit]", rendered)
-        self.assertIn("[workflow]", rendered)
+        self.assertIn("[ AUDIT | 2 ]", rendered)
+        self.assertIn("workflow (1)", rendered)
         self.assertIn("audit/skill2", rendered)
         self.assertIn("workflow/skill3", rendered)
+        self.assertIn("Total selected: 3", rendered)
 
     def test_terminal_multi_select_single_category_keeps_legacy_prompt(self) -> None:
         """Verify the non-tab selector path remains unchanged for a single category."""
@@ -412,40 +416,49 @@ class TestSkillInstaller(unittest.TestCase):
     @patch("install.SkillInstaller")
     @patch("install.SkillSelector")
     @patch("install.get_cli_ask_user")
+    @patch("os.getcwd")
     @patch("os.path.exists")
-    def test_main_function(self, mock_exists, mock_get_cli_ask_user, mock_selector, mock_installer) -> None:
+    def test_main_function(
+        self,
+        mock_exists,
+        mock_getcwd,
+        mock_get_cli_ask_user,
+        mock_selector,
+        mock_installer,
+    ) -> None:
         """Verify that main runs the installation flow."""
         from install import main
-        
-        mock_exists.return_value = True
-        mock_get_cli_ask_user.return_value = MagicMock(return_value={"answers": {"0": "no"}})
-        
-        # Mock available skills
-        mock_inst_instance = mock_installer.return_value
-        mock_inst_instance.get_available_skills.return_value = {"audit": ["skill1"]}
-        mock_inst_instance.supports_codex_bridge.return_value = False
-        mock_inst_instance.supports_claude_reference.return_value = False
-        
-        # Mock skill selection
-        mock_sel_instance = mock_selector.return_value
-        mock_sel_instance.select_skills.return_value = ["audit/skill1"]
-        
-        main()
-        
-        mock_inst_instance.get_available_skills.assert_called_once()
-        mock_sel_instance.select_skills.assert_called_once()
-        mock_inst_instance.install_skill.assert_called_once_with("audit/skill1", os.getcwd())
-        mock_inst_instance.ensure_managed_gitignore_entries.assert_called_with(os.getcwd())
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mock_exists.side_effect = lambda path: str(path).endswith("published")
+            mock_getcwd.return_value = temp_dir
+            mock_get_cli_ask_user.return_value = MagicMock(return_value={"answers": {"0": "no"}})
+
+            mock_inst_instance = mock_installer.return_value
+            mock_inst_instance.get_available_skills.return_value = {"audit": ["skill1"]}
+            mock_inst_instance.supports_codex_bridge.return_value = False
+            mock_inst_instance.supports_claude_reference.return_value = False
+
+            mock_sel_instance = mock_selector.return_value
+            mock_sel_instance.select_skills.return_value = ["audit/skill1"]
+
+            main()
+
+            mock_inst_instance.get_available_skills.assert_called_once()
+            mock_sel_instance.select_skills.assert_called_once()
+            mock_inst_instance.install_skill.assert_called_once_with("audit/skill1", temp_dir)
+            mock_inst_instance.ensure_managed_gitignore_entries.assert_called_with(temp_dir)
 
     @patch("install.SkillInstaller")
     @patch("install.SkillSelector")
     @patch("install.get_cli_ask_user")
     @patch("install.logging.getLogger")
     @patch("builtins.print")
+    @patch("os.getcwd")
     @patch("os.path.exists")
     def test_main_function_refreshes_gitignore_even_when_nothing_is_selected(
         self,
         mock_exists,
+        mock_getcwd,
         mock_print,
         mock_get_logger,
         mock_get_cli_ask_user,
@@ -455,33 +468,35 @@ class TestSkillInstaller(unittest.TestCase):
         """Verify the managed gitignore block is refreshed even on an empty selection."""
         from install import main
 
-        mock_exists.return_value = True
-        mock_get_cli_ask_user.return_value = MagicMock(return_value={"answers": {"0": "no"}})
-        mock_logger = MagicMock()
-        mock_get_logger.return_value = mock_logger
+        with tempfile.TemporaryDirectory() as temp_dir:
+            mock_exists.side_effect = lambda path: str(path).endswith("published")
+            mock_getcwd.return_value = temp_dir
+            mock_get_cli_ask_user.return_value = MagicMock(return_value={"answers": {"0": "no"}})
+            mock_logger = MagicMock()
+            mock_get_logger.return_value = mock_logger
 
-        mock_inst_instance = mock_installer.return_value
-        mock_inst_instance.get_available_skills.return_value = {"audit": ["skill1"]}
-        mock_inst_instance.supports_codex_bridge.return_value = False
-        mock_inst_instance.supports_claude_reference.return_value = False
-        mock_inst_instance.ensure_managed_gitignore_entries.return_value = False
+            mock_inst_instance = mock_installer.return_value
+            mock_inst_instance.get_available_skills.return_value = {"audit": ["skill1"]}
+            mock_inst_instance.supports_codex_bridge.return_value = False
+            mock_inst_instance.supports_claude_reference.return_value = False
+            mock_inst_instance.ensure_managed_gitignore_entries.return_value = False
 
-        mock_sel_instance = mock_selector.return_value
-        mock_sel_instance.select_skills.return_value = []
+            mock_sel_instance = mock_selector.return_value
+            mock_sel_instance.select_skills.return_value = []
 
-        main()
+            main()
 
-        mock_inst_instance.install_skill.assert_not_called()
-        mock_inst_instance.ensure_managed_gitignore_entries.assert_called_with(os.getcwd())
-        mock_logger.info.assert_any_call(
-            "No skills selected.",
-        )
-        mock_logger.info.assert_any_call(
-            "Managed .gitignore entries were %s.",
-            "verified",
-        )
-        mock_print.assert_any_call("No skills selected.")
-        mock_print.assert_any_call("Managed .gitignore entries were verified.")
+            mock_inst_instance.install_skill.assert_not_called()
+            mock_inst_instance.ensure_managed_gitignore_entries.assert_called_with(temp_dir)
+            mock_logger.info.assert_any_call(
+                "No skills selected.",
+            )
+            mock_logger.info.assert_any_call(
+                "Managed .gitignore entries were %s.",
+                "verified",
+            )
+            mock_print.assert_any_call("No skills selected.")
+            mock_print.assert_any_call("Managed .gitignore entries were verified.")
 
     @patch("sys.exit")
     @patch("os.path.exists")
@@ -489,8 +504,10 @@ class TestSkillInstaller(unittest.TestCase):
         """Verify that main exits if published dir is missing."""
         from install import main
         mock_exists.return_value = False
-        
-        main()
+        mock_exit.side_effect = SystemExit(1)
+
+        with self.assertRaises(SystemExit):
+            main()
         mock_exit.assert_called_once_with(1)
 
 if __name__ == "__main__":

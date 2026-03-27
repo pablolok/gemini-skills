@@ -265,16 +265,18 @@ class TerminalMultiSelect:
             style_text(question, ANSI_BOLD, enable_color=self.enable_color) + "\n"
         )
         if self._has_multiple_groups():
-            tab_parts: typing.List[str] = []
-            for group_index, group_name in enumerate(self.group_names):
-                label = f"[{group_name}]"
-                if group_index == self.active_group:
-                    tab_parts.append(
-                        style_text(label, ANSI_CYAN, ANSI_BOLD, enable_color=self.enable_color)
-                    )
-                else:
-                    tab_parts.append(style_text(label, ANSI_YELLOW, enable_color=self.enable_color))
-            self.output_stream.write(" ".join(tab_parts) + "\n")
+            self.output_stream.write(
+                style_text("Categories", ANSI_BOLD, enable_color=self.enable_color) + "\n"
+            )
+            self.output_stream.write(self._format_tab_bar() + "\n")
+            self.output_stream.write(
+                style_text(
+                    self._format_tab_status_line(),
+                    ANSI_CYAN,
+                    enable_color=self.enable_color,
+                )
+                + "\n"
+            )
         if self.multi_select:
             self.output_stream.write(
                 style_text(
@@ -411,6 +413,35 @@ class TerminalMultiSelect:
 
     def _has_multiple_groups(self) -> bool:
         return len(self.group_names) > 1
+
+    def _format_tab_bar(self) -> str:
+        tab_parts: typing.List[str] = []
+        for group_index, group_name in enumerate(self.group_names):
+            option_count = len(self.grouped_indices[group_index])
+            if group_index == self.active_group:
+                label = f"[ {group_name.upper()} | {option_count} ]"
+                tab_parts.append(
+                    style_text(label, ANSI_CYAN, ANSI_BOLD, enable_color=self.enable_color)
+                )
+            else:
+                label = f"  {group_name} ({option_count})  "
+                tab_parts.append(style_text(label, ANSI_YELLOW, enable_color=self.enable_color))
+        width = max(36, sum(len(part) for part in tab_parts) + max(len(tab_parts) - 1, 0))
+        separator = style_text("=" * width, ANSI_CYAN, enable_color=self.enable_color)
+        return "\n".join([" ".join(tab_parts), separator])
+
+    def _format_tab_status_line(self) -> str:
+        active_name = self.group_names[self.active_group]
+        active_count = len(self.grouped_indices[self.active_group])
+        selected_in_group = sum(
+            1 for index in self.grouped_indices[self.active_group] if index in self.selected
+        )
+        total_selected = len(self.selected)
+        return (
+            f"Active tab: {active_name} ({active_count})"
+            f" | Selected here: {selected_in_group}"
+            f" | Total selected: {total_selected}"
+        )
 
     def _current_group_indices(self) -> typing.List[int]:
         return self.grouped_indices[self.active_group]
