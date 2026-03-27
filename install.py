@@ -14,6 +14,19 @@ import re
 
 KeyReader = typing.Callable[[], str]
 AskUserResponse = typing.Dict[str, typing.Any]
+ANSI_RESET = "\x1b[0m"
+ANSI_BOLD = "\x1b[1m"
+ANSI_CYAN = "\x1b[36m"
+ANSI_GREEN = "\x1b[32m"
+ANSI_YELLOW = "\x1b[33m"
+INSTALLER_BANNER = (
+    "  ____                 _       _   _      _ _ _           \n"
+    " / ___| ___ _ __ ___  (_)_ __ | | | | ___| | (_)_ __ ___  \n"
+    "| |  _ / _ \\ '_ ` _ \\ | | '_ \\| |_| |/ _ \\ | | | '_ ` _ \\ \n"
+    "| |_| |  __/ | | | | || | | | |  _  |  __/ | | | | | | | |\n"
+    " \\____|\\___|_| |_| |_|/ |_| |_|_| |_|\\___|_|_|_|_| |_| |_|\n"
+    "                    |__/                                   "
+)
 GITIGNORE_MARKER_START = "# >>> skill-manager managed workspace files >>>"
 GITIGNORE_MARKER_END = "# <<< skill-manager managed workspace files <<<"
 MANAGED_SKILL_MANIFEST = ".gemini/skill-manager-manifest.json"
@@ -23,6 +36,41 @@ GITIGNORE_ENTRIES = [
     MANAGED_SKILL_MANIFEST,
 ]
 INSTALL_CONFIG_FILENAME = "install.config.json"
+
+
+def supports_ansi(output_stream: typing.Optional[typing.TextIO] = None) -> bool:
+    """Return whether ANSI color output should be used."""
+    stream = output_stream or sys.stdout
+    if os.environ.get("NO_COLOR"):
+        return False
+    if not hasattr(stream, "isatty") or not stream.isatty():
+        return False
+    if sys.platform != "win32":
+        return True
+    return os.environ.get("TERM_PROGRAM") is not None or "WT_SESSION" in os.environ
+
+
+def style_text(
+    text: str,
+    *styles: str,
+    enable_color: bool,
+) -> str:
+    """Apply ANSI styles only when color is enabled."""
+    if not enable_color or not styles:
+        return text
+    return f"{''.join(styles)}{text}{ANSI_RESET}"
+
+
+def installer_banner_text(enable_color: bool) -> str:
+    """Build the ASCII installer title."""
+    title = style_text(INSTALLER_BANNER, ANSI_CYAN, ANSI_BOLD, enable_color=enable_color)
+    subtitle = style_text(
+        "Gemini Skill Installer",
+        ANSI_GREEN,
+        ANSI_BOLD,
+        enable_color=enable_color,
+    )
+    return f"{title}\n{subtitle}"
 
 
 def parse_selection_input(
@@ -148,6 +196,10 @@ class TerminalMultiSelect:
         self.selected: typing.Set[int] = set()
         self.input_stream = input_stream or sys.stdin
         self.output_stream = output_stream or sys.stdout
+        self.enable_color = supports_ansi(self.output_stream)
+        self.group_names, self.grouped_indices = self._build_groups()
+        self.active_group = 0
+        self.group_cursor_positions = [0 for _ in self.group_names]
 
     def run(self, read_key: typing.Optional[KeyReader] = None) -> typing.List[str]:
         """Run the interactive selector and return selected labels."""
@@ -166,23 +218,30 @@ class TerminalMultiSelect:
                 if key in {"\x03", "CTRL_C"}:
                     raise KeyboardInterrupt
                 if key in {"UP", "k"}:
-                    self.cursor = (self.cursor - 1) % len(self.options)
+                    self._move_cursor(-1)
                     continue
                 if key in {"DOWN", "j"}:
-                    self.cursor = (self.cursor + 1) % len(self.options)
+                    self._move_cursor(1)
+                    continue
+                if key in {"LEFT", "h"}:
+                    self._move_group(-1)
+                    continue
+                if key in {"RIGHT", "l"}:
+                    self._move_group(1)
                     continue
                 if key == "SPACE":
+                    current_index = self._current_option_index()
                     if self.multi_select:
-                        if self.cursor in self.selected:
-                            self.selected.remove(self.cursor)
+                        if current_index in self.selected:
+                            self.selected.remove(current_index)
                         else:
-                            self.selected.add(self.cursor)
+                            self.selected.add(current_index)
                     else:
-                        self.selected = {self.cursor}
+                        self.selected = {current_index}
                     continue
                 if key in {"ENTER", "\r", "\n"}:
                     if not self.multi_select:
-                        self.selected = {self.cursor}
+                        self.selected = {self._current_option_index()}
                     break
                 if key in {"a", "A"} and self.multi_select:
                     if len(self.selected) == len(self.options):
@@ -200,21 +259,64 @@ class TerminalMultiSelect:
 
     def _render(self) -> None:
         self._clear_screen()
+        self.output_stream.write(installer_banner_text(self.enable_color) + "\n\n")
         question = self.question.get("question", "Select option(s):")
-        self.output_stream.write(f"{question}\n")
+        self.output_stream.write(
+            style_text(question, ANSI_BOLD, enable_color=self.enable_color) + "\n"
+        )
+        if self._has_multiple_groups():
+            tab_parts: typing.List[str] = []
+            for group_index, group_name in enumerate(self.group_names):
+                label = f"[{group_name}]"
+                if group_index == self.active_group:
+                    tab_parts.append(
+                        style_text(label, ANSI_CYAN, ANSI_BOLD, enable_color=self.enable_color)
+                    )
+                else:
+                    tab_parts.append(style_text(label, ANSI_YELLOW, enable_color=self.enable_color))
+            self.output_stream.write(" ".join(tab_parts) + "\n")
         if self.multi_select:
-            self.output_stream.write("Use arrows, space to toggle, A to select all, Enter to confirm.\n\n")
+            self.output_stream.write(
+                style_text(
+                    (
+                        "Use arrows to move, left/right to switch tabs, space to toggle, "
+                        "A to select all, Enter to confirm."
+                        if self._has_multiple_groups()
+                        else "Use arrows, space to toggle, A to select all, Enter to confirm."
+                    ),
+                    ANSI_YELLOW,
+                    enable_color=self.enable_color,
+                )
+                + "\n\n"
+            )
         else:
-            self.output_stream.write("Use arrows and Enter to confirm.\n\n")
+            self.output_stream.write(
+                style_text(
+                    (
+                        "Use arrows to move, left/right to switch tabs, Enter to confirm."
+                        if self._has_multiple_groups()
+                        else "Use arrows and Enter to confirm."
+                    ),
+                    ANSI_YELLOW,
+                    enable_color=self.enable_color,
+                )
+                + "\n\n"
+            )
 
-        for index, option in enumerate(self.options):
-            pointer = ">" if index == self.cursor else " "
+        for index in self.grouped_indices[self.active_group]:
+            option = self.options[index]
+            pointer = (
+                style_text(">", ANSI_GREEN, ANSI_BOLD, enable_color=self.enable_color)
+                if index == self._current_option_index()
+                else " "
+            )
             selected = "[x]" if index in self.selected else "[ ]"
             if not self.multi_select:
                 selected = "(*)" if index in self.selected else "( )"
             description = option.get("description", "")
             self.output_stream.write(
-                f"{pointer} {selected} {option['label']}\n    {description}\n"
+                f"{pointer} {selected} {style_text(option['label'], ANSI_BOLD, enable_color=self.enable_color)}\n"
+                f"    {description}\n"
             )
         self.output_stream.flush()
 
@@ -253,6 +355,8 @@ class TerminalMultiSelect:
                 return {
                     "H": "UP",
                     "P": "DOWN",
+                    "K": "LEFT",
+                    "M": "RIGHT",
                 }.get(special, special)
             return char
 
@@ -283,6 +387,8 @@ class TerminalMultiSelect:
                         return {
                             "A": "UP",
                             "B": "DOWN",
+                            "C": "RIGHT",
+                            "D": "LEFT",
                         }.get(arrow, "ESC")
                     return "ESC"
                 return char
@@ -290,6 +396,39 @@ class TerminalMultiSelect:
                 termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
 
         return read_key
+
+    def _build_groups(self) -> typing.Tuple[typing.List[str], typing.List[typing.List[int]]]:
+        groups: typing.Dict[str, typing.List[int]] = {}
+        order: typing.List[str] = []
+        for index, option in enumerate(self.options):
+            label = str(option.get("label", ""))
+            category = label.split("/", 1)[0] if "/" in label else "All"
+            if category not in groups:
+                groups[category] = []
+                order.append(category)
+            groups[category].append(index)
+        return order or ["All"], [groups[name] for name in order] or [list(range(len(self.options)))]
+
+    def _has_multiple_groups(self) -> bool:
+        return len(self.group_names) > 1
+
+    def _current_group_indices(self) -> typing.List[int]:
+        return self.grouped_indices[self.active_group]
+
+    def _current_option_index(self) -> int:
+        return self._current_group_indices()[self.group_cursor_positions[self.active_group]]
+
+    def _move_cursor(self, delta: int) -> None:
+        indices = self._current_group_indices()
+        if not indices:
+            return
+        group_cursor = self.group_cursor_positions[self.active_group]
+        self.group_cursor_positions[self.active_group] = (group_cursor + delta) % len(indices)
+
+    def _move_group(self, delta: int) -> None:
+        if not self._has_multiple_groups():
+            return
+        self.active_group = (self.active_group + delta) % len(self.group_names)
 
 
 class SkillInstaller:
@@ -799,13 +938,25 @@ def manual_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, ty
     """Provide a fallback interactive prompt for manual execution."""
     question = config["questions"][0]
     is_multi = question.get("multiSelect", False)
-    
-    print(f"\n{question['question']}")
+    enable_color = supports_ansi(sys.stdout)
+
+    print(installer_banner_text(enable_color))
+    print()
+    print(style_text(question["question"], ANSI_BOLD, enable_color=enable_color))
     if is_multi:
-        print("(Select multiple with spaces or commas, ranges like 1-3, or 'all')")
+        print(
+            style_text(
+                "(Select multiple with spaces or commas, ranges like 1-3, or 'all')",
+                ANSI_YELLOW,
+                enable_color=enable_color,
+            )
+        )
     
     for i, opt in enumerate(question['options']):
-        print(f"{i + 1}: {opt['label']} - {opt['description']}")
+        print(
+            f"{style_text(str(i + 1), ANSI_GREEN, ANSI_BOLD, enable_color=enable_color)}: "
+            f"{style_text(opt['label'], ANSI_BOLD, enable_color=enable_color)} - {opt['description']}"
+        )
     
     try:
         selection = input("\nEnter choice(s): ")

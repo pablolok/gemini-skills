@@ -8,7 +8,14 @@ from unittest.mock import MagicMock, patch
 
 # We'll implement these in install.py
 # For now, we'll try to import them, which will fail initially (Red phase)
-from install import SkillSelector, SkillInstaller, TerminalMultiSelect, get_cli_ask_user, parse_selection_input
+from install import (
+    INSTALLER_BANNER,
+    SkillSelector,
+    SkillInstaller,
+    TerminalMultiSelect,
+    get_cli_ask_user,
+    parse_selection_input,
+)
 
 class TestSkillInstaller(unittest.TestCase):
     """Test suite for the SkillInstaller logic."""
@@ -257,6 +264,8 @@ class TestSkillInstaller(unittest.TestCase):
         
         self.assertEqual(response["answers"]["0"], ["opt1"])
         mock_print.assert_called()
+        printed = "\n".join(str(call.args[0]) for call in mock_print.call_args_list if call.args)
+        self.assertIn("Gemini Skill Installer", printed)
 
     def test_parse_selection_input_supports_multiple_styles(self) -> None:
         """Verify the lightweight prompt can parse spaces, commas, ranges, and all."""
@@ -296,12 +305,16 @@ class TestSkillInstaller(unittest.TestCase):
         }
         output = io.StringIO()
         selector = TerminalMultiSelect(question, input_stream=io.StringIO(), output_stream=output)
-        keys = iter(["SPACE", "DOWN", "SPACE", "ENTER"])
+        keys = iter(["SPACE", "RIGHT", "SPACE", "ENTER"])
 
         selected = selector.run(read_key=lambda: next(keys))
 
         self.assertEqual(selected, ["audit/skill1", "utility/skill2"])
-        self.assertIn("Use arrows, space to toggle", output.getvalue())
+        self.assertIn("Use arrows to move, left/right to switch tabs", output.getvalue())
+        self.assertIn("Gemini Skill Installer", output.getvalue())
+        self.assertIn(INSTALLER_BANNER.splitlines()[0].strip(), output.getvalue())
+        self.assertIn("[audit]", output.getvalue())
+        self.assertIn("[utility]", output.getvalue())
 
     def test_terminal_multi_select_allows_empty_confirmation(self) -> None:
         """Verify Enter with no toggled selections returns an empty selection."""
@@ -318,6 +331,49 @@ class TestSkillInstaller(unittest.TestCase):
         selected = selector.run(read_key=lambda: "ENTER")
 
         self.assertEqual(selected, [])
+
+    def test_terminal_multi_select_switches_tabs_and_preserves_selection(self) -> None:
+        """Verify grouped category tabs can be navigated without losing selections."""
+        question = {
+            "question": "Pick skills",
+            "multiSelect": True,
+            "options": [
+                {"label": "audit/skill1", "description": "desc1"},
+                {"label": "audit/skill2", "description": "desc2"},
+                {"label": "workflow/skill3", "description": "desc3"},
+            ],
+        }
+        output = io.StringIO()
+        selector = TerminalMultiSelect(question, input_stream=io.StringIO(), output_stream=output)
+        keys = iter(["SPACE", "RIGHT", "SPACE", "LEFT", "DOWN", "SPACE", "ENTER"])
+
+        selected = selector.run(read_key=lambda: next(keys))
+
+        self.assertEqual(selected, ["audit/skill1", "audit/skill2", "workflow/skill3"])
+        rendered = output.getvalue()
+        self.assertIn("[audit]", rendered)
+        self.assertIn("[workflow]", rendered)
+        self.assertIn("audit/skill2", rendered)
+        self.assertIn("workflow/skill3", rendered)
+
+    def test_terminal_multi_select_single_category_keeps_legacy_prompt(self) -> None:
+        """Verify the non-tab selector path remains unchanged for a single category."""
+        question = {
+            "question": "Pick skills",
+            "multiSelect": True,
+            "options": [
+                {"label": "audit/skill1", "description": "desc1"},
+                {"label": "audit/skill2", "description": "desc2"},
+            ],
+        }
+        output = io.StringIO()
+        selector = TerminalMultiSelect(question, input_stream=io.StringIO(), output_stream=output)
+
+        selector.run(read_key=lambda: "ENTER")
+
+        rendered = output.getvalue()
+        self.assertIn("Use arrows, space to toggle, A to select all, Enter to confirm.", rendered)
+        self.assertNotIn("left/right to switch tabs", rendered)
 
     def test_terminal_multi_select_raises_on_quit(self) -> None:
         """Verify the richer terminal selector exits cleanly on quit."""
