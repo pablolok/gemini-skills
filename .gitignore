@@ -166,4 +166,35 @@ cython_debug/
 .gemini/commands/
 # Ignore local Gemini workspace settings written by skill-manager
 .gemini/settings.json
+# Ignore the local skill-manager installation manifest
+.gemini/skill-manager-manifest.json
+# Ignore skill directories installed and managed by skill-manager
+.gemini/skills/changelog-manager/
+.gemini/skills/compliance-audit-angular/
+.gemini/skills/compliance-audit-c#/
+.gemini/skills/compliance-audit-orchestrator/
+.gemini/skills/compliance-audit-scripts/
+.gemini/skills/conductor-workflow-optimization/
+.gemini/skills/pre-implementation-review/
+.gemini/skills/review-optimization/
+.gemini/skills/skill-manager/
+.gemini/skills/skill-publisher/
+.gemini/skills/subagent-balancer/
+.gemini/skills/subagent-balancer-api/
+.gemini/skills/subagent-balancer-orchestrator/
+.codex/skills/changelog-manager/
+.codex/skills/compliance-audit-avalonia/
+.codex/skills/compliance-audit-orchestrator/
+.codex/skills/compliance-audit-scripts/
+.codex/skills/pre-implementation-review/
+.codex/skills/review-optimization/
+.codex/skills/skill-manager/
+.codex/skills/skill-publisher/
+.claude/skills/compliance-audit-angular/
+.claude/skills/compliance-audit-c#/
+.claude/skills/compliance-audit-orchestrator/
+.claude/skills/conductor-workflow-optimization/
+.claude/skills/pre-implementation-review/
+.claude/skills/skill-manager/
+.claude/skills/subagent-balancer/
 # <<< skill-manager managed workspace files <<<
