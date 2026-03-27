@@ -9,6 +9,7 @@ import logging
 import typing
 import json
 import shutil
+import re
 
 
 KeyReader = typing.Callable[[], str]
@@ -342,6 +343,30 @@ class SkillInstaller:
         """Resolve the source directory containing Codex bridge wrappers."""
         return os.path.join(os.path.dirname(self.published_dir), ".codex", "skills")
 
+    def claude_reference_skill_content(self, skill_name: str, target_project_path: str) -> str:
+        """Build a lightweight Claude reference skill that points at the installed Gemini skill."""
+        metadata = self.get_installed_skill_metadata(skill_name, target_project_path) or {}
+        description = metadata.get(
+            "description",
+            (
+                f"Claude reference skill for the installed Gemini skill '{skill_name}'. "
+                "Use the Gemini skill as the source of truth."
+            ),
+        )
+        title = re.sub(r"[-_]+", " ", skill_name).strip().title() or skill_name
+        return (
+            "---\n"
+            f"name: {skill_name}\n"
+            f"description: {description}\n"
+            "---\n\n"
+            f"# {title} Reference\n\n"
+            f"Use the installed Gemini skill at `.gemini/skills/{skill_name}/SKILL.md` as the source of truth.\n\n"
+            "Workflow:\n\n"
+            f"1. Read and follow `.gemini/skills/{skill_name}/SKILL.md`.\n"
+            f"2. If that skill references scripts, metadata, or companion files, resolve them from `.gemini/skills/{skill_name}/`.\n"
+            "3. Do not duplicate the Gemini implementation in `.claude/skills/`. This reference exists only so Claude can discover and invoke the installed Gemini skill guidance.\n"
+        )
+
     def get_available_codex_bridges(self) -> typing.Set[str]:
         """Return skill names that have an explicit Codex bridge wrapper."""
         bridges_dir = self.codex_bridges_dir()
@@ -359,6 +384,10 @@ class SkillInstaller:
     def supports_codex_bridge(self, skill_name: str) -> bool:
         """Check whether a skill has a bridge wrapper intended for Codex."""
         return skill_name in self.get_available_codex_bridges()
+
+    def supports_claude_reference(self, skill_name: str) -> bool:
+        """Check whether a skill can get a generated Claude reference skill."""
+        return bool(skill_name)
 
     def get_installed_skill_metadata(
         self,
@@ -452,6 +481,30 @@ class SkillInstaller:
             return True
         except Exception as e:
             self.logger.error(f"Failed to install Codex bridge for '{skill_name}': {e}")
+            return False
+
+    def install_claude_reference(self, skill_name: str, target_project_path: str) -> bool:
+        """Install a lightweight Claude reference skill for an installed Gemini skill."""
+        source_skill_path = os.path.join(target_project_path, ".gemini", "skills", skill_name, "SKILL.md")
+        if not os.path.isfile(source_skill_path):
+            self.logger.info(
+                f"Skipping Claude reference for '{skill_name}': the Gemini skill is not installed in the target project."
+            )
+            return False
+
+        target_skill_dir = os.path.join(target_project_path, ".claude", "skills", skill_name)
+        os.makedirs(target_skill_dir, exist_ok=True)
+        target_skill_path = os.path.join(target_skill_dir, "SKILL.md")
+
+        self.logger.info(f"Installing Claude reference skill for '{skill_name}'...")
+        try:
+            content = self.claude_reference_skill_content(skill_name, target_project_path)
+            with open(target_skill_path, "w", encoding="utf-8") as handle:
+                handle.write(content)
+            self.logger.info(f"Successfully installed Claude reference skill for '{skill_name}'.")
+            return True
+        except Exception as e:
+            self.logger.error(f"Failed to install Claude reference skill for '{skill_name}': {e}")
             return False
 
     def install_skill(self, skill_rel_path: str, target_project_path: str) -> bool:
@@ -616,6 +669,43 @@ def prompt_for_codex_support(
     return set(bridgeable) if answer == "yes" else set()
 
 
+def prompt_for_claude_support(
+    ask_user_fn: typing.Callable[[typing.Dict[str, typing.Any]], AskUserResponse],
+    skill_names: typing.Sequence[str],
+) -> typing.Set[str]:
+    """Ask whether selected skills should also receive Claude reference skills."""
+    referenceable = sorted(set(skill_names))
+    if not referenceable:
+        return set()
+
+    response = ask_user_fn({
+        "questions": [{
+            "header": "Claude Support",
+            "question": (
+                "Install generated Claude reference skills in .claude/skills for the selected skills?"
+            ),
+            "type": "choice",
+            "multiSelect": False,
+            "options": [
+                {
+                    "label": "yes",
+                    "description": "Add lightweight Claude reference skills that point at the installed Gemini skills.",
+                },
+                {
+                    "label": "no",
+                    "description": "Install only the Gemini skill payloads into .gemini/skills.",
+                },
+            ],
+        }]
+    })
+
+    answer = ""
+    if isinstance(response, dict):
+        answer = str(response.get("answers", {}).get("0", "")).strip().lower()
+
+    return set(referenceable) if answer == "yes" else set()
+
+
 def get_cli_ask_user(argv: typing.Optional[typing.Sequence[str]] = None) -> typing.Callable:
     """Choose the best interactive prompt for the current execution context."""
     args = set(argv or sys.argv[1:])
@@ -678,13 +768,19 @@ def main() -> None:
     codex_candidates = [
         skill_name for skill_name in selected_skill_names if installer.supports_codex_bridge(skill_name)
     ]
+    claude_candidates = [
+        skill_name for skill_name in selected_skill_names if installer.supports_claude_reference(skill_name)
+    ]
     install_codex_for = prompt_for_codex_support(ask_user_fn, codex_candidates)
+    install_claude_for = prompt_for_claude_support(ask_user_fn, claude_candidates)
 
     for skill_path in selected:
         if installer.install_skill(skill_path, target_project):
             skill_name = os.path.basename(skill_path)
             if skill_name in install_codex_for:
                 installer.install_codex_bridge(skill_name, target_project)
+            if skill_name in install_claude_for:
+                installer.install_claude_reference(skill_name, target_project)
 
 
 if __name__ == "__main__":

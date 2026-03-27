@@ -12,7 +12,7 @@ sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 from install import SkillInstaller
 
 
-class TestAngularAuditSkill(unittest.TestCase):
+class TestFrontendAuditSkills(unittest.TestCase):
     def setUp(self) -> None:
         self.installer = SkillInstaller("published", lambda _config: {})
 
@@ -40,3 +40,33 @@ class TestAngularAuditSkill(unittest.TestCase):
 
         self.assertIn("read-only with respect to skill infrastructure", angular_content)
         self.assertIn("read-only with respect to skill infrastructure", orchestrator_content)
+
+    def test_angular_audit_requires_reusable_component_extraction(self) -> None:
+        angular_path = os.path.join("skills", "compliance-audit-angular", "SKILL.md")
+
+        with open(angular_path, "r", encoding="utf-8") as handle:
+            angular_content = handle.read()
+
+        self.assertIn("Reusability Audit", angular_content)
+        self.assertIn("same widget being implemented more than once", angular_content)
+        self.assertIn("generic reusable component API", angular_content)
+
+    def test_avalonia_audit_requires_reusable_control_extraction(self) -> None:
+        avalonia_path = os.path.join("skills", "compliance-audit-avalonia", "SKILL.md")
+
+        with open(avalonia_path, "r", encoding="utf-8") as handle:
+            avalonia_content = handle.read()
+
+        self.assertIn("Reusability Audit", avalonia_content)
+        self.assertIn("implemented more than once across views", avalonia_content)
+        self.assertIn("generic reusable control API", avalonia_content)
+
+    def test_csharp_audit_requires_reusable_abstractions(self) -> None:
+        csharp_path = os.path.join("skills", "compliance-audit-c#", "SKILL.md")
+
+        with open(csharp_path, "r", encoding="utf-8") as handle:
+            csharp_content = handle.read()
+
+        self.assertIn("Reusability Audit", csharp_content)
+        self.assertIn("implemented more than once across services", csharp_content)
+        self.assertIn("generic reusable abstraction", csharp_content)

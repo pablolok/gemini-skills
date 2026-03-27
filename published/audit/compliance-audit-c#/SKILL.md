@@ -35,6 +35,7 @@ Please review the recently modified files in this project and verify strict comp
 10. **Fail-Fast Configuration:** Validate `IOptions<T>` or configuration values at the beginning of the service or application startup.
 11. **Documentation:** Verify all public members include standard XML documentation (`///`).
 12. **Static Analysis:** Code must pass standard static analysis (Roslyn analyzers, `.editorconfig`) without warnings.
+13. **Reusability Audit:** Look for the same behavior, mapping logic, validation flow, orchestration pattern, or UI-support code being implemented more than once across services, handlers, helpers, view models, controllers, or other classes. When similar logic appears multiple times, treat that as a violation unless there is a clear bounded-context reason to keep it separate. Prefer a generic reusable abstraction built with shared services, typed helper classes, extension methods, base classes, composition, or interfaces so patterns like dropdown option builders, filtering pipelines, and repeated request/response orchestration are implemented once and adapted for multiple scenarios.
 
 If you find ANY violations, you MUST return a detailed bulleted list of the violations found.
 For each violation, you must specify:

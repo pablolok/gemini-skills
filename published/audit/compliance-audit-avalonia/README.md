@@ -9,6 +9,7 @@ A specialized Gemini skill for Avalonia UI compliance reviews.
 - theming, styling, accessibility, and cross-platform desktop expectations
 - UI responsiveness, threading safety, and resource organization
 - automated testing and verification gates for desktop UI changes
+- duplicated UI patterns that should become reusable controls, styles, templates, or behaviors
 
 ## Typical Trigger
 

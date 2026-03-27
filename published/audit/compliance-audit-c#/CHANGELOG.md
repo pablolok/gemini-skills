@@ -1,5 +1,8 @@
 # Changelog
 
+## [1.3.2] - 2026-03-27
+- Extend the C# audit to flag duplicated implementation patterns and require extraction of generic reusable abstractions when the same behavior is implemented more than once.
+
 ## [1.3.1] - 2026-03-23
 - Publish C# audit updates that defer balancing to the orchestrator
 

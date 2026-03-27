@@ -32,6 +32,8 @@ installer.install_skill(skill_path, os.getcwd())
 
 For direct human CLI usage, `install.py` may use a richer terminal multi-select UI. For Gemini or programmatic usage, keep using the lightweight `ask_user`-compatible flow exposed by `SkillSelector` and `SkillInstaller`.
 
+If the user also wants Codex or Claude companion artifacts, install the Gemini skill first and then use `install_codex_bridge(...)` and/or `install_claude_reference(...)`, or pass `--with-codex` and `--with-claude` through the installed `/skill-manager:install` helper.
+
 ### 3. Check for Updates
 To check if installed skills have newer versions available in the global repository:
 
@@ -77,7 +79,7 @@ Important:
 - The startup hook only loads in trusted workspaces because Gemini ignores local `.gemini/settings.json` in untrusted folders.
 - The installer should not write `tools.core`. Workspace tool overrides can shadow built-in Gemini tools such as `ask_user`, so `skill-manager` must preserve any existing tool configuration.
 - The installer should also add a narrow user policy in `~/.gemini/policies/skill-manager-plan-mode.toml` so those same commands can run while Gemini is in Plan Mode.
-- The installer should also maintain a small managed block in the project `.gitignore` for the Gemini workspace files it creates, specifically `.gemini/commands/` and `.gemini/settings.json`.
+- The installer should also maintain a small managed block in the project `.gitignore` for the managed skill artifacts it creates, specifically `.gemini/skills/`, `.gemini/commands/`, `.gemini/settings.json`, `.codex/skills/`, and `.claude/skills/`.
 
 ### 8. Trust and Verification
 If a user reports that the startup hook or `/skill-manager:*` commands do not appear to work:
@@ -87,7 +89,7 @@ If a user reports that the startup hook or `/skill-manager:*` commands do not ap
 3. Verify `<project>/.gemini/settings.json` still contains the `skill-manager-update-check` SessionStart hook and that existing tool settings were preserved rather than overwritten.
 4. Verify `~/.gemini/policies/skill-manager-plan-mode.toml` exists and contains the allowlist rule for the `skill-manager` Python helper commands in `modes = ["plan"]`.
 5. Verify `<project>/.gemini/commands/skill-manager/` exists with the generated `.toml` command files.
-6. Verify the project `.gitignore` contains the managed `skill-manager` block that ignores `.gemini/commands/` and `.gemini/settings.json`.
+6. Verify the project `.gitignore` contains the managed `skill-manager` block that ignores `.gemini/skills/`, `.gemini/commands/`, `.gemini/settings.json`, `.codex/skills/`, and `.claude/skills/`.
 7. If Gemini was already open when the skill was installed or updated, instruct the user to run `/commands reload` and restart Gemini if Plan Mode policies appear unchanged.
 8. Test with `/skill-manager:list`.
 9. If the command exists but Gemini reports the shell command is blocked, explain that the user-level or system-level Gemini policy is still overriding the new plan policy.
@@ -99,6 +101,14 @@ For projects that also use Codex:
 - Keep `.codex/skills/` lightweight and descriptive.
 - Only commit Codex bridge wrappers when they are intentionally repo-owned.
 - If a Codex bridge is just local helper state for one project, instruct the user to add it to `.gitignore` rather than versioning it.
+
+### 10. Claude Reference Skills
+
+For projects that also use Claude:
+- Keep real Gemini skills in `.gemini/skills/`.
+- Keep `.claude/skills/` lightweight and reference-only.
+- Prefer generated Claude reference skills that point Claude at the installed Gemini skill path instead of copying the Gemini payload.
+- If a Claude reference skill is only local helper state for one project, instruct the user to add it to `.gitignore` rather than versioning it.
 
 ## Integration
 This skill ensures that official skills are physically copied into the target project (replacing legacy junctions) to enable robust version tracking. It automatically triggers `post_install.py` hooks to maintain workflow consistency across different project environments, including Gemini-local update hooks and custom command setup when the installed skill supports them.

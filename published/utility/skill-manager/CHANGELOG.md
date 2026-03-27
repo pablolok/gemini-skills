@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.6.2] - 2026-03-27
+- Expand the managed `.gitignore` block to ignore installed `.gemini/skills/` plus managed `.codex/skills/` and `.claude/skills/` companion artifacts.
+
+## [1.6.1] - 2026-03-27
+- Add generated Claude reference skill support so installs can create lightweight `.claude/skills/` entries alongside Gemini skills.
+- Add `--with-claude` support to the installed `/skill-manager:install` helper and document the Claude reference-skill flow.
+
 ## [1.6.0] - 2026-03-25
 - Ask whether to install supported Codex bridge wrappers during interactive installs.
 - Add `--with-codex` support to the installed `/skill-manager:install` helper so Gemini skills and matching Codex bridges can be installed together.

@@ -35,11 +35,12 @@ Please review the recently modified Avalonia UI files in this project and verify
    - Prefer clear MVVM boundaries.
    - Keep view logic in XAML or presentation-focused code-behind only when justified.
    - Push business logic, persistence, and navigation orchestration out of views and controls.
-2. **XAML Discipline:** Keep markup readable, avoid deeply nested or duplicated layout trees, and prefer reusable styles, templates, and controls over repeated view fragments.
+   - Flag repeated UI patterns across views, styles, and control themes that indicate a missing reusable control, templated control, behavior, or style.
+2. **XAML Discipline:** Keep markup readable, avoid deeply nested or duplicated layout trees, repeated widget structures such as custom pickers or menus, and prefer reusable styles, templates, and controls over repeated view fragments.
 3. **ViewModel Rigor:** Use strongly typed properties/commands, explicit state transitions, and predictable notification patterns. Avoid hidden mutable shared state.
 4. **Binding Correctness:** Flag fragile bindings, missing null-state handling, silent binding failures, and unnecessarily complex converters or code-behind event wiring.
 5. **Threading & Responsiveness:** Ensure UI-bound state changes are marshalled correctly, background work does not block the UI thread, and async command flows remain deterministic.
-6. **Styling & Theming:** Prefer theme resources, reusable styles, and centralized tokens over hardcoded colors, dimensions, or duplicated control styling. Preserve light/dark and high-contrast compatibility when the project supports it.
+6. **Styling & Theming:** Prefer theme resources, reusable styles, and centralized tokens over hardcoded colors, dimensions, or duplicated control styling. Preserve light/dark and high-contrast compatibility when the project supports it. Repeated styling for the same widget across multiple views is a signal to extract a generic reusable control or theme primitive.
 7. **Accessibility & Input:** Verify keyboard navigation, focus visibility, semantic labels/tooltips where needed, contrast-sensitive choices, and screen-reader-relevant naming patterns where the app already supports them.
 8. **Resource Management:** Keep assets, resource dictionaries, and merged theme files organized. Avoid dead resources, inconsistent naming, or view-local resource duplication when a shared location is warranted.
 9. **Testing & Coverage:** Ensure new UI logic, converters, view models, and interaction behavior have adequate automated coverage. Desktop changes must preserve or improve the project's verification gates.
@@ -47,6 +48,7 @@ Please review the recently modified Avalonia UI files in this project and verify
 11. **Platform Compatibility:** Respect Avalonia cross-platform expectations. Avoid OS-specific assumptions in UI code unless the feature is explicitly platform-scoped and guarded.
 12. **Documentation & Clarity:** Public reusable controls, behaviors, and styling extension points should be named clearly and documented where the codebase expects it.
 13. **Static Analysis:** Code should be compatible with the project's configured analyzers, XAML checks, and build diagnostics without introducing warnings.
+14. **Reusability Audit:** Look for the same widget, control composition, interaction pattern, or styling package being implemented more than once across views, controls, code-behind, or resource dictionaries. When similar structure, behavior, and styling appear multiple times, treat that as a violation unless there is a clear product reason to keep them separate. Prefer a generic reusable control API built with custom controls, templated controls, styles, behaviors, attached properties, data templates, or shared view models so patterns like dropdowns, pickers, flyouts, and repeated cards are implemented once and adapted for multiple scenarios.
 
 If you find ANY violations, you MUST return a detailed bulleted list of the violations found.
 For each violation, you must specify:

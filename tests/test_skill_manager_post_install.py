@@ -71,10 +71,14 @@ class TestSkillManagerPostInstall(unittest.TestCase):
                 update_command = handle.read()
             with open(os.path.join(command_dir, "list.toml"), "r", encoding="utf-8") as handle:
                 list_command = handle.read()
+            with open(os.path.join(command_dir, "install.toml"), "r", encoding="utf-8") as handle:
+                install_command = handle.read()
 
             self.assertIn("Update installed Gemini skills", update_command)
             self.assertIn("python .gemini/skills/skill-manager/scripts/update_skills.py", update_command)
             self.assertIn("python .gemini/skills/skill-manager/scripts/list_skills.py", list_command)
+            self.assertIn("--with-claude", install_command)
+            self.assertIn(".claude/skills/", install_command)
 
             with open(config_path, "r", encoding="utf-8") as handle:
                 config = json.load(handle)
@@ -87,8 +91,11 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             self.assertTrue(config["published_dir"].endswith(os.path.join("gemini-skills", "published")))
             self.assertIn('modes = ["plan"]', policy)
             self.assertIn("list_skills.py", policy)
+            self.assertIn(".gemini/skills/", gitignore)
             self.assertIn(".gemini/commands/", gitignore)
             self.assertIn(".gemini/settings.json", gitignore)
+            self.assertIn(".codex/skills/", gitignore)
+            self.assertIn(".claude/skills/", gitignore)
 
     def test_integrate_is_idempotent_for_session_start_hook(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -140,8 +147,11 @@ class TestSkillManagerPostInstall(unittest.TestCase):
 
             self.assertIn("node_modules/", gitignore)
             self.assertIn("custom-file.txt", gitignore)
+            self.assertIn(".gemini/skills/", gitignore)
             self.assertIn(".gemini/commands/", gitignore)
             self.assertIn(".gemini/settings.json", gitignore)
+            self.assertIn(".codex/skills/", gitignore)
+            self.assertIn(".claude/skills/", gitignore)
 
     def test_integrate_preserves_existing_tool_configuration(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

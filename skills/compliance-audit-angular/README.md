@@ -9,6 +9,7 @@ A specialized Gemini skill for Angular compliance reviews.
 - accessibility and semantic markup
 - Angular testing and coverage expectations
 - styling discipline and UI architecture boundaries
+- duplicated UI patterns that should become generic reusable components, directives, or shared primitives
 
 ## Typical Trigger
 

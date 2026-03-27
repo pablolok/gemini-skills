@@ -154,6 +154,13 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertIsNotNone(metadata)
         self.assertEqual(metadata["name"], "review-optimization")
 
+    def test_supports_claude_reference_for_skill_name(self) -> None:
+        """Verify Claude reference skills can be generated for selected skills."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        self.assertTrue(installer.supports_claude_reference("review-optimization"))
+        self.assertFalse(installer.supports_claude_reference(""))
+
     @patch("subprocess.run")
     @patch("os.path.exists")
     def test_post_install_hook_failure(self, mock_exists, mock_run) -> None:
@@ -268,16 +275,20 @@ class TestSkillInstaller(unittest.TestCase):
 
     @patch("install.SkillInstaller")
     @patch("install.SkillSelector")
+    @patch("install.get_cli_ask_user")
     @patch("os.path.exists")
-    def test_main_function(self, mock_exists, mock_selector, mock_installer) -> None:
+    def test_main_function(self, mock_exists, mock_get_cli_ask_user, mock_selector, mock_installer) -> None:
         """Verify that main runs the installation flow."""
         from install import main
         
         mock_exists.return_value = True
+        mock_get_cli_ask_user.return_value = MagicMock(return_value={"answers": {"0": "no"}})
         
         # Mock available skills
         mock_inst_instance = mock_installer.return_value
         mock_inst_instance.get_available_skills.return_value = {"audit": ["skill1"]}
+        mock_inst_instance.supports_codex_bridge.return_value = False
+        mock_inst_instance.supports_claude_reference.return_value = False
         
         # Mock skill selection
         mock_sel_instance = mock_selector.return_value

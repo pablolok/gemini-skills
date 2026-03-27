@@ -98,6 +98,23 @@ class TestCopyInstallationE2E(unittest.TestCase):
             content = f.read()
         self.assertEqual(content, "# Test Codex Bridge")
 
+    def test_install_claude_reference_creates_reference_skill(self) -> None:
+        """Verify that install_claude_reference writes a lightweight reference skill."""
+        skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
+        self.installer.install_skill(skill_rel_path, self.project_dir)
+
+        success = self.installer.install_claude_reference(self.skill_name, self.project_dir)
+
+        self.assertTrue(success)
+
+        target_path = os.path.join(self.project_dir, ".claude", "skills", self.skill_name, "SKILL.md")
+        self.assertTrue(os.path.isfile(target_path))
+
+        with open(target_path, "r", encoding="utf-8") as f:
+            content = f.read()
+        self.assertIn("Use the installed Gemini skill", content)
+        self.assertIn(f".gemini/skills/{self.skill_name}/SKILL.md", content)
+
     @unittest.skipUnless(os.name == "nt", "Windows junction tests only run on Windows")
     def test_transition_from_junction_to_copy(self) -> None:
         """Verify that a legacy junction is correctly replaced by a copy."""
