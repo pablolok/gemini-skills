@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.6.4] - 2026-03-27
+- Preserve gitignore content and track exact installed skill paths
+
+
+## [1.6.4] - 2026-03-27
+- Preserve existing `.gitignore` content outside the managed `skill-manager` block during installs and updates.
+- Track exact Gemini, Codex, and Claude skill directories in `.gemini/skill-manager-manifest.json` and ignore only those installed paths instead of broad skill trees.
+- Bootstrap exact managed-skill ignore entries from existing local skill folders when upgrading older installs without a manifest.
+
 ## [1.6.3] - 2026-03-27
 - Refresh the managed gitignore block whenever Gemini skills, Codex bridges, or Claude reference skills are installed.
 

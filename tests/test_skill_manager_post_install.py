@@ -57,6 +57,7 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             self.assertTrue(os.path.exists(config_path))
             self.assertTrue(os.path.exists(policy_path))
             self.assertTrue(os.path.exists(gitignore_path))
+            self.assertTrue(os.path.exists(os.path.join(temp_dir, ".gemini", "skill-manager-manifest.json")))
 
             with open(settings_path, "r", encoding="utf-8") as handle:
                 settings = json.load(handle)
@@ -91,11 +92,10 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             self.assertTrue(config["published_dir"].endswith(os.path.join("gemini-skills", "published")))
             self.assertIn('modes = ["plan"]', policy)
             self.assertIn("list_skills.py", policy)
-            self.assertIn(".gemini/skills/", gitignore)
+            self.assertIn(".gemini/skills/skill-manager/", gitignore)
             self.assertIn(".gemini/commands/", gitignore)
             self.assertIn(".gemini/settings.json", gitignore)
-            self.assertIn(".codex/skills/", gitignore)
-            self.assertIn(".claude/skills/", gitignore)
+            self.assertIn(".gemini/skill-manager-manifest.json", gitignore)
 
     def test_integrate_is_idempotent_for_session_start_hook(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
@@ -147,11 +147,10 @@ class TestSkillManagerPostInstall(unittest.TestCase):
 
             self.assertIn("node_modules/", gitignore)
             self.assertIn("custom-file.txt", gitignore)
-            self.assertIn(".gemini/skills/", gitignore)
+            self.assertIn(".gemini/skills/skill-manager/", gitignore)
             self.assertIn(".gemini/commands/", gitignore)
             self.assertIn(".gemini/settings.json", gitignore)
-            self.assertIn(".codex/skills/", gitignore)
-            self.assertIn(".claude/skills/", gitignore)
+            self.assertIn(".gemini/skill-manager-manifest.json", gitignore)
 
     def test_integrate_preserves_existing_tool_configuration(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:

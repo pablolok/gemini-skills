@@ -79,7 +79,10 @@ Important:
 - The startup hook only loads in trusted workspaces because Gemini ignores local `.gemini/settings.json` in untrusted folders.
 - The installer should not write `tools.core`. Workspace tool overrides can shadow built-in Gemini tools such as `ask_user`, so `skill-manager` must preserve any existing tool configuration.
 - The installer should also add a narrow user policy in `~/.gemini/policies/skill-manager-plan-mode.toml` so those same commands can run while Gemini is in Plan Mode.
-- The installer should also maintain a small managed block in the project `.gitignore` for the managed skill artifacts it creates, specifically `.gemini/skills/`, `.gemini/commands/`, `.gemini/settings.json`, `.codex/skills/`, and `.claude/skills/`.
+- The installer should also maintain a small managed block in the project `.gitignore` for the managed skill artifacts it creates.
+- That block should ignore `.gemini/commands/`, `.gemini/settings.json`, `.gemini/skill-manager-manifest.json`, and only the exact `.gemini/skills/<skill>/`, `.codex/skills/<skill>/`, and `.claude/skills/<skill>/` directories that were installed by `skill-manager`.
+- If the managed block already exists, replace only the content between the markers and preserve the rest of the user's `.gitignore`.
+- If `.gemini/skill-manager-manifest.json` is missing, bootstrap exact skill entries from the existing local `.gemini/skills/`, `.codex/skills/`, and `.claude/skills/` directories before writing the managed block.
 
 ### 8. Trust and Verification
 If a user reports that the startup hook or `/skill-manager:*` commands do not appear to work:
@@ -89,7 +92,7 @@ If a user reports that the startup hook or `/skill-manager:*` commands do not ap
 3. Verify `<project>/.gemini/settings.json` still contains the `skill-manager-update-check` SessionStart hook and that existing tool settings were preserved rather than overwritten.
 4. Verify `~/.gemini/policies/skill-manager-plan-mode.toml` exists and contains the allowlist rule for the `skill-manager` Python helper commands in `modes = ["plan"]`.
 5. Verify `<project>/.gemini/commands/skill-manager/` exists with the generated `.toml` command files.
-6. Verify the project `.gitignore` contains the managed `skill-manager` block that ignores `.gemini/skills/`, `.gemini/commands/`, `.gemini/settings.json`, `.codex/skills/`, and `.claude/skills/`.
+6. Verify the project `.gitignore` contains the managed `skill-manager` block that ignores `.gemini/commands/`, `.gemini/settings.json`, `.gemini/skill-manager-manifest.json`, and the exact installed skill directories managed by `skill-manager`.
 7. If Gemini was already open when the skill was installed or updated, instruct the user to run `/commands reload` and restart Gemini if Plan Mode policies appear unchanged.
 8. Test with `/skill-manager:list`.
 9. If the command exists but Gemini reports the shell command is blocked, explain that the user-level or system-level Gemini policy is still overriding the new plan policy.

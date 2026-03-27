@@ -60,9 +60,8 @@ class TestCopyInstallationE2E(unittest.TestCase):
         self.assertTrue(os.path.isfile(os.path.join(target_path, "CHANGELOG.md")))
         with open(os.path.join(self.project_dir, ".gitignore"), "r", encoding="utf-8") as f:
             gitignore = f.read()
-        self.assertIn(".gemini/skills/", gitignore)
-        self.assertIn(".codex/skills/", gitignore)
-        self.assertIn(".claude/skills/", gitignore)
+        self.assertIn(f".gemini/skills/{self.skill_name}/", gitignore)
+        self.assertNotIn(".gemini/skills/\n", gitignore)
         
         # Verify it's NOT a link (junction or symlink)
         self.assertFalse(os.path.islink(target_path))
@@ -104,7 +103,7 @@ class TestCopyInstallationE2E(unittest.TestCase):
         self.assertEqual(content, "# Test Codex Bridge")
         with open(os.path.join(self.project_dir, ".gitignore"), "r", encoding="utf-8") as f:
             gitignore = f.read()
-        self.assertIn(".codex/skills/", gitignore)
+        self.assertIn(f".codex/skills/{self.skill_name}/", gitignore)
 
     def test_install_claude_reference_creates_reference_skill(self) -> None:
         """Verify that install_claude_reference writes a lightweight reference skill."""
@@ -124,7 +123,7 @@ class TestCopyInstallationE2E(unittest.TestCase):
         self.assertIn(f".gemini/skills/{self.skill_name}/SKILL.md", content)
         with open(os.path.join(self.project_dir, ".gitignore"), "r", encoding="utf-8") as f:
             gitignore = f.read()
-        self.assertIn(".claude/skills/", gitignore)
+        self.assertIn(f".claude/skills/{self.skill_name}/", gitignore)
 
     @unittest.skipUnless(os.name == "nt", "Windows junction tests only run on Windows")
     def test_transition_from_junction_to_copy(self) -> None:

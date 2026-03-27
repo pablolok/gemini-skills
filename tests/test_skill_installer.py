@@ -134,6 +134,9 @@ class TestSkillInstaller(unittest.TestCase):
         # Mock _copy_skill_files to do nothing and isolate this test from gitignore maintenance
         with patch.object(installer, '_copy_skill_files'), patch.object(
             installer,
+            '_register_managed_skill',
+        ), patch.object(
+            installer,
             'ensure_managed_gitignore_entries',
         ):
             installer.install_skill(skill_path, target_project)
@@ -163,6 +166,53 @@ class TestSkillInstaller(unittest.TestCase):
 
         self.assertTrue(installer.supports_claude_reference("review-optimization"))
         self.assertFalse(installer.supports_claude_reference(""))
+
+    def test_ensure_managed_gitignore_entries_preserves_existing_content(self) -> None:
+        """Verify gitignore updates keep user content outside the managed block."""
+        import tempfile
+
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            gitignore_path = os.path.join(temp_dir, ".gitignore")
+            with open(gitignore_path, "w", encoding="utf-8") as handle:
+                handle.write(
+                    "node_modules/\n\n"
+                    "# >>> skill-manager managed workspace files >>>\n"
+                    ".gemini/commands/\n"
+                    "# <<< skill-manager managed workspace files <<<\n\n"
+                    ".env\n"
+                )
+
+            installer.ensure_managed_gitignore_entries(temp_dir)
+
+            with open(gitignore_path, "r", encoding="utf-8") as handle:
+                gitignore = handle.read()
+
+        self.assertIn("node_modules/", gitignore)
+        self.assertIn(".env", gitignore)
+        self.assertIn(".gemini/skill-manager-manifest.json", gitignore)
+        self.assertEqual(gitignore.count("# >>> skill-manager managed workspace files >>>"), 1)
+
+    def test_ensure_managed_gitignore_entries_bootstraps_from_existing_skill_dirs(self) -> None:
+        """Verify gitignore entries are discovered from installed skills when no manifest exists yet."""
+        import tempfile
+
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            os.makedirs(os.path.join(temp_dir, ".gemini", "skills", "alpha"))
+            os.makedirs(os.path.join(temp_dir, ".codex", "skills", "beta"))
+            os.makedirs(os.path.join(temp_dir, ".claude", "skills", "gamma"))
+
+            installer.ensure_managed_gitignore_entries(temp_dir)
+
+            with open(os.path.join(temp_dir, ".gitignore"), "r", encoding="utf-8") as handle:
+                gitignore = handle.read()
+
+        self.assertIn(".gemini/skills/alpha/", gitignore)
+        self.assertIn(".codex/skills/beta/", gitignore)
+        self.assertIn(".claude/skills/gamma/", gitignore)
 
     @patch("subprocess.run")
     @patch("os.path.exists")
@@ -242,6 +292,22 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertEqual(selected, ["audit/skill1", "utility/skill2"])
         self.assertIn("Use arrows, space to toggle", output.getvalue())
 
+    def test_terminal_multi_select_allows_empty_confirmation(self) -> None:
+        """Verify Enter with no toggled selections returns an empty selection."""
+        question = {
+            "question": "Pick skills",
+            "multiSelect": True,
+            "options": [
+                {"label": "audit/skill1", "description": "desc1"},
+                {"label": "utility/skill2", "description": "desc2"},
+            ],
+        }
+        selector = TerminalMultiSelect(question, input_stream=io.StringIO(), output_stream=io.StringIO())
+
+        selected = selector.run(read_key=lambda: "ENTER")
+
+        self.assertEqual(selected, [])
+
     def test_terminal_multi_select_raises_on_quit(self) -> None:
         """Verify the richer terminal selector exits cleanly on quit."""
         question = {
@@ -307,10 +373,14 @@ class TestSkillInstaller(unittest.TestCase):
     @patch("install.SkillInstaller")
     @patch("install.SkillSelector")
     @patch("install.get_cli_ask_user")
+    @patch("install.logging.getLogger")
+    @patch("builtins.print")
     @patch("os.path.exists")
     def test_main_function_refreshes_gitignore_even_when_nothing_is_selected(
         self,
         mock_exists,
+        mock_print,
+        mock_get_logger,
         mock_get_cli_ask_user,
         mock_selector,
         mock_installer,
@@ -320,11 +390,14 @@ class TestSkillInstaller(unittest.TestCase):
 
         mock_exists.return_value = True
         mock_get_cli_ask_user.return_value = MagicMock(return_value={"answers": {"0": "no"}})
+        mock_logger = MagicMock()
+        mock_get_logger.return_value = mock_logger
 
         mock_inst_instance = mock_installer.return_value
         mock_inst_instance.get_available_skills.return_value = {"audit": ["skill1"]}
         mock_inst_instance.supports_codex_bridge.return_value = False
         mock_inst_instance.supports_claude_reference.return_value = False
+        mock_inst_instance.ensure_managed_gitignore_entries.return_value = False
 
         mock_sel_instance = mock_selector.return_value
         mock_sel_instance.select_skills.return_value = []
@@ -333,6 +406,15 @@ class TestSkillInstaller(unittest.TestCase):
 
         mock_inst_instance.install_skill.assert_not_called()
         mock_inst_instance.ensure_managed_gitignore_entries.assert_called_with(os.getcwd())
+        mock_logger.info.assert_any_call(
+            "No skills selected.",
+        )
+        mock_logger.info.assert_any_call(
+            "Managed .gitignore entries were %s.",
+            "verified",
+        )
+        mock_print.assert_any_call("No skills selected.")
+        mock_print.assert_any_call("Managed .gitignore entries were verified.")
 
     @patch("sys.exit")
     @patch("os.path.exists")
