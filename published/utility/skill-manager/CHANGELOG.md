@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.8] - 2026-03-27
+- Add reusable managed uninstall flow and tighten manifest handling
+
+
 ## [1.6.7] - 2026-03-27
 - Generate fallback Codex bridges for eligible shared skills during install
 

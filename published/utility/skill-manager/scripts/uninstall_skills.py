@@ -10,7 +10,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 if SCRIPT_DIR not in sys.path:
     sys.path.insert(0, SCRIPT_DIR)
 
-from runtime import list_installed_skills, uninstall_named_skills
+from runtime import list_managed_installed_skills, uninstall_named_skills
 
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -22,8 +22,8 @@ def main(argv: list[str] | None = None) -> int:
     try:
         if not args:
             print("No skill names provided.")
-            print("Installed skills:")
-            for item in list_installed_skills():
+            print("Managed installed skills:")
+            for item in list_managed_installed_skills():
                 print(f"- {item['name']}")
             print("Use: /skill-manager:uninstall <skill-name> [more-skills]")
             return 0

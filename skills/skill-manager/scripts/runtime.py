@@ -146,6 +146,13 @@ def list_installed_skills(root: str | None = None) -> List[Dict[str, str]]:
     return installed
 
 
+def list_managed_installed_skills(root: str | None = None) -> List[Dict[str, str]]:
+    target_root = root or project_root()
+    installer = build_installer(target_root)
+    managed_names = set(installer.get_managed_skill_names(target_root))
+    return [item for item in list_installed_skills(target_root) if item["name"] in managed_names]
+
+
 def install_named_skills(
     skill_paths: List[str],
     root: str | None = None,
@@ -175,16 +182,13 @@ def install_named_skills(
 
 def uninstall_named_skills(skill_names: List[str], root: str | None = None) -> List[str]:
     target_root = root or project_root()
-    target_skills_dir = os.path.join(target_root, ".gemini", "skills")
+    installer = build_installer(target_root)
     removed: List[str] = []
 
     for skill_name in skill_names:
         normalized = skill_name.strip()
         if not normalized:
             continue
-        target_path = os.path.join(target_skills_dir, normalized)
-        if os.path.isdir(target_path):
-            import shutil
-            shutil.rmtree(target_path)
+        if installer.uninstall_skill(normalized, target_root):
             removed.append(normalized)
     return removed

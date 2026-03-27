@@ -178,6 +178,46 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             self.assertIn("run_shell_command", settings["tools"]["core"])
             self.assertNotIn("run_shell_command(python)", settings["tools"]["core"])
 
+    def test_integrate_prunes_ineligible_managed_claude_skills(self) -> None:
+        with tempfile.TemporaryDirectory() as temp_dir:
+            os.makedirs(os.path.join(temp_dir, ".gemini", "skills", "subagent-balancer"))
+            os.makedirs(os.path.join(temp_dir, ".claude", "skills", "subagent-balancer"))
+            manifest_path = os.path.join(temp_dir, ".gemini", "skill-manager-manifest.json")
+            os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
+            with open(manifest_path, "w", encoding="utf-8") as handle:
+                json.dump(
+                    {
+                        "gemini": ["subagent-balancer"],
+                        "codex": [],
+                        "claude": ["subagent-balancer"],
+                    },
+                    handle,
+                    indent=2,
+                )
+                handle.write("\n")
+
+            fake_home = os.path.join(temp_dir, "fake-home")
+            with patch.dict(
+                os.environ,
+                {
+                    "GEMINI_SKILLS_REPO_ROOT": os.path.abspath("."),
+                    "GEMINI_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
+                    "USERPROFILE": fake_home,
+                },
+                clear=False,
+            ):
+                POST_INSTALL.integrate(temp_dir)
+
+            with open(os.path.join(temp_dir, ".gitignore"), "r", encoding="utf-8") as handle:
+                gitignore = handle.read()
+            with open(manifest_path, "r", encoding="utf-8") as handle:
+                manifest = json.load(handle)
+
+            self.assertIn(".gemini/skills/subagent-balancer/", gitignore)
+            self.assertNotIn(".claude/skills/subagent-balancer/", gitignore)
+            self.assertEqual(manifest["claude"], [])
+            self.assertFalse(os.path.exists(os.path.join(temp_dir, ".claude", "skills", "subagent-balancer")))
+
 
 class TestSkillManagerSessionStartHook(unittest.TestCase):
     @patch.object(SESSION_START_HOOK, "check_updates", return_value=[])

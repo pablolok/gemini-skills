@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
 from typing import Any, Dict
 
@@ -102,6 +103,37 @@ GITIGNORE_ENTRIES = [
 ]
 
 
+def _load_install_config() -> Dict[str, Any]:
+    repo_root = os.environ.get("GEMINI_SKILLS_REPO_ROOT")
+    if not repo_root:
+        published_dir = os.environ.get("GEMINI_SKILLS_PUBLISHED_DIR")
+        if published_dir:
+            repo_root = os.path.dirname(os.path.abspath(published_dir))
+    if not repo_root:
+        return {"defaults": {"supports": {}}, "skills": {}}
+
+    config_path = os.path.join(os.path.abspath(repo_root), "install.config.json")
+    if not os.path.exists(config_path):
+        return {"defaults": {"supports": {}}, "skills": {}}
+
+    with open(config_path, "r", encoding="utf-8") as handle:
+        payload = json.load(handle)
+    defaults = payload.get("defaults", {})
+    skills = payload.get("skills", {})
+    return {
+        "defaults": {"supports": defaults.get("supports", {})},
+        "skills": skills if isinstance(skills, dict) else {},
+    }
+
+
+def _supports_flag(skill_name: str, flag_name: str) -> bool:
+    config = _load_install_config()
+    defaults = config.get("defaults", {}).get("supports", {})
+    skill = config.get("skills", {}).get(skill_name, {})
+    supports = skill.get("supports", {})
+    return bool(supports.get(flag_name, defaults.get(flag_name, True)))
+
+
 def _load_json(path: str) -> Dict[str, Any]:
     if not os.path.exists(path):
         return {}
@@ -181,7 +213,10 @@ def _write_runtime_config(target_project_path: str, source_repo_root: str) -> No
 
 def _ensure_gitignore_entries(target_project_path: str) -> None:
     gitignore_path = os.path.join(target_project_path, ".gitignore")
-    manifest = _load_managed_skill_manifest(target_project_path)
+    manifest = _normalize_managed_skill_manifest(
+        target_project_path,
+        _load_managed_skill_manifest(target_project_path),
+    )
     skill_entries = _build_managed_skill_ignore_entries(manifest)
     managed_lines = [
         GITIGNORE_MARKER_START,
@@ -244,24 +279,43 @@ def _load_managed_skill_manifest(target_project_path: str) -> Dict[str, Any]:
     return manifest
 
 
-def _discover_managed_skills(target_project_path: str) -> Dict[str, Any]:
-    directories = {
-        "gemini": os.path.join(target_project_path, ".gemini", "skills"),
-        "codex": os.path.join(target_project_path, ".codex", "skills"),
-        "claude": os.path.join(target_project_path, ".claude", "skills"),
+def _read_managed_gitignore_entries(target_project_path: str) -> Dict[str, Any]:
+    gitignore_path = os.path.join(target_project_path, ".gitignore")
+    manifest: Dict[str, Any] = {"gemini": [], "codex": [], "claude": []}
+    if not os.path.exists(gitignore_path):
+        return manifest
+
+    with open(gitignore_path, "r", encoding="utf-8") as handle:
+        content = handle.read()
+
+    if GITIGNORE_MARKER_START not in content or GITIGNORE_MARKER_END not in content:
+        return manifest
+
+    start = content.index(GITIGNORE_MARKER_START) + len(GITIGNORE_MARKER_START)
+    end = content.index(GITIGNORE_MARKER_END)
+    block = content[start:end]
+    prefixes = {
+        "gemini": ".gemini/skills/",
+        "codex": ".codex/skills/",
+        "claude": ".claude/skills/",
     }
-    discovered: Dict[str, Any] = {}
-    for kind, directory in directories.items():
-        if not os.path.isdir(directory):
-            discovered[kind] = []
-            continue
-        names = []
-        for item in os.listdir(directory):
-            item_path = os.path.join(directory, item)
-            if os.path.isdir(item_path) and not item.startswith("."):
-                names.append(item)
-        discovered[kind] = sorted(names)
-    return discovered
+
+    for raw_line in block.splitlines():
+        line = raw_line.strip()
+        for kind, prefix in prefixes.items():
+            if line.startswith(prefix) and line.endswith("/"):
+                skill_name = line[len(prefix):-1].strip()
+                if skill_name:
+                    manifest[kind].append(skill_name)
+                break
+
+    for kind in manifest:
+        manifest[kind] = sorted(set(manifest[kind]))
+    return manifest
+
+
+def _discover_managed_skills(target_project_path: str) -> Dict[str, Any]:
+    return _read_managed_gitignore_entries(target_project_path)
 
 
 def _write_managed_skill_manifest(target_project_path: str, manifest: Dict[str, Any]) -> None:
@@ -272,8 +326,50 @@ def _write_managed_skill_manifest(target_project_path: str, manifest: Dict[str, 
         handle.write("\n")
 
 
+def _companion_skill_still_supported(kind: str, skill_name: str) -> bool:
+    if kind == "codex":
+        return _supports_flag(skill_name, "codex_bridge")
+    if kind == "claude":
+        return _supports_flag(skill_name, "claude_reference")
+    return True
+
+
+def _normalize_managed_skill_manifest(target_project_path: str, manifest: Dict[str, Any]) -> Dict[str, Any]:
+    base_paths = {
+        "gemini": os.path.join(target_project_path, ".gemini", "skills"),
+        "codex": os.path.join(target_project_path, ".codex", "skills"),
+        "claude": os.path.join(target_project_path, ".claude", "skills"),
+    }
+    normalized: Dict[str, Any] = {}
+    changed = False
+
+    for kind in ("gemini", "codex", "claude"):
+        kept: list[str] = []
+        for skill_name in manifest.get(kind, []):
+            skill_path = os.path.join(base_paths[kind], skill_name)
+            if kind in ("codex", "claude") and not _companion_skill_still_supported(kind, skill_name):
+                if os.path.isdir(skill_path):
+                    shutil.rmtree(skill_path)
+                changed = True
+                continue
+            if not os.path.isdir(skill_path):
+                changed = True
+                continue
+            kept.append(skill_name)
+        normalized[kind] = sorted(set(kept))
+        if normalized[kind] != sorted(set(manifest.get(kind, []))):
+            changed = True
+
+    if changed:
+        _write_managed_skill_manifest(target_project_path, normalized)
+    return normalized
+
+
 def _register_managed_skill(target_project_path: str, kind: str, skill_name: str) -> None:
-    manifest = _load_managed_skill_manifest(target_project_path)
+    manifest = _normalize_managed_skill_manifest(
+        target_project_path,
+        _load_managed_skill_manifest(target_project_path),
+    )
     current = set(manifest.get(kind, []))
     current.add(skill_name)
     manifest[kind] = sorted(current)

@@ -128,6 +128,37 @@ class TestCopyInstallationE2E(unittest.TestCase):
             gitignore = f.read()
         self.assertIn(f".claude/skills/{self.skill_name}/", gitignore)
 
+    def test_uninstall_skill_removes_managed_artifacts(self) -> None:
+        """Verify uninstall removes Gemini/Codex/Claude artifacts and refreshes gitignore."""
+        skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
+        self.installer.install_skill(skill_rel_path, self.project_dir)
+        self.installer.install_codex_bridge(self.skill_name, self.project_dir)
+        self.installer.install_claude_reference(self.skill_name, self.project_dir)
+
+        success = self.installer.uninstall_skill(self.skill_name, self.project_dir)
+
+        self.assertTrue(success)
+        self.assertFalse(os.path.exists(os.path.join(self.project_dir, ".gemini", "skills", self.skill_name)))
+        self.assertFalse(os.path.exists(os.path.join(self.project_dir, ".codex", "skills", self.skill_name)))
+        self.assertFalse(os.path.exists(os.path.join(self.project_dir, ".claude", "skills", self.skill_name)))
+        with open(os.path.join(self.project_dir, ".gitignore"), "r", encoding="utf-8") as f:
+            gitignore = f.read()
+        self.assertNotIn(f".gemini/skills/{self.skill_name}/", gitignore)
+        self.assertNotIn(f".codex/skills/{self.skill_name}/", gitignore)
+        self.assertNotIn(f".claude/skills/{self.skill_name}/", gitignore)
+
+    def test_uninstall_skill_ignores_unmanaged_skill(self) -> None:
+        """Verify uninstall does not remove unmanaged local skills."""
+        unmanaged_path = os.path.join(self.project_dir, ".gemini", "skills", "local-only")
+        os.makedirs(unmanaged_path, exist_ok=True)
+        with open(os.path.join(unmanaged_path, "SKILL.md"), "w", encoding="utf-8") as f:
+            f.write("# Local Only")
+
+        success = self.installer.uninstall_skill("local-only", self.project_dir)
+
+        self.assertFalse(success)
+        self.assertTrue(os.path.isdir(unmanaged_path))
+
     @unittest.skipUnless(os.name == "nt", "Windows junction tests only run on Windows")
     def test_transition_from_junction_to_copy(self) -> None:
         """Verify that a legacy junction is correctly replaced by a copy."""

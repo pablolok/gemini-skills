@@ -5,6 +5,7 @@ import sys
 import unittest
 import io
 import tempfile
+import json
 from unittest.mock import MagicMock, patch
 
 # We'll implement these in install.py
@@ -256,8 +257,8 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertIn(".gemini/skill-manager-manifest.json", gitignore)
         self.assertEqual(gitignore.count("# >>> skill-manager managed workspace files >>>"), 1)
 
-    def test_ensure_managed_gitignore_entries_bootstraps_from_existing_skill_dirs(self) -> None:
-        """Verify gitignore entries are discovered from installed skills when no manifest exists yet."""
+    def test_ensure_managed_gitignore_entries_bootstraps_from_existing_managed_block(self) -> None:
+        """Verify missing manifests are rebuilt from the existing managed gitignore block."""
         import tempfile
 
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
@@ -266,6 +267,13 @@ class TestSkillInstaller(unittest.TestCase):
             os.makedirs(os.path.join(temp_dir, ".gemini", "skills", "alpha"))
             os.makedirs(os.path.join(temp_dir, ".codex", "skills", "beta"))
             os.makedirs(os.path.join(temp_dir, ".claude", "skills", "gamma"))
+            with open(os.path.join(temp_dir, ".gitignore"), "w", encoding="utf-8") as handle:
+                handle.write(
+                    "# >>> skill-manager managed workspace files >>>\n"
+                    ".gemini/skills/alpha/\n"
+                    ".codex/skills/beta/\n"
+                    "# <<< skill-manager managed workspace files <<<\n"
+                )
 
             installer.ensure_managed_gitignore_entries(temp_dir)
 
@@ -274,7 +282,40 @@ class TestSkillInstaller(unittest.TestCase):
 
         self.assertIn(".gemini/skills/alpha/", gitignore)
         self.assertIn(".codex/skills/beta/", gitignore)
-        self.assertIn(".claude/skills/gamma/", gitignore)
+        self.assertNotIn(".claude/skills/gamma/", gitignore)
+
+    def test_ensure_managed_gitignore_entries_prunes_ineligible_companion_skills(self) -> None:
+        """Verify stale Claude/Codex entries are removed when install config no longer allows them."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            os.makedirs(os.path.join(temp_dir, ".gemini", "skills", "subagent-balancer"))
+            os.makedirs(os.path.join(temp_dir, ".claude", "skills", "subagent-balancer"))
+            manifest_path = os.path.join(temp_dir, ".gemini", "skill-manager-manifest.json")
+            os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
+            with open(manifest_path, "w", encoding="utf-8") as handle:
+                json.dump(
+                    {
+                        "gemini": ["subagent-balancer"],
+                        "codex": [],
+                        "claude": ["subagent-balancer"],
+                    },
+                    handle,
+                    indent=2,
+                )
+                handle.write("\n")
+
+            installer.ensure_managed_gitignore_entries(temp_dir)
+
+            with open(os.path.join(temp_dir, ".gitignore"), "r", encoding="utf-8") as handle:
+                gitignore = handle.read()
+            with open(manifest_path, "r", encoding="utf-8") as handle:
+                manifest = json.load(handle)
+
+            self.assertIn(".gemini/skills/subagent-balancer/", gitignore)
+            self.assertNotIn(".claude/skills/subagent-balancer/", gitignore)
+            self.assertEqual(manifest["claude"], [])
+            self.assertFalse(os.path.exists(os.path.join(temp_dir, ".claude", "skills", "subagent-balancer")))
 
     @patch("subprocess.run")
     @patch("os.path.exists")

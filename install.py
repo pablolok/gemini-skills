@@ -707,7 +707,10 @@ class SkillInstaller:
         """Ensure the managed skill-manager gitignore block exists in the target project."""
         os.makedirs(target_project_path, exist_ok=True)
         gitignore_path = os.path.join(target_project_path, ".gitignore")
-        manifest = self._load_managed_skill_manifest(target_project_path)
+        manifest = self._normalize_managed_skill_manifest(
+            target_project_path,
+            self._load_managed_skill_manifest(target_project_path),
+        )
         skill_entries = self._build_managed_skill_ignore_entries(manifest)
         managed_lines = [
             GITIGNORE_MARKER_START,
@@ -777,28 +780,50 @@ class SkillInstaller:
             manifest[key] = sorted({str(value) for value in values if str(value).strip()})
         return manifest
 
+    def _read_managed_gitignore_entries(
+        self,
+        target_project_path: str,
+    ) -> typing.Dict[str, typing.List[str]]:
+        """Recover managed skill entries from the existing skill-manager gitignore block."""
+        gitignore_path = os.path.join(target_project_path, ".gitignore")
+        manifest: typing.Dict[str, typing.List[str]] = {"gemini": [], "codex": [], "claude": []}
+        if not os.path.exists(gitignore_path):
+            return manifest
+
+        with open(gitignore_path, "r", encoding="utf-8") as handle:
+            content = handle.read()
+
+        if GITIGNORE_MARKER_START not in content or GITIGNORE_MARKER_END not in content:
+            return manifest
+
+        start = content.index(GITIGNORE_MARKER_START) + len(GITIGNORE_MARKER_START)
+        end = content.index(GITIGNORE_MARKER_END)
+        block = content[start:end]
+        prefixes = {
+            "gemini": ".gemini/skills/",
+            "codex": ".codex/skills/",
+            "claude": ".claude/skills/",
+        }
+
+        for raw_line in block.splitlines():
+            line = raw_line.strip()
+            for kind, prefix in prefixes.items():
+                if line.startswith(prefix) and line.endswith("/"):
+                    skill_name = line[len(prefix):-1].strip()
+                    if skill_name:
+                        manifest[kind].append(skill_name)
+                    break
+
+        for kind in manifest:
+            manifest[kind] = sorted(set(manifest[kind]))
+        return manifest
+
     def _discover_managed_skills(
         self,
         target_project_path: str,
     ) -> typing.Dict[str, typing.List[str]]:
-        """Bootstrap managed skills from currently installed local skill folders."""
-        directories = {
-            "gemini": os.path.join(target_project_path, ".gemini", "skills"),
-            "codex": os.path.join(target_project_path, ".codex", "skills"),
-            "claude": os.path.join(target_project_path, ".claude", "skills"),
-        }
-        discovered: typing.Dict[str, typing.List[str]] = {}
-        for kind, directory in directories.items():
-            if not os.path.isdir(directory):
-                discovered[kind] = []
-                continue
-            names = []
-            for item in os.listdir(directory):
-                item_path = os.path.join(directory, item)
-                if os.path.isdir(item_path) and not item.startswith("."):
-                    names.append(item)
-            discovered[kind] = sorted(names)
-        return discovered
+        """Bootstrap managed skills from the existing skill-manager gitignore block."""
+        return self._read_managed_gitignore_entries(target_project_path)
 
     def _write_managed_skill_manifest(
         self,
@@ -812,6 +837,49 @@ class SkillInstaller:
             json.dump(manifest, handle, indent=2)
             handle.write("\n")
 
+    def _companion_skill_still_supported(self, kind: str, skill_name: str) -> bool:
+        """Return whether a managed companion skill is still eligible under install config."""
+        if kind == "codex":
+            return self.supports_codex_bridge(skill_name)
+        if kind == "claude":
+            return self.supports_claude_reference(skill_name)
+        return True
+
+    def _normalize_managed_skill_manifest(
+        self,
+        target_project_path: str,
+        manifest: typing.Dict[str, typing.List[str]],
+    ) -> typing.Dict[str, typing.List[str]]:
+        """Prune stale managed companion artifacts that are no longer supported."""
+        base_paths = {
+            "gemini": os.path.join(target_project_path, ".gemini", "skills"),
+            "codex": os.path.join(target_project_path, ".codex", "skills"),
+            "claude": os.path.join(target_project_path, ".claude", "skills"),
+        }
+        normalized: typing.Dict[str, typing.List[str]] = {}
+        changed = False
+
+        for kind in ("gemini", "codex", "claude"):
+            kept: typing.List[str] = []
+            for skill_name in manifest.get(kind, []):
+                skill_path = os.path.join(base_paths[kind], skill_name)
+                if kind in ("codex", "claude") and not self._companion_skill_still_supported(kind, skill_name):
+                    if os.path.isdir(skill_path):
+                        shutil.rmtree(skill_path)
+                    changed = True
+                    continue
+                if not os.path.isdir(skill_path):
+                    changed = True
+                    continue
+                kept.append(skill_name)
+            normalized[kind] = sorted(set(kept))
+            if normalized[kind] != sorted(set(manifest.get(kind, []))):
+                changed = True
+
+        if changed:
+            self._write_managed_skill_manifest(target_project_path, normalized)
+        return normalized
+
     def _register_managed_skill(
         self,
         target_project_path: str,
@@ -819,11 +887,31 @@ class SkillInstaller:
         skill_name: str,
     ) -> None:
         """Record a skill directory as being installed by skill-manager."""
-        manifest = self._load_managed_skill_manifest(target_project_path)
+        manifest = self._normalize_managed_skill_manifest(
+            target_project_path,
+            self._load_managed_skill_manifest(target_project_path),
+        )
         current = set(manifest.get(kind, []))
         current.add(skill_name)
         manifest[kind] = sorted(current)
         self._write_managed_skill_manifest(target_project_path, manifest)
+
+    def _unregister_managed_skill(
+        self,
+        target_project_path: str,
+        kind: str,
+        skill_name: str,
+    ) -> None:
+        """Remove a skill directory from the managed manifest."""
+        manifest = self._normalize_managed_skill_manifest(
+            target_project_path,
+            self._load_managed_skill_manifest(target_project_path),
+        )
+        current = set(manifest.get(kind, []))
+        if skill_name in current:
+            current.remove(skill_name)
+            manifest[kind] = sorted(current)
+            self._write_managed_skill_manifest(target_project_path, manifest)
 
     def _build_managed_skill_ignore_entries(
         self,
@@ -841,6 +929,17 @@ class SkillInstaller:
             for skill_name in manifest.get(kind, []):
                 entries.append(f"{base_path}/{skill_name}/")
         return entries
+
+    def get_managed_skill_names(self, target_project_path: str) -> typing.List[str]:
+        """Return the set of skill names currently managed by skill-manager."""
+        manifest = self._normalize_managed_skill_manifest(
+            target_project_path,
+            self._load_managed_skill_manifest(target_project_path),
+        )
+        names = set()
+        for kind in ("gemini", "codex", "claude"):
+            names.update(manifest.get(kind, []))
+        return sorted(names)
 
     def check_for_updates(self, target_project_path: str) -> typing.List[typing.Dict[str, str]]:
         """Check all installed skills for available updates."""
@@ -956,6 +1055,30 @@ class SkillInstaller:
         except Exception as e:
             self.logger.error(f"Failed to install Claude reference skill for '{skill_name}': {e}")
             return False
+
+    def uninstall_skill(self, skill_name: str, target_project_path: str) -> bool:
+        """Remove a managed Gemini skill and any managed Codex/Claude companions."""
+        if not skill_name:
+            return False
+
+        if skill_name not in self.get_managed_skill_names(target_project_path):
+            return False
+
+        removed = False
+        targets = {
+            "gemini": os.path.join(target_project_path, ".gemini", "skills", skill_name),
+            "codex": os.path.join(target_project_path, ".codex", "skills", skill_name),
+            "claude": os.path.join(target_project_path, ".claude", "skills", skill_name),
+        }
+
+        for kind, path in targets.items():
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+                removed = True
+            self._unregister_managed_skill(target_project_path, kind, skill_name)
+
+        self.ensure_managed_gitignore_entries(target_project_path)
+        return removed
 
     def install_skill(self, skill_rel_path: str, target_project_path: str) -> bool:
         """Install a skill by copying files to the target project."""
