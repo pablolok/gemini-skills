@@ -34,6 +34,7 @@ For direct human CLI usage, `install.py` may use a richer terminal multi-select 
 
 If the user also wants Codex or Claude companion artifacts, install the Gemini skill first and then use `install_codex_bridge(...)` and/or `install_claude_reference(...)`, or pass `--with-codex` and `--with-claude` through the installed `/skill-manager:install` helper.
 Only offer those companion artifacts when the repo-level `install.config.json` marks the skill as eligible for them.
+For Codex, prefer an explicit repo-owned wrapper when one exists; otherwise generate a lightweight bridge for supported shared skills instead of skipping Codex support entirely.
 
 ### 3. Check for Updates
 To check if installed skills have newer versions available in the global repository:

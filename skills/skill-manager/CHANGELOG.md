@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.7] - 2026-03-27
+- Generate fallback Codex bridges for eligible shared skills during install
+
+
 ## [1.6.6] - 2026-03-27
 - Add installer scope catalog and gitignore guardrails
 

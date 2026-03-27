@@ -63,7 +63,7 @@ python <path-to-gemini-skills>/install.py
 ```
 
 The installer will guide you through the interactive selection and handle copying/updating automatically.
-If the selected skills have explicit bridge wrappers in this repository, the installer will also ask whether you want matching `.codex/skills/` support added.
+If the selected skills support Codex bridges, the installer will also ask whether you want matching `.codex/skills/` support added.
 
 ## Codex Bridge Layer
 
@@ -82,6 +82,7 @@ For Codex, the useful bridge skills in this repo are currently centered on:
 - `skill-manager`
 - `skill-publisher`
 - `compliance-audit-avalonia`
+- `compliance-audit-verification-gates`
 - `compliance-audit-orchestrator`
 - `compliance-audit-scripts`
 - `pre-implementation-review`

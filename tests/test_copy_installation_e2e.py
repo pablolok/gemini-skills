@@ -90,6 +90,9 @@ class TestCopyInstallationE2E(unittest.TestCase):
 
     def test_install_codex_bridge_copies_wrapper(self) -> None:
         """Verify that install_codex_bridge copies the lightweight wrapper."""
+        skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
+        self.installer.install_skill(skill_rel_path, self.project_dir)
+
         success = self.installer.install_codex_bridge(self.skill_name, self.project_dir)
 
         self.assertTrue(success)

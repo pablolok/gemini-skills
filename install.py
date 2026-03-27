@@ -601,6 +601,35 @@ class SkillInstaller:
         """Resolve the source directory containing Codex bridge wrappers."""
         return os.path.join(os.path.dirname(self.published_dir), ".codex", "skills")
 
+    def codex_bridge_skill_content(self, skill_name: str, target_project_path: str) -> str:
+        """Build a lightweight Codex bridge that points at the installed Gemini skill."""
+        metadata = self.get_installed_skill_metadata(skill_name, target_project_path) or {}
+        description = metadata.get(
+            "description",
+            (
+                f"Codex bridge for the installed Gemini skill '{skill_name}'. "
+                "Use the Gemini skill as the source of truth."
+            ),
+        )
+        title = re.sub(r"[-_]+", " ", skill_name).strip().title() or skill_name
+        return (
+            "---\n"
+            f"name: {skill_name}\n"
+            f"description: {description}\n"
+            "---\n\n"
+            f"# {title} Bridge\n\n"
+            f"Use the installed Gemini skill at `.gemini/skills/{skill_name}/SKILL.md` as the source of truth.\n\n"
+            "Workflow:\n\n"
+            f"1. Read and follow `.gemini/skills/{skill_name}/SKILL.md`.\n"
+            f"2. If that skill references scripts, metadata, or companion files, resolve them from `.gemini/skills/{skill_name}/`.\n"
+            "3. Do not duplicate the Gemini implementation in `.codex/skills/`. This bridge exists only so Codex can discover and invoke the installed Gemini skill guidance.\n\n"
+            "## Codex Integration\n\n"
+            "Use this bridge when Codex should apply the installed Gemini skill inside the current task.\n\n"
+            "1. Treat the installed Gemini skill as the implementation source.\n"
+            "2. Keep the Codex bridge lightweight and descriptive.\n"
+            "3. If the project keeps `.codex/skills/` local-only, leave the generated bridge uncommitted and let `skill-manager` manage its ignore entry.\n"
+        )
+
     def claude_reference_skill_content(self, skill_name: str, target_project_path: str) -> str:
         """Build a lightweight Claude reference skill that points at the installed Gemini skill."""
         metadata = self.get_installed_skill_metadata(skill_name, target_project_path) or {}
@@ -640,11 +669,11 @@ class SkillInstaller:
         return bridges
 
     def supports_codex_bridge(self, skill_name: str) -> bool:
-        """Check whether a skill has a bridge wrapper intended for Codex."""
-        skill_config = self.get_skill_config(skill_name)
-        if not skill_config["supports"].get("codex_bridge", True):
+        """Check whether a skill can get a Codex bridge."""
+        if not skill_name:
             return False
-        return skill_name in self.get_available_codex_bridges()
+        skill_config = self.get_skill_config(skill_name)
+        return bool(skill_config["supports"].get("codex_bridge", True))
 
     def supports_claude_reference(self, skill_name: str) -> bool:
         """Check whether a skill can get a generated Claude reference skill."""
@@ -865,21 +894,35 @@ class SkillInstaller:
         self.logger.info("\nRun 'python install.py' or 'python check_updates.py' to update.\n")
 
     def install_codex_bridge(self, skill_name: str, target_project_path: str) -> bool:
-        """Install a lightweight Codex bridge wrapper for a skill when available."""
-        source_path = os.path.join(self.codex_bridges_dir(), skill_name)
-        if not os.path.isfile(os.path.join(source_path, "SKILL.md")):
+        """Install a lightweight Codex bridge wrapper for a skill."""
+        source_skill_path = os.path.join(target_project_path, ".gemini", "skills", skill_name, "SKILL.md")
+        if not os.path.isfile(source_skill_path):
             self.logger.info(
-                f"Skipping Codex bridge for '{skill_name}': no bridge wrapper is published for this skill."
+                f"Skipping Codex bridge for '{skill_name}': the Gemini skill is not installed in the target project."
             )
             return False
 
+        if not self.supports_codex_bridge(skill_name):
+            self.logger.info(
+                f"Skipping Codex bridge for '{skill_name}': this skill is not eligible for Codex bridge generation."
+            )
+            return False
+
+        source_path = os.path.join(self.codex_bridges_dir(), skill_name)
         target_skills_dir = os.path.join(target_project_path, ".codex", "skills")
         os.makedirs(target_skills_dir, exist_ok=True)
         target_path = os.path.join(target_skills_dir, skill_name)
+        target_skill_path = os.path.join(target_path, "SKILL.md")
 
         self.logger.info(f"Installing Codex bridge for '{skill_name}'...")
         try:
-            self._copy_skill_files(os.path.abspath(source_path), os.path.abspath(target_path))
+            if os.path.isfile(os.path.join(source_path, "SKILL.md")):
+                self._copy_skill_files(os.path.abspath(source_path), os.path.abspath(target_path))
+            else:
+                os.makedirs(target_path, exist_ok=True)
+                content = self.codex_bridge_skill_content(skill_name, target_project_path)
+                with open(target_skill_path, "w", encoding="utf-8") as handle:
+                    handle.write(content)
             self._register_managed_skill(target_project_path, "codex", skill_name)
             self.ensure_managed_gitignore_entries(target_project_path)
             self.logger.info(f"Successfully installed Codex bridge for '{skill_name}'.")

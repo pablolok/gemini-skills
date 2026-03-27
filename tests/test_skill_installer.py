@@ -198,6 +198,8 @@ class TestSkillInstaller(unittest.TestCase):
         """Verify Gemini-only skills are not treated as Codex/Claude companion candidates."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
+        self.assertTrue(installer.supports_codex_bridge("compliance-audit-verification-gates"))
+        self.assertTrue(installer.supports_claude_reference("compliance-audit-verification-gates"))
         self.assertFalse(installer.supports_codex_bridge("subagent-balancer"))
         self.assertFalse(installer.supports_claude_reference("subagent-balancer"))
         self.assertFalse(installer.supports_codex_bridge("subagent-balancer-api"))
@@ -205,9 +207,31 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertFalse(installer.supports_codex_bridge("subagent-balancer-orchestrator"))
         self.assertFalse(installer.supports_claude_reference("subagent-balancer-orchestrator"))
 
+    def test_install_codex_bridge_generates_reference_when_no_explicit_wrapper_exists(self) -> None:
+        """Verify supported skills can get a generated Codex bridge without a repo-owned wrapper."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            installer.install_skill("audit/compliance-audit-verification-gates", temp_dir)
+
+            success = installer.install_codex_bridge("compliance-audit-verification-gates", temp_dir)
+
+            self.assertTrue(success)
+            bridge_path = os.path.join(
+                temp_dir,
+                ".codex",
+                "skills",
+                "compliance-audit-verification-gates",
+                "SKILL.md",
+            )
+            self.assertTrue(os.path.isfile(bridge_path))
+            with open(bridge_path, "r", encoding="utf-8") as handle:
+                content = handle.read()
+            self.assertIn("Use the installed Gemini skill", content)
+            self.assertIn(".gemini/skills/compliance-audit-verification-gates/SKILL.md", content)
+
     def test_ensure_managed_gitignore_entries_preserves_existing_content(self) -> None:
         """Verify gitignore updates keep user content outside the managed block."""
-        import tempfile
 
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 

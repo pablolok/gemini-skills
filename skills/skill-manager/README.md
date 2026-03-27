@@ -164,7 +164,8 @@ Recommended Codex flow:
 Supported install flows:
 - `install.py` asks whether supported selected skills should also get `.codex/skills/` bridge wrappers
 - `/skill-manager:install --with-codex ...` installs the Gemini skill and any matching Codex bridge wrappers in one step
-- if a skill has no bridge wrapper in this repository, no `.codex` copy is created
+- if a skill has an explicit bridge wrapper in this repository, that wrapper is copied into `.codex/skills/`
+- if a skill is Codex-eligible but has no explicit wrapper, `skill-manager` generates a lightweight Codex bridge automatically
 
 The standard Codex bridge skills in this repo are audit/review/publishing/install bridges. The balancer family is Gemini-specific and should not normally be treated as Codex bridge skills.
 
