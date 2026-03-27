@@ -10,6 +10,10 @@ from unittest.mock import MagicMock, patch
 # We'll implement these in install.py
 # For now, we'll try to import them, which will fail initially (Red phase)
 from install import (
+    ANSI_BOLD,
+    ANSI_GRAY,
+    ANSI_WHITE,
+    ANSI_YELLOW,
     INSTALLER_BANNER,
     SkillSelector,
     SkillInstaller,
@@ -87,6 +91,21 @@ class TestSkillInstaller(unittest.TestCase):
         options = args[0]["questions"][0]["options"]
         self.assertEqual(len(options), 1)
         self.assertIn("[Update Available] (1.0.0 -> 2.0.0)", options[0]["description"])
+        self.assertEqual(options[0]["state"], "update")
+
+    def test_select_skills_marks_new_and_installed_states(self) -> None:
+        """Verify selector payload includes item state for terminal styling."""
+        selector = SkillSelector(self.mock_ask_user)
+
+        available_skills = {"audit": ["skill_a", "skill_b"]}
+        installed_skills = {"skill_b": "1.0.0"}
+
+        selector.select_skills(available_skills, installed_skills, [])
+
+        args, _kwargs = self.mock_ask_user.call_args
+        options = args[0]["questions"][0]["options"]
+        self.assertEqual(options[0]["state"], "new")
+        self.assertEqual(options[1]["state"], "installed")
     @patch("shutil.copytree")
     @patch("os.path.exists")
     @patch("os.makedirs")
@@ -399,6 +418,28 @@ class TestSkillInstaller(unittest.TestCase):
         rendered = output.getvalue()
         self.assertIn("Use arrows, space to toggle, A to select all, Enter to confirm.", rendered)
         self.assertNotIn("left/right to switch tabs", rendered)
+
+    def test_terminal_multi_select_colors_items_by_state(self) -> None:
+        """Verify installed, update, and new items get distinct colors in the terminal UI."""
+        question = {
+            "question": "Pick skills",
+            "multiSelect": True,
+            "options": [
+                {"label": "audit/new-skill", "description": "brand new", "state": "new"},
+                {"label": "audit/old-skill", "description": "already installed", "state": "installed"},
+                {"label": "audit/update-skill", "description": "needs update", "state": "update"},
+            ],
+        }
+        output = io.StringIO()
+        selector = TerminalMultiSelect(question, input_stream=io.StringIO(), output_stream=output)
+        selector.enable_color = True
+
+        selector.run(read_key=lambda: "ENTER")
+
+        rendered = output.getvalue()
+        self.assertIn(f"{ANSI_WHITE}{ANSI_BOLD}audit/new-skill", rendered)
+        self.assertIn(f"{ANSI_GRAY}audit/old-skill", rendered)
+        self.assertIn(f"{ANSI_YELLOW}{ANSI_BOLD}audit/update-skill", rendered)
 
     def test_terminal_multi_select_raises_on_quit(self) -> None:
         """Verify the richer terminal selector exits cleanly on quit."""

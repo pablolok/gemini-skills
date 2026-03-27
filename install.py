@@ -19,6 +19,8 @@ ANSI_BOLD = "\x1b[1m"
 ANSI_CYAN = "\x1b[36m"
 ANSI_GREEN = "\x1b[32m"
 ANSI_YELLOW = "\x1b[33m"
+ANSI_WHITE = "\x1b[97m"
+ANSI_GRAY = "\x1b[90m"
 INSTALLER_BANNER = (
     " ____  _    _ _ _ _      __  __                                    \n"
     "/ ___|| | _(_) | | |    |  \\/  | __ _ _ __   __ _  __ _  ___ _ __  \n"
@@ -149,15 +151,19 @@ class SkillSelector:
             for skill in skills:
                 label = f"{category}/{skill}"
                 status = ""
+                state = "new"
                 if skill in update_map:
                     update_info = update_map[skill]
                     status = f" [Update Available] ({update_info['installed']} -> {update_info['latest']})"
+                    state = "update"
                 elif skill in installed:
                     status = f" [Installed v{installed[skill]}]"
+                    state = "installed"
                 
                 options.append({
                     "label": label,
-                    "description": f"Official {category} skill: {skill}{status}"
+                    "description": f"Official {category} skill: {skill}{status}",
+                    "state": state,
                 })
 
         if not options:
@@ -306,6 +312,7 @@ class TerminalMultiSelect:
 
         for index in self.grouped_indices[self.active_group]:
             option = self.options[index]
+            state = str(option.get("state", "new"))
             pointer = (
                 style_text(">", ANSI_GREEN, ANSI_BOLD, enable_color=self.enable_color)
                 if index == self._current_option_index()
@@ -315,10 +322,11 @@ class TerminalMultiSelect:
             if not self.multi_select:
                 selected = "(*)" if index in self.selected else "( )"
             description = option.get("description", "")
+            label_styles, description_styles = self._option_styles(state)
             frame_lines.extend(
                 [
-                    f"{pointer} {selected} {style_text(option['label'], ANSI_BOLD, enable_color=self.enable_color)}",
-                    f"    {description}",
+                    f"{pointer} {selected} {style_text(option['label'], *label_styles, enable_color=self.enable_color)}",
+                    f"    {style_text(description, *description_styles, enable_color=self.enable_color)}",
                 ]
             )
         self._write_frame(frame_lines)
@@ -346,6 +354,13 @@ class TerminalMultiSelect:
         self.output_stream.write("\x1b[H")
         self.output_stream.flush()
         self.last_rendered_line_count = visible_lines
+
+    def _option_styles(self, state: str) -> typing.Tuple[typing.Tuple[str, ...], typing.Tuple[str, ...]]:
+        if state == "installed":
+            return ((ANSI_GRAY,), (ANSI_GRAY,))
+        if state == "update":
+            return ((ANSI_YELLOW, ANSI_BOLD), (ANSI_YELLOW,))
+        return ((ANSI_WHITE, ANSI_BOLD), tuple())
 
     def _hide_cursor(self) -> None:
         self.output_stream.write("\x1b[?25l")
