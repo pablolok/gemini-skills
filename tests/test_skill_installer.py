@@ -360,6 +360,27 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertIn("workflow/skill3", rendered)
         self.assertIn("Total selected: 3", rendered)
 
+    def test_terminal_multi_select_avoids_full_clear_on_every_refresh(self) -> None:
+        """Verify rerenders repaint the frame without clearing the full visible region."""
+        question = {
+            "question": "Pick skills",
+            "multiSelect": True,
+            "options": [
+                {"label": "audit/skill1", "description": "desc1"},
+                {"label": "workflow/skill2", "description": "desc2"},
+            ],
+        }
+        output = io.StringIO()
+        selector = TerminalMultiSelect(question, input_stream=io.StringIO(), output_stream=output)
+        keys = iter(["DOWN", "ENTER"])
+
+        selector.run(read_key=lambda: next(keys))
+
+        rendered = output.getvalue()
+        self.assertEqual(rendered.count("\x1b[2J\x1b[H"), 2)
+        self.assertNotIn("\x1b[H\x1b[J", rendered)
+        self.assertIn("\x1b[2K", rendered)
+
     def test_terminal_multi_select_single_category_keeps_legacy_prompt(self) -> None:
         """Verify the non-tab selector path remains unchanged for a single category."""
         question = {

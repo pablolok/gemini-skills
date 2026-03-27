@@ -200,6 +200,8 @@ class TerminalMultiSelect:
         self.group_names, self.grouped_indices = self._build_groups()
         self.active_group = 0
         self.group_cursor_positions = [0 for _ in self.group_names]
+        self.has_rendered = False
+        self.last_rendered_line_count = 0
 
     def run(self, read_key: typing.Optional[KeyReader] = None) -> typing.List[str]:
         """Run the interactive selector and return selected labels."""
@@ -258,27 +260,22 @@ class TerminalMultiSelect:
         return [self.options[index]["label"] for index in sorted(self.selected)]
 
     def _render(self) -> None:
-        self._clear_screen()
-        self.output_stream.write(installer_banner_text(self.enable_color) + "\n\n")
+        self._prepare_screen()
+        frame_lines = [*installer_banner_text(self.enable_color).splitlines(), ""]
         question = self.question.get("question", "Select option(s):")
-        self.output_stream.write(
-            style_text(question, ANSI_BOLD, enable_color=self.enable_color) + "\n"
-        )
+        frame_lines.append(style_text(question, ANSI_BOLD, enable_color=self.enable_color))
         if self._has_multiple_groups():
-            self.output_stream.write(
-                style_text("Categories", ANSI_BOLD, enable_color=self.enable_color) + "\n"
-            )
-            self.output_stream.write(self._format_tab_bar() + "\n")
-            self.output_stream.write(
+            frame_lines.append(style_text("Categories", ANSI_BOLD, enable_color=self.enable_color))
+            frame_lines.extend(self._format_tab_bar().splitlines())
+            frame_lines.append(
                 style_text(
                     self._format_tab_status_line(),
                     ANSI_CYAN,
                     enable_color=self.enable_color,
                 )
-                + "\n"
             )
         if self.multi_select:
-            self.output_stream.write(
+            frame_lines.extend(
                 style_text(
                     (
                         "Use arrows to move, left/right to switch tabs, space to toggle, "
@@ -289,10 +286,11 @@ class TerminalMultiSelect:
                     ANSI_YELLOW,
                     enable_color=self.enable_color,
                 )
-                + "\n\n"
+                .splitlines()
             )
+            frame_lines.append("")
         else:
-            self.output_stream.write(
+            frame_lines.extend(
                 style_text(
                     (
                         "Use arrows to move, left/right to switch tabs, Enter to confirm."
@@ -302,8 +300,9 @@ class TerminalMultiSelect:
                     ANSI_YELLOW,
                     enable_color=self.enable_color,
                 )
-                + "\n\n"
+                .splitlines()
             )
+            frame_lines.append("")
 
         for index in self.grouped_indices[self.active_group]:
             option = self.options[index]
@@ -316,15 +315,37 @@ class TerminalMultiSelect:
             if not self.multi_select:
                 selected = "(*)" if index in self.selected else "( )"
             description = option.get("description", "")
-            self.output_stream.write(
-                f"{pointer} {selected} {style_text(option['label'], ANSI_BOLD, enable_color=self.enable_color)}\n"
-                f"    {description}\n"
+            frame_lines.extend(
+                [
+                    f"{pointer} {selected} {style_text(option['label'], ANSI_BOLD, enable_color=self.enable_color)}",
+                    f"    {description}",
+                ]
             )
-        self.output_stream.flush()
+        self._write_frame(frame_lines)
 
     def _clear_screen(self) -> None:
         self.output_stream.write("\x1b[2J\x1b[H")
         self.output_stream.flush()
+
+    def _prepare_screen(self) -> None:
+        if not self.has_rendered:
+            self._clear_screen()
+            self.has_rendered = True
+            return
+        self.output_stream.write("\x1b[H")
+        self.output_stream.flush()
+
+    def _write_frame(self, frame_lines: typing.Sequence[str]) -> None:
+        visible_lines = len(frame_lines)
+        padded_lines = list(frame_lines)
+        if self.last_rendered_line_count > visible_lines:
+            padded_lines.extend("" for _ in range(self.last_rendered_line_count - visible_lines))
+
+        for line in padded_lines:
+            self.output_stream.write(f"\x1b[2K{line}\n")
+        self.output_stream.write("\x1b[H")
+        self.output_stream.flush()
+        self.last_rendered_line_count = visible_lines
 
     def _hide_cursor(self) -> None:
         self.output_stream.write("\x1b[?25l")
