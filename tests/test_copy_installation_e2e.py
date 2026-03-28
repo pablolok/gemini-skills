@@ -160,6 +160,29 @@ class TestCopyInstallationE2E(unittest.TestCase):
         self.assertTrue(os.path.isdir(unmanaged_path))
 
     @unittest.skipUnless(os.name == "nt", "Windows junction tests only run on Windows")
+    def test_uninstall_skill_removes_legacy_junction_artifact(self) -> None:
+        """Verify uninstall removes a managed skill even if its Gemini payload is a junction."""
+        skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
+        self.installer.install_skill(skill_rel_path, self.project_dir)
+
+        target_path = os.path.join(self.project_dir, ".gemini", "skills", self.skill_name)
+        shutil.rmtree(target_path)
+
+        import subprocess
+
+        subprocess.run(
+            ["cmd", "/c", "mklink", "/J", target_path, os.path.abspath(self.skill_src_path)],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        success = self.installer.uninstall_skill(self.skill_name, self.project_dir)
+
+        self.assertTrue(success)
+        self.assertFalse(os.path.exists(target_path))
+
+    @unittest.skipUnless(os.name == "nt", "Windows junction tests only run on Windows")
     def test_transition_from_junction_to_copy(self) -> None:
         """Verify that a legacy junction is correctly replaced by a copy."""
         skill_rel_path = f"{self.skill_cat}/{self.skill_name}"

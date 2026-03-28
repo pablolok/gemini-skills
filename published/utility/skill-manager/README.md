@@ -4,7 +4,9 @@ Manage and install official Gemini skills from the global skills repository.
 
 ## Features
 
+- **Unified Launcher**: Use `manage.py` to choose between the installer and uninstaller from one shared entry point.
 - **Interactive Installation**: Use `install.py` to select and install skills.
+- **Interactive Uninstall**: Use `uninstall.py` to remove only the skills currently managed by `skill-manager`.
 - **Update Checking**: Use `check_updates.py` to see if your installed skills are out of date.
 - **Post-Installation Hooks**: Automatically executes `post_install.py` for project-specific setup.
 - **Physical Copying**: Replaces legacy junctions with robust file copying for better version tracking.
@@ -14,8 +16,18 @@ Manage and install official Gemini skills from the global skills repository.
 
 ## Usage
 
-### Install/Update Skills
-Run the installer from your project's root:
+### Manage Skills
+Run the shared launcher from your project's root:
+```bash
+python <path-to-gemini-skills>/manage.py
+```
+
+The launcher presents two flows:
+- `install` opens `install.py` to add or update skills
+- `uninstall` opens `uninstall.py` to remove managed skills
+
+### Install/Update Skills Directly
+Run the installer directly from your project's root:
 ```bash
 python <path-to-gemini-skills>/install.py
 ```
@@ -27,6 +39,18 @@ Installer UX modes:
 - After skill selection, the installer now asks whether matching Codex bridge wrappers should also be installed for supported skills.
 - After skill selection, the installer can also generate matching Claude reference skills in `.claude/skills/`.
 - Support for those companion artifacts is controlled by the repo-level `install.config.json` catalog, so Gemini-only skills can stay Gemini-only during install flows.
+
+### Uninstall Skills Directly
+Run the uninstaller directly from your project's root:
+```bash
+python <path-to-gemini-skills>/uninstall.py
+```
+
+Uninstaller notes:
+- It only shows skills currently tracked in `.gemini/skill-manager-manifest.json`.
+- It removes the managed Gemini skill plus any managed Codex and Claude companion artifacts for the same skill.
+- On Windows, it safely removes legacy junction-based installs before falling back to recursive directory deletion.
+- It refreshes the managed block in `.gitignore` after removal.
 
 ### Check for Updates
 Run the update checker from your project's root:

@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.6.9] - 2026-03-28
+- Handle Windows junction cleanup during uninstall and manifest normalization
+
+
+## [Unreleased]
+
 ## [1.6.8] - 2026-03-27
 - Add reusable managed uninstall flow and tighten manifest handling
 
@@ -15,10 +21,6 @@
 ## [1.6.5] - 2026-03-27
 - Add shared-vs-gemini-only installer catalog
 
-
-## [Unreleased]
-- Add a repo-level `install.config.json` catalog so skills can be classified as shared or Gemini-only.
-- Make installer and runtime companion generation honor those support flags, so Gemini-only skills like the balancer family are not treated as Codex bridge or Claude reference candidates.
 
 ## [1.6.4] - 2026-03-27
 - Preserve gitignore content and track exact installed skill paths

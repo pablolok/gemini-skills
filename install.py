@@ -990,7 +990,7 @@ class SkillInstaller:
                 skill_path = os.path.join(base_paths[kind], skill_name)
                 if kind in ("codex", "claude") and not self._companion_skill_still_supported(kind, skill_name):
                     if os.path.isdir(skill_path):
-                        shutil.rmtree(skill_path)
+                        self._remove_directory_tree(skill_path)
                     changed = True
                     continue
                 if not os.path.isdir(skill_path):
@@ -1198,7 +1198,7 @@ class SkillInstaller:
 
         for kind, path in targets.items():
             if os.path.isdir(path):
-                shutil.rmtree(path)
+                self._remove_directory_tree(path)
                 removed = True
             self._unregister_managed_skill(target_project_path, kind, skill_name)
 
@@ -1263,6 +1263,13 @@ class SkillInstaller:
             os.rmdir(path)
         else:
             os.remove(path)
+
+    def _remove_directory_tree(self, path: str) -> None:
+        """Remove a directory tree or legacy link/junction safely."""
+        if self._is_link_or_junction(path):
+            self._remove_junction(path)
+            return
+        shutil.rmtree(path)
 
     def _run_post_install_hook(self, hook_path: str, target_project_path: str) -> None:
         """Execute the post_install.py script for a skill."""

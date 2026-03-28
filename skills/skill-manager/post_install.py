@@ -334,6 +334,28 @@ def _companion_skill_still_supported(kind: str, skill_name: str) -> bool:
     return True
 
 
+def _is_link_or_junction(path: str) -> bool:
+    if os.path.islink(path):
+        return True
+
+    if sys.platform == "win32":
+        try:
+            import ctypes
+
+            attrs = ctypes.windll.kernel32.GetFileAttributesW(path)
+            return attrs != -1 and bool(attrs & 0x400)
+        except Exception:
+            return False
+    return False
+
+
+def _remove_junction(path: str) -> None:
+    if sys.platform == "win32":
+        os.rmdir(path)
+    else:
+        os.remove(path)
+
+
 def _normalize_managed_skill_manifest(target_project_path: str, manifest: Dict[str, Any]) -> Dict[str, Any]:
     base_paths = {
         "gemini": os.path.join(target_project_path, ".gemini", "skills"),
@@ -349,7 +371,10 @@ def _normalize_managed_skill_manifest(target_project_path: str, manifest: Dict[s
             skill_path = os.path.join(base_paths[kind], skill_name)
             if kind in ("codex", "claude") and not _companion_skill_still_supported(kind, skill_name):
                 if os.path.isdir(skill_path):
-                    shutil.rmtree(skill_path)
+                    if _is_link_or_junction(skill_path):
+                        _remove_junction(skill_path)
+                    else:
+                        shutil.rmtree(skill_path)
                 changed = True
                 continue
             if not os.path.isdir(skill_path):

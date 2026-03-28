@@ -49,6 +49,7 @@ python <path-to-gemini-skills>/uninstall.py
 Uninstaller notes:
 - It only shows skills currently tracked in `.gemini/skill-manager-manifest.json`.
 - It removes the managed Gemini skill plus any managed Codex and Claude companion artifacts for the same skill.
+- On Windows, it safely removes legacy junction-based installs before falling back to recursive directory deletion.
 - It refreshes the managed block in `.gitignore` after removal.
 
 ### Check for Updates
