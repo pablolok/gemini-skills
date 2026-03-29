@@ -22,6 +22,11 @@ Run the shared launcher from your project's root:
 python <path-to-gemini-skills>/manage.py
 ```
 
+If your terminal is not already in the destination repo root, pass the target explicitly:
+```bash
+python <path-to-gemini-skills>/manage.py --target-project <path-to-project>
+```
+
 The launcher presents two flows:
 - `install` opens `install.py` to add or update skills
 - `uninstall` opens `uninstall.py` to remove managed skills
@@ -32,13 +37,20 @@ Run the installer directly from your project's root:
 python <path-to-gemini-skills>/install.py
 ```
 
+If you need to install into a different repo than the current working directory:
+```bash
+python <path-to-gemini-skills>/install.py --target-project <path-to-project>
+```
+
 Installer UX modes:
 - Default CLI behavior uses a richer terminal multi-select component when running in a real TTY, including an ASCII title and ANSI colors when the terminal supports them.
 - Use `python <path-to-gemini-skills>/install.py --simple` to force the lightweight numbered prompt.
+- Use `--target-project <path>` or `--project-root <path>` to force the destination project root instead of relying on the current working directory.
 - Gemini or other agent-driven integrations should keep using the lightweight ask-user contract through `SkillInstaller` rather than the terminal widget.
 - After skill selection, the installer now asks whether matching Codex bridge wrappers should also be installed for supported skills.
 - After skill selection, the installer can also generate matching Claude reference skills in `.claude/skills/`.
 - Support for those companion artifacts is controlled by the repo-level `install.config.json` catalog, so Gemini-only skills can stay Gemini-only during install flows.
+- After a successful install, the CLI prints the exact target project path plus the managed `.gemini/`, `.codex/`, `.claude/`, and `skill-manager` integration paths it touched.
 
 ### Uninstall Skills Directly
 Run the uninstaller directly from your project's root:
@@ -46,13 +58,20 @@ Run the uninstaller directly from your project's root:
 python <path-to-gemini-skills>/uninstall.py
 ```
 
+If you need to uninstall from a different repo than the current working directory:
+```bash
+python <path-to-gemini-skills>/uninstall.py --target-project <path-to-project>
+```
+
 Uninstaller notes:
 - It only shows skills currently tracked in `.gemini/skill-manager-manifest.json`.
 - It removes the managed Gemini skill plus any managed Codex and Claude companion artifacts for the same skill.
+- Use `--target-project <path>` or `--project-root <path>` to force the destination project root instead of relying on the current working directory.
 - On Windows, it safely removes legacy junction-based installs before falling back to recursive directory deletion.
 - On Windows, direct directory removal now retries briefly after transient file-lock failures during recursive deletes.
 - If one managed artifact cannot be removed, uninstall logs the failure, keeps that artifact registered, and continues cleaning up the other managed companion artifacts.
 - It refreshes the managed block in `.gitignore` after removal.
+- After a successful uninstall, the CLI prints the exact target project path plus the managed skill directories associated with that project.
 
 ### Check for Updates
 Run the update checker from your project's root:

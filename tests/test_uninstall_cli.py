@@ -52,6 +52,7 @@ class TestUninstallCli(unittest.TestCase):
                 temp_dir,
             )
             mock_manage_main.assert_not_called()
+            mock_print.assert_any_call(f"Target project: {temp_dir}")
             mock_print.assert_any_call("Removed 1 managed skill(s):")
             mock_print.assert_any_call("- review-optimization")
 

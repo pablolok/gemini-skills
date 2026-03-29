@@ -22,6 +22,7 @@ available = installer.get_available_skills()
 ```
 
 For direct human CLI usage, prefer `python <path-to-gemini-skills>/manage.py` as the shared launcher entry point.
+If the terminal is not already in the destination project root, pass `--target-project <path>` (or `--project-root <path>`) so installs and uninstalls mutate the intended repository instead of the current working directory.
 
 ### 2. Install Skills
 To install a skill, use the `SkillInstaller` and `SkillSelector` logic.
@@ -33,6 +34,7 @@ installer.install_skill(skill_path, os.getcwd())
 ```
 
 For direct human CLI usage, `install.py` may use a richer terminal multi-select UI. For Gemini or programmatic usage, keep using the lightweight `ask_user`-compatible flow exposed by `SkillSelector` and `SkillInstaller`.
+For direct CLI usage, the installer should resolve the target project from `--target-project` / `--project-root` when present, otherwise from the current working directory, and it should print the exact target path plus the managed `.gemini/`, `.codex/`, `.claude/`, and `skill-manager` integration locations after a successful install.
 
 If the user also wants Codex or Claude companion artifacts, install the Gemini skill first and then use `install_codex_bridge(...)` and/or `install_claude_reference(...)`, or pass `--with-codex` and `--with-claude` through the installed `/skill-manager:install` helper.
 Only offer those companion artifacts when the repo-level `install.config.json` marks the skill as eligible for them.
@@ -45,6 +47,7 @@ Rules:
 - Only offer skills currently tracked as managed.
 - Do not treat arbitrary local `.gemini/skills/`, `.codex/skills/`, or `.claude/skills/` folders as uninstall candidates.
 - Reuse the existing uninstall runtime path instead of duplicating manifest, companion cleanup, or `.gitignore` refresh logic.
+- For direct CLI usage, resolve the target project from `--target-project` / `--project-root` when present, otherwise from the current working directory, and print the exact target path so the user can verify where the uninstall is operating.
 - If uninstalling one managed artifact raises an OS-level removal error, log it, keep that artifact registered, and continue removing the other managed companion artifacts instead of crashing the whole uninstall flow.
 
 ### 3. Check for Updates

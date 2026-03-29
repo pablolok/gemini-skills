@@ -31,6 +31,22 @@ def load_runtime_config(root: str | None = None) -> Dict[str, Any]:
         return json.load(handle)
 
 
+def bundled_repo_root() -> str | None:
+    """Resolve the gemini-skills checkout that contains this runtime module, if any."""
+    current = os.path.abspath(os.path.dirname(__file__))
+
+    while True:
+        install_path = os.path.join(current, "install.py")
+        published_path = os.path.join(current, "published")
+        if os.path.isfile(install_path) and os.path.isdir(published_path):
+            return current
+
+        parent = os.path.dirname(current)
+        if parent == current:
+            return None
+        current = parent
+
+
 def resolve_source_repo(root: str | None = None) -> str | None:
     env_override = os.environ.get("GEMINI_SKILLS_REPO")
     if env_override and os.path.exists(env_override):
@@ -40,6 +56,10 @@ def resolve_source_repo(root: str | None = None) -> str | None:
     source_repo_root = config.get("source_repo_root")
     if source_repo_root and os.path.exists(source_repo_root):
         return os.path.abspath(source_repo_root)
+
+    bundled = bundled_repo_root()
+    if bundled:
+        return bundled
 
     return None
 

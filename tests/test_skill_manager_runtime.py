@@ -2,6 +2,7 @@
 
 import importlib.util
 import os
+import tempfile
 import unittest
 from unittest.mock import MagicMock, patch
 
@@ -21,6 +22,14 @@ RUNTIME = _load_module(
 
 
 class TestSkillManagerRuntime(unittest.TestCase):
+    def test_resolve_published_dir_falls_back_to_bundled_repo_checkout(self) -> None:
+        """Verify source-repo runtime works without an installed runtime_config.json."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            published_dir = RUNTIME.resolve_published_dir(root=temp_dir)
+
+        expected = os.path.abspath("published")
+        self.assertEqual(published_dir, expected)
+
     def test_install_named_skills_respects_companion_support_flags(self) -> None:
         """Verify runtime installs skip Codex and Claude companions for Gemini-only skills."""
         installer = MagicMock()

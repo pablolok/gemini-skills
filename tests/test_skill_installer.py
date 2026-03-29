@@ -21,6 +21,8 @@ from install import (
     TerminalMultiSelect,
     get_cli_ask_user,
     parse_selection_input,
+    print_target_project_summary,
+    resolve_target_project_path,
 )
 
 class TestSkillInstaller(unittest.TestCase):
@@ -587,15 +589,48 @@ class TestSkillInstaller(unittest.TestCase):
 
         self.assertIs(ask_user, manual_ask_user)
 
+    @patch("os.getcwd", return_value="C:/repo/default-target")
+    def test_resolve_target_project_path_uses_current_directory_by_default(self, mock_getcwd) -> None:
+        """Verify install target defaults to the current working directory."""
+        target = resolve_target_project_path([])
+
+        self.assertEqual(target, os.path.abspath("C:/repo/default-target"))
+        mock_getcwd.assert_called_once()
+
+    def test_resolve_target_project_path_supports_explicit_override(self) -> None:
+        """Verify install target can be overridden explicitly."""
+        target = resolve_target_project_path(["--target-project", "C:/repo/explicit-target"])
+
+        self.assertEqual(target, os.path.abspath("C:/repo/explicit-target"))
+
+    @patch("builtins.print")
+    def test_print_target_project_summary_reports_managed_locations(self, mock_print) -> None:
+        """Verify install summaries show the exact project paths that will be touched."""
+        print_target_project_summary(
+            "C:/repo/sample",
+            skill_names=["skill-manager", "review-optimization"],
+            include_codex=True,
+            include_claude=True,
+        )
+
+        printed = "\n".join(str(call.args[0]) for call in mock_print.call_args_list if call.args)
+        self.assertIn("Target project: C:/repo/sample", printed)
+        self.assertIn(os.path.join("C:/repo/sample", ".gemini", "skills"), printed)
+        self.assertIn(os.path.join("C:/repo/sample", ".codex", "skills"), printed)
+        self.assertIn(os.path.join("C:/repo/sample", ".claude", "skills"), printed)
+        self.assertIn(os.path.join("C:/repo/sample", ".gemini", "commands", "skill-manager"), printed)
+
     @patch("install.SkillInstaller")
     @patch("install.SkillSelector")
     @patch("install.get_cli_ask_user")
+    @patch("builtins.print")
     @patch("os.getcwd")
     @patch("os.path.exists")
     def test_main_function(
         self,
         mock_exists,
         mock_getcwd,
+        mock_print,
         mock_get_cli_ask_user,
         mock_selector,
         mock_installer,
@@ -621,6 +656,7 @@ class TestSkillInstaller(unittest.TestCase):
             mock_sel_instance.select_skills_with_action.assert_called_once()
             mock_inst_instance.install_skill.assert_called_once_with("audit/skill1", temp_dir)
             mock_inst_instance.ensure_managed_gitignore_entries.assert_called_with(temp_dir)
+            mock_print.assert_any_call(f"Target project: {temp_dir}")
 
     @patch("install.SkillInstaller")
     @patch("install.SkillSelector")

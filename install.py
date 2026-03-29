@@ -2,6 +2,7 @@
 Allows users to install official skills from the 'published/' directory into their projects.
 """
 
+import argparse
 import os
 import sys
 import subprocess
@@ -1516,6 +1517,40 @@ def get_cli_ask_user(argv: typing.Optional[typing.Sequence[str]] = None) -> typi
     return terminal_ask_user
 
 
+def resolve_target_project_path(argv: typing.Optional[typing.Sequence[str]] = None) -> str:
+    """Resolve the project path the installer should mutate."""
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        "--target-project",
+        "--project-root",
+        dest="target_project",
+    )
+    parsed, _unknown = parser.parse_known_args(list(argv or sys.argv[1:]))
+    target = parsed.target_project or os.getcwd()
+    return os.path.abspath(target)
+
+
+def print_target_project_summary(
+    target_project: str,
+    *,
+    skill_names: typing.Optional[typing.Sequence[str]] = None,
+    include_codex: bool = False,
+    include_claude: bool = False,
+) -> None:
+    """Show the exact project path and managed locations touched by the installer."""
+    print(f"Target project: {target_project}")
+    print(f"Gemini skills: {os.path.join(target_project, '.gemini', 'skills')}")
+    if include_codex:
+        print(f"Codex bridges: {os.path.join(target_project, '.codex', 'skills')}")
+    if include_claude:
+        print(f"Claude references: {os.path.join(target_project, '.claude', 'skills')}")
+    if skill_names and "skill-manager" in set(skill_names):
+        print(f"Gemini commands: {os.path.join(target_project, '.gemini', 'commands', 'skill-manager')}")
+        print(f"Gemini settings: {os.path.join(target_project, '.gemini', 'settings.json')}")
+        print(f"Managed manifest: {os.path.join(target_project, '.gemini', 'skill-manager-manifest.json')}")
+        print(f"Gitignore: {os.path.join(target_project, '.gitignore')}")
+
+
 def main() -> None:
     """Run the CLI entry point for manual or agent execution."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
@@ -1530,10 +1565,17 @@ def main() -> None:
         logger.error(f"Published skills directory not found: {published_dir}")
         sys.exit(1)
     
-    target_project = os.getcwd()
+    target_project = resolve_target_project_path()
     if not os.access(target_project, os.W_OK):
         logger.error(f"Target project directory is not writable: {target_project}")
         sys.exit(1)
+    logger.info("Target project directory: %s", target_project)
+    if os.path.abspath(target_project) == os.path.abspath(script_dir):
+        logger.warning(
+            "Installer target matches the gemini-skills repository root. "
+            "Run the command from the destination repo root or pass --target-project <path> "
+            "to install into a different project."
+        )
 
     # Run the installation flow
     ask_user_fn = get_cli_ask_user()
@@ -1603,6 +1645,13 @@ def main() -> None:
     if not selected:
         logger.info("No skills selected.")
         print("No skills selected.")
+    else:
+        print_target_project_summary(
+            target_project,
+            skill_names=selected_skill_names,
+            include_codex=bool(install_codex_for),
+            include_claude=bool(install_claude_for),
+        )
     logger.info(
         "Managed .gitignore entries were %s.",
         "updated" if changed else "verified",

@@ -10,7 +10,12 @@ import os
 import sys
 import typing
 
-from install import SkillSelector, get_cli_ask_user
+from install import (
+    SkillSelector,
+    get_cli_ask_user,
+    print_target_project_summary,
+    resolve_target_project_path,
+)
 
 
 def _load_runtime_module():
@@ -67,10 +72,11 @@ def main() -> None:
     logger = logging.getLogger("skill_uninstaller")
     logger.info("=== Gemini Skill Uninstaller ===")
 
-    target_project = os.getcwd()
+    target_project = resolve_target_project_path()
     if not os.access(target_project, os.W_OK):
         logger.error("Target project directory is not writable: %s", target_project)
         sys.exit(1)
+    logger.info("Target project directory: %s", target_project)
 
     ask_user_fn = get_cli_ask_user()
     managed_installed = RUNTIME.list_managed_installed_skills(target_project)
@@ -129,6 +135,7 @@ def main() -> None:
         return
 
     logger.info("Removed %s managed skill(s).", len(removed))
+    print_target_project_summary(target_project)
     print(f"Removed {len(removed)} managed skill(s):")
     for skill_name in removed:
         print(f"- {skill_name}")

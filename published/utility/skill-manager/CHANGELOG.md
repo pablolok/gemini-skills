@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.11] - 2026-03-29
+- Add explicit target-project support and show install or uninstall target paths
+
+
 ## [1.6.10] - 2026-03-29
 - Handle locked uninstall artifacts gracefully and retry Windows directory cleanup
 
