@@ -189,6 +189,9 @@ def uninstall_named_skills(skill_names: List[str], root: str | None = None) -> L
         normalized = skill_name.strip()
         if not normalized:
             continue
-        if installer.uninstall_skill(normalized, target_root):
-            removed.append(normalized)
+        try:
+            if installer.uninstall_skill(normalized, target_root):
+                removed.append(normalized)
+        except OSError as exc:
+            LOGGER.error("Failed to uninstall '%s': %s", normalized, exc)
     return removed

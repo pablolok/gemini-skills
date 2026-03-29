@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.10] - 2026-03-29
+- Handle locked uninstall artifacts gracefully and retry Windows directory cleanup
+
+
 ## [1.6.9] - 2026-03-28
 - Handle Windows junction cleanup during uninstall and manifest normalization
 

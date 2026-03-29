@@ -50,6 +50,8 @@ Uninstaller notes:
 - It only shows skills currently tracked in `.gemini/skill-manager-manifest.json`.
 - It removes the managed Gemini skill plus any managed Codex and Claude companion artifacts for the same skill.
 - On Windows, it safely removes legacy junction-based installs before falling back to recursive directory deletion.
+- On Windows, direct directory removal now retries briefly after transient file-lock failures during recursive deletes.
+- If one managed artifact cannot be removed, uninstall logs the failure, keeps that artifact registered, and continues cleaning up the other managed companion artifacts.
 - It refreshes the managed block in `.gitignore` after removal.
 
 ### Check for Updates

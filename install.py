@@ -10,6 +10,7 @@ import typing
 import json
 import shutil
 import re
+import time
 
 
 KeyReader = typing.Callable[[], str]
@@ -1196,14 +1197,27 @@ class SkillInstaller:
             "claude": os.path.join(target_project_path, ".claude", "skills", skill_name),
         }
 
+        failed_kinds: typing.Set[str] = set()
         for kind, path in targets.items():
             if os.path.isdir(path):
-                self._remove_directory_tree(path)
-                removed = True
-            self._unregister_managed_skill(target_project_path, kind, skill_name)
+                try:
+                    self._remove_directory_tree(path)
+                    removed = True
+                except OSError as exc:
+                    failed_kinds.add(kind)
+                    self.logger.error(
+                        "Failed to uninstall '%s' %s artifact at '%s': %s",
+                        skill_name,
+                        kind,
+                        path,
+                        exc,
+                    )
+                    continue
+            if kind not in failed_kinds:
+                self._unregister_managed_skill(target_project_path, kind, skill_name)
 
         self.ensure_managed_gitignore_entries(target_project_path)
-        return removed
+        return removed and not failed_kinds
 
     def install_skill(self, skill_rel_path: str, target_project_path: str) -> bool:
         """Install a skill by copying files to the target project."""
@@ -1269,7 +1283,22 @@ class SkillInstaller:
         if self._is_link_or_junction(path):
             self._remove_junction(path)
             return
-        shutil.rmtree(path)
+        attempts = 5 if sys.platform == "win32" else 1
+        delay_seconds = 0.2
+        last_error: typing.Optional[OSError] = None
+
+        for attempt in range(attempts):
+            try:
+                shutil.rmtree(path)
+                return
+            except PermissionError as exc:
+                last_error = exc
+                if sys.platform != "win32" or attempt == attempts - 1:
+                    raise
+                time.sleep(delay_seconds)
+
+        if last_error is not None:
+            raise last_error
 
     def _run_post_install_hook(self, hook_path: str, target_project_path: str) -> None:
         """Execute the post_install.py script for a skill."""

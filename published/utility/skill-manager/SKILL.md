@@ -45,6 +45,7 @@ Rules:
 - Only offer skills currently tracked as managed.
 - Do not treat arbitrary local `.gemini/skills/`, `.codex/skills/`, or `.claude/skills/` folders as uninstall candidates.
 - Reuse the existing uninstall runtime path instead of duplicating manifest, companion cleanup, or `.gitignore` refresh logic.
+- If uninstalling one managed artifact raises an OS-level removal error, log it, keep that artifact registered, and continue removing the other managed companion artifacts instead of crashing the whole uninstall flow.
 
 ### 3. Check for Updates
 To check if installed skills have newer versions available in the global repository:

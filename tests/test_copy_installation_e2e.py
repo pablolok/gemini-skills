@@ -159,6 +159,32 @@ class TestCopyInstallationE2E(unittest.TestCase):
         self.assertFalse(success)
         self.assertTrue(os.path.isdir(unmanaged_path))
 
+    def test_uninstall_skill_returns_false_when_a_managed_artifact_is_locked(self) -> None:
+        """Verify uninstall fails gracefully without crashing when a managed artifact cannot be removed."""
+        skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
+        self.installer.install_skill(skill_rel_path, self.project_dir)
+        self.installer.install_codex_bridge(self.skill_name, self.project_dir)
+
+        gemini_path = os.path.join(self.project_dir, ".gemini", "skills", self.skill_name)
+        codex_path = os.path.join(self.project_dir, ".codex", "skills", self.skill_name)
+
+        original_remove = self.installer._remove_directory_tree
+
+        def failing_remove(path: str) -> None:
+            if path == gemini_path:
+                raise PermissionError("locked")
+            original_remove(path)
+
+        self.installer._remove_directory_tree = failing_remove  # type: ignore[method-assign]
+        try:
+            success = self.installer.uninstall_skill(self.skill_name, self.project_dir)
+        finally:
+            self.installer._remove_directory_tree = original_remove  # type: ignore[method-assign]
+
+        self.assertFalse(success)
+        self.assertTrue(os.path.isdir(gemini_path))
+        self.assertFalse(os.path.exists(codex_path))
+
     @unittest.skipUnless(os.name == "nt", "Windows junction tests only run on Windows")
     def test_uninstall_skill_removes_legacy_junction_artifact(self) -> None:
         """Verify uninstall removes a managed skill even if its Gemini payload is a junction."""

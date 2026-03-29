@@ -55,6 +55,19 @@ class TestSkillManagerRuntime(unittest.TestCase):
         self.assertEqual(removed, ["review-optimization"])
         installer.uninstall_skill.assert_called_once_with("review-optimization", os.getcwd())
 
+    def test_uninstall_named_skills_continues_after_os_error(self) -> None:
+        """Verify runtime uninstall continues when one skill removal fails."""
+        installer = MagicMock()
+        installer.uninstall_skill.side_effect = [PermissionError("locked"), True]
+
+        with patch.object(RUNTIME, "build_installer", return_value=installer):
+            removed = RUNTIME.uninstall_named_skills(
+                ["compliance-audit-c#", "review-optimization"],
+                root=os.getcwd(),
+            )
+
+        self.assertEqual(removed, ["review-optimization"])
+
     def test_list_managed_installed_skills_filters_unmanaged_entries(self) -> None:
         """Verify runtime exposes only managed installed skills for uninstall flows."""
         installer = MagicMock()
