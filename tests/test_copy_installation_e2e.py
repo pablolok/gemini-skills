@@ -38,7 +38,13 @@ class TestCopyInstallationE2E(unittest.TestCase):
         self.codex_bridge_path = os.path.join(self.codex_source_dir, self.skill_name)
         os.makedirs(self.codex_bridge_path)
         with open(os.path.join(self.codex_bridge_path, "SKILL.md"), "w") as f:
-            f.write("# Test Codex Bridge")
+            f.write(
+                "---\n"
+                "name: test-skill\n"
+                "description: Test Codex bridge.\n"
+                "---\n\n"
+                "# Test Codex Bridge\n"
+            )
             
         self.installer = SkillInstaller(self.published_dir, lambda x: {})
 
@@ -103,10 +109,36 @@ class TestCopyInstallationE2E(unittest.TestCase):
 
         with open(os.path.join(target_path, "SKILL.md"), "r") as f:
             content = f.read()
-        self.assertEqual(content, "# Test Codex Bridge")
+        self.assertIn("# Test Codex Bridge", content)
         with open(os.path.join(self.project_dir, ".gitignore"), "r", encoding="utf-8") as f:
             gitignore = f.read()
         self.assertIn(f".codex/skills/{self.skill_name}/", gitignore)
+
+    def test_install_codex_bridge_falls_back_when_wrapper_is_invalid(self) -> None:
+        """Verify invalid repo-owned wrappers fall back to generated bridge content."""
+        skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
+        self.installer.install_skill(skill_rel_path, self.project_dir)
+
+        with open(os.path.join(self.codex_bridge_path, "SKILL.md"), "w", encoding="utf-8") as f:
+            f.write("")
+
+        success = self.installer.install_codex_bridge(self.skill_name, self.project_dir)
+
+        self.assertTrue(success)
+
+        target_skill_md = os.path.join(
+            self.project_dir,
+            ".codex",
+            "skills",
+            self.skill_name,
+            "SKILL.md",
+        )
+        with open(target_skill_md, "r", encoding="utf-8") as f:
+            content = f.read()
+
+        self.assertIn("---\nname: test-skill\n", content)
+        self.assertIn("Use the installed Gemini skill", content)
+        self.assertIn(f".gemini/skills/{self.skill_name}/SKILL.md", content)
 
     def test_install_claude_reference_creates_reference_skill(self) -> None:
         """Verify that install_claude_reference writes a lightweight reference skill."""

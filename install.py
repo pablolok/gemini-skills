@@ -728,6 +728,27 @@ class SkillInstaller:
         """Resolve the source directory containing Codex bridge wrappers."""
         return os.path.join(os.path.dirname(self.published_dir), ".codex", "skills")
 
+    def _has_yaml_frontmatter(self, skill_md_path: str) -> bool:
+        """Return whether a SKILL.md file starts with basic YAML frontmatter."""
+        try:
+            with open(skill_md_path, "r", encoding="utf-8") as handle:
+                content = handle.read()
+        except OSError:
+            return False
+
+        stripped = content.lstrip()
+        if not stripped.startswith("---"):
+            return False
+
+        lines = stripped.splitlines()
+        if not lines or lines[0].strip() != "---":
+            return False
+
+        for line in lines[1:]:
+            if line.strip() == "---":
+                return True
+        return False
+
     def codex_bridge_skill_content(self, skill_name: str, target_project_path: str) -> str:
         """Build a lightweight Codex bridge that points at the installed Gemini skill."""
         metadata = self.get_installed_skill_metadata(skill_name, target_project_path) or {}
@@ -791,7 +812,12 @@ class SkillInstaller:
         for item in os.listdir(bridges_dir):
             bridge_path = os.path.join(bridges_dir, item)
             skill_md = os.path.join(bridge_path, "SKILL.md")
-            if os.path.isdir(bridge_path) and not item.startswith(".") and os.path.isfile(skill_md):
+            if (
+                os.path.isdir(bridge_path)
+                and not item.startswith(".")
+                and os.path.isfile(skill_md)
+                and self._has_yaml_frontmatter(skill_md)
+            ):
                 bridges.add(item)
         return bridges
 
@@ -1142,9 +1168,17 @@ class SkillInstaller:
 
         self.logger.info(f"Installing Codex bridge for '{skill_name}'...")
         try:
-            if os.path.isfile(os.path.join(source_path, "SKILL.md")):
+            source_wrapper_path = os.path.join(source_path, "SKILL.md")
+            if os.path.isfile(source_wrapper_path) and self._has_yaml_frontmatter(source_wrapper_path):
                 self._copy_skill_files(os.path.abspath(source_path), os.path.abspath(target_path))
             else:
+                if os.path.isfile(source_wrapper_path):
+                    self.logger.warning(
+                        "Skipping invalid repo-owned Codex bridge for '%s' at '%s'; "
+                        "falling back to generated bridge content.",
+                        skill_name,
+                        source_wrapper_path,
+                    )
                 os.makedirs(target_path, exist_ok=True)
                 content = self.codex_bridge_skill_content(skill_name, target_project_path)
                 with open(target_skill_path, "w", encoding="utf-8") as handle:
