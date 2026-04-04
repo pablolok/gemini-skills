@@ -20,6 +20,7 @@ from install import (
     SkillInstaller,
     TerminalMultiSelect,
     get_cli_ask_user,
+    find_git_root,
     parse_selection_input,
     print_target_project_summary,
     resolve_target_project_path,
@@ -750,19 +751,50 @@ class TestSkillInstaller(unittest.TestCase):
 
         self.assertIs(ask_user, manual_ask_user)
 
+    @patch("install.find_git_root", return_value=None)
     @patch("os.getcwd", return_value="C:/repo/default-target")
-    def test_resolve_target_project_path_uses_current_directory_by_default(self, mock_getcwd) -> None:
-        """Verify install target defaults to the current working directory."""
+    def test_resolve_target_project_path_uses_current_directory_by_default(
+        self,
+        mock_getcwd,
+        mock_find_git_root,
+    ) -> None:
+        """Verify install target falls back to the current working directory."""
         target = resolve_target_project_path([])
 
         self.assertEqual(target, os.path.abspath("C:/repo/default-target"))
         mock_getcwd.assert_called_once()
+        mock_find_git_root.assert_called_once_with("C:/repo/default-target")
 
     def test_resolve_target_project_path_supports_explicit_override(self) -> None:
         """Verify install target can be overridden explicitly."""
         target = resolve_target_project_path(["--target-project", "C:/repo/explicit-target"])
 
         self.assertEqual(target, os.path.abspath("C:/repo/explicit-target"))
+
+    @patch("install.find_git_root", return_value="C:/repo/root")
+    @patch("os.getcwd", return_value="C:/repo/root/src/feature")
+    def test_resolve_target_project_path_prefers_git_root(
+        self,
+        mock_getcwd,
+        mock_find_git_root,
+    ) -> None:
+        """Verify install target resolves to the git root when run from a subdirectory."""
+        target = resolve_target_project_path([])
+
+        self.assertEqual(target, os.path.abspath("C:/repo/root"))
+        mock_getcwd.assert_called_once()
+        mock_find_git_root.assert_called_once_with("C:/repo/root/src/feature")
+
+    def test_find_git_root_walks_up_to_git_directory(self) -> None:
+        """Verify git root discovery walks up parent directories."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = os.path.join(temp_dir, "repo")
+            nested = os.path.join(repo_root, "src", "feature")
+            os.makedirs(os.path.join(repo_root, ".git"), exist_ok=True)
+            os.makedirs(nested, exist_ok=True)
+
+            self.assertEqual(find_git_root(nested), os.path.abspath(repo_root))
+            self.assertIsNone(find_git_root(temp_dir))
 
     @patch("builtins.print")
     def test_print_target_project_summary_reports_managed_locations(self, mock_print) -> None:

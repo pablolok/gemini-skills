@@ -1585,6 +1585,20 @@ def get_cli_ask_user(argv: typing.Optional[typing.Sequence[str]] = None) -> typi
     return terminal_ask_user
 
 
+def find_git_root(start_path: str) -> typing.Optional[str]:
+    """Return the nearest parent directory that contains a .git entry."""
+    current = os.path.abspath(start_path)
+
+    while True:
+        if os.path.exists(os.path.join(current, ".git")):
+            return current
+
+        parent = os.path.dirname(current)
+        if parent == current:
+            return None
+        current = parent
+
+
 def resolve_target_project_path(argv: typing.Optional[typing.Sequence[str]] = None) -> str:
     """Resolve the project path the installer should mutate."""
     parser = argparse.ArgumentParser(add_help=False)
@@ -1594,8 +1608,14 @@ def resolve_target_project_path(argv: typing.Optional[typing.Sequence[str]] = No
         dest="target_project",
     )
     parsed, _unknown = parser.parse_known_args(list(argv or sys.argv[1:]))
-    target = parsed.target_project or os.getcwd()
-    return os.path.abspath(target)
+    if parsed.target_project:
+        return os.path.abspath(parsed.target_project)
+
+    current_dir = os.getcwd()
+    git_root = find_git_root(current_dir)
+    if git_root:
+        return os.path.abspath(git_root)
+    return os.path.abspath(current_dir)
 
 
 def print_target_project_summary(
