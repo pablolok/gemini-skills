@@ -36,6 +36,7 @@ Please review the recently modified files in this project and verify strict comp
 9. **Fail-Fast Configuration:** Ensure all required environment variables, secrets, and file paths are validated at the very beginning of the script.
 10. **Documentation:** Verify that all modules, classes, and functions include standard docstrings or comment-based help (PEP 8 compliant for Python).
 11. **Static Analysis & Linting:** Code must pass standard static analysis tools without warnings before being considered compliant.
+12. **Domain Modeling Clarity:** Prefer enums or other named typed abstractions over raw numeric codes when representing finite statuses, modes, result codes, action types, or workflow steps inside the script logic. Treat unexplained magic numbers in those scenarios as a readability and maintainability violation unless an external CLI, file format, or protocol requires the numeric value at the boundary.
 
 If you find ANY violations, you MUST return a detailed bulleted list of the violations found.
 For each violation, you must specify:

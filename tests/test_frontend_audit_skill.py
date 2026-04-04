@@ -51,6 +51,25 @@ class TestFrontendAuditSkills(unittest.TestCase):
         self.assertIn("same widget being implemented more than once", angular_content)
         self.assertIn("generic reusable component API", angular_content)
 
+    def test_frontend_audits_prefer_enums_over_numeric_codes(self) -> None:
+        angular_path = os.path.join("skills", "compliance-audit-angular", "SKILL.md")
+        avalonia_path = os.path.join("skills", "compliance-audit-avalonia", "SKILL.md")
+        csharp_path = os.path.join("skills", "compliance-audit-c#", "SKILL.md")
+
+        with open(angular_path, "r", encoding="utf-8") as handle:
+            angular_content = handle.read()
+        with open(avalonia_path, "r", encoding="utf-8") as handle:
+            avalonia_content = handle.read()
+        with open(csharp_path, "r", encoding="utf-8") as handle:
+            csharp_content = handle.read()
+
+        self.assertIn("Domain Modeling Clarity", angular_content)
+        self.assertIn("Prefer enums or other strongly typed named abstractions", angular_content)
+        self.assertIn("Domain Modeling Clarity", avalonia_content)
+        self.assertIn("Prefer enums or other strongly typed named abstractions", avalonia_content)
+        self.assertIn("Domain Modeling Clarity", csharp_content)
+        self.assertIn("Prefer enums or other strongly typed named abstractions", csharp_content)
+
     def test_avalonia_audit_requires_reusable_control_extraction(self) -> None:
         avalonia_path = os.path.join("skills", "compliance-audit-avalonia", "SKILL.md")
 

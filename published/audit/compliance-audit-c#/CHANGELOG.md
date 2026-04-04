@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.4] - 2026-04-04
+- Prefer enums over raw numeric domain codes when the value set is finite and semantic.
+
+
 ## [1.3.3] - 2026-04-04
 - Block warning suppression shortcuts such as pragma, NoWarn, SuppressMessage, and GlobalSuppressions unless explicitly justified.
 

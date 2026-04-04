@@ -29,3 +29,12 @@ class TestPreImplementationReviewSkill(unittest.TestCase):
             content = handle.read()
 
         self.assertIn(".gemini/skills/pre-implementation-review/SKILL.md", content)
+
+    def test_skill_recommends_enums_over_raw_numeric_codes(self) -> None:
+        skill_path = os.path.join("skills", "pre-implementation-review", "SKILL.md")
+
+        with open(skill_path, "r", encoding="utf-8") as handle:
+            content = handle.read()
+
+        self.assertIn("numeric state/category/status codes", content)
+        self.assertIn("Prefer enums or typed named constants over raw numeric codes", content)
