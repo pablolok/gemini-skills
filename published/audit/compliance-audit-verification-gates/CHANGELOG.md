@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.1.2] - 2026-04-04
+- Block unrequested code removals and behavior reductions as verification-gate regressions.
+
+
 ## [1.1.1] - 2026-04-04
 - Block warning suppression shortcuts such as pragma, NoWarn, and analyzer severity downgrades unless explicitly justified.
 

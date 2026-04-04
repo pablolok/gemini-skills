@@ -9,6 +9,7 @@ A generic Gemini skill that checks whether automated verification is complete be
 - builds, compiles, and bundles succeeded when the changed stack requires them
 - warnings in required verification output are treated as blocking unless explicitly allowed
 - warning suppressions such as `#pragma warning disable`, `NoWarn`, or analyzer severity downgrades do not count as valid remediation unless explicitly documented as allowed
+- removals of code, behavior, UI, or configuration are blocked unless the request explicitly asked for that reduction or repository context clearly justifies it
 
 ## Typical Trigger
 

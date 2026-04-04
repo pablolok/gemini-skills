@@ -28,7 +28,8 @@ You must verify all of the following for the changed code paths:
 5. Any required build, compile, bundle, or packaging command succeeded.
 6. Build, compile, bundle, lint, and static-analysis output is warning-free unless the repository or user explicitly documents an allowed warning exception.
 7. Warning-free status must come from fixing the underlying issue, not from suppressing diagnostics through pragmas, `NoWarn`, `.editorconfig` severity downgrades, suppression attributes, or equivalent mechanisms unless an explicit repository exception is documented.
-8. Manual verification is blocked until the above conditions are green.
+8. Code removals, disabled behaviors, deleted branches, or stripped configuration introduced during the implementation are justified by the requested change instead of being accidental regressions.
+9. Manual verification is blocked until the above conditions are green.
 
 ## Verification Rules
 
@@ -41,7 +42,9 @@ When performing this audit, you MUST:
 5. Treat warning suppressions used to hide required diagnostics as violations unless the repository explicitly documents the exception and its rationale.
 6. For compiled or bundled codebases, require a successful and warning-free build before approving manual verification.
 7. For mixed-stack changes, require all relevant gates for each affected stack.
-8. If the correct verification command is genuinely unclear, report that as a blocking gap instead of inventing a command.
+8. Inspect the diff for removals or behavior-reducing edits. If code, markup, styling, configuration, conditionals, or data mappings were removed, verify that the request actually asked for that removal or that the repository context clearly required it.
+9. Treat unexplained removals as regressions. If the change removed functionality without an explicit request or documented justification, manual verification is blocked even if tests and builds are green.
+10. If the correct verification command is genuinely unclear, report that as a blocking gap instead of inventing a command.
 
 Examples of expected gates by stack:
 
@@ -74,12 +77,14 @@ Audit for these requirements:
 5. Treat warnings in required build, compile, bundle, lint, or static-analysis output as violations unless the repository explicitly allows them.
 6. Treat `#pragma warning disable`, `NoWarn`, `SuppressMessage`, analyzer severity downgrades, and equivalent suppression mechanisms as violations when they are used to avoid required warning remediation.
 7. For compiled or bundled code, require a successful warning-free build before manual verification.
-8. If the correct command is unclear, report that as a blocking gap rather than guessing.
+8. Inspect the change diff for removed code paths, deleted UI elements, stripped configuration, or reduced behavior and confirm that the request explicitly called for those removals.
+9. Treat unexplained removals as regressions even when automated verification is green.
+10. If the correct command is unclear, report that as a blocking gap rather than guessing.
 
 If you find ANY violations, you MUST return a detailed bulleted list of the violations found.
 For each violation, you must specify:
 * **[Scope]**
-  * **Violation:** <Description of the missing, failing, or warning-producing verification gate>
+  * **Violation:** <Description of the missing, failing, warning-producing, or regression-inducing verification gate>
   * **Suggested Fix:** <General text description of how to obtain a passing, warning-free gate>
 
 Otherwise, state "NO violations".
