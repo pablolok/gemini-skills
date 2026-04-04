@@ -81,3 +81,17 @@ class TestWorkflowIntegration(unittest.TestCase):
             "Required builds/compiles/bundles succeed without warnings unless the repository explicitly allows them",
             content,
         )
+
+    def test_pre_implementation_review_is_required_before_tdd_starts(self) -> None:
+        """Verify the workflow requires pre-implementation review before tests and coding."""
+        with open(self.WORKFLOW_PATH, "r", encoding="utf-8") as f:
+            content: str = f.read()
+
+        self.assertIn("3. **Run Pre-Implementation Review:**", content)
+        self.assertIn("Invoke the `pre-implementation-review` skill before writing tests, code, or scaffolding files", content)
+        self.assertIn("update the current phase tasks in `plan.md` before continuing", content)
+        self.assertIn("4. **Write Failing Tests (Red Phase):**", content)
+
+        review_index = content.find("3. **Run Pre-Implementation Review:**")
+        red_phase_index = content.find("4. **Write Failing Tests (Red Phase):**")
+        self.assertGreater(red_phase_index, review_index)

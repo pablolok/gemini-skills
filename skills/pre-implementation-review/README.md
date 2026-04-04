@@ -18,3 +18,11 @@ Use this when a request is still in the reasoning or planning phase, especially 
 - shared backend or service logic
 - validators, mappers, request builders, or orchestration flows
 - refactors where the developer should decide reuse strategy before writing code
+
+## Conductor Workflow Integration
+
+In a Conductor-driven project, this skill should run at the beginning of each task workflow, after the task is marked in progress and before tests or implementation begin.
+
+If the review changes the intended implementation boundary, identifies reusable abstractions that deserve explicit tracking, or reveals additional consumer/test work, update the current phase tasks in `plan.md` before coding starts.
+
+When installed through `install.py` or `/skill-manager:install`, the skill may update `conductor/workflow.md` through its `post_install.py` hook when a Conductor workflow is present.

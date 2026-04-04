@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.3] - 2026-04-04
+- Integrate pre-implementation review into the start of each Conductor task workflow and add installer workflow injection.
+
+
 ## [1.0.2] - 2026-04-04
 - Flag duplicated component-local styling early and recommend shared styling primitives and design tokens.
 
