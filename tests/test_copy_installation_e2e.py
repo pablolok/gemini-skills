@@ -140,6 +140,37 @@ class TestCopyInstallationE2E(unittest.TestCase):
         self.assertIn("Use the installed Gemini skill", content)
         self.assertIn(f".gemini/skills/{self.skill_name}/SKILL.md", content)
 
+    def test_install_codex_bridge_treats_self_install_as_already_present(self) -> None:
+        """Verify self-install does not fail when the repo-owned bridge already is the target path."""
+        skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
+        self.installer.install_skill(skill_rel_path, self.project_dir)
+
+        repo_project_dir = self.test_dir
+        repo_gemini_path = os.path.join(
+            repo_project_dir,
+            ".gemini",
+            "skills",
+            self.skill_name,
+        )
+        os.makedirs(repo_gemini_path, exist_ok=True)
+        with open(os.path.join(repo_gemini_path, "SKILL.md"), "w", encoding="utf-8") as f:
+            f.write("# Installed Gemini Skill")
+
+        success = self.installer.install_codex_bridge(self.skill_name, repo_project_dir)
+
+        self.assertTrue(success)
+        target_skill_md = os.path.join(
+            repo_project_dir,
+            ".codex",
+            "skills",
+            self.skill_name,
+            "SKILL.md",
+        )
+        self.assertTrue(os.path.isfile(target_skill_md))
+        with open(os.path.join(repo_project_dir, ".gitignore"), "r", encoding="utf-8") as f:
+            gitignore = f.read()
+        self.assertIn(f".codex/skills/{self.skill_name}/", gitignore)
+
     def test_install_claude_reference_creates_reference_skill(self) -> None:
         """Verify that install_claude_reference writes a lightweight reference skill."""
         skill_rel_path = f"{self.skill_cat}/{self.skill_name}"

@@ -22,7 +22,8 @@ The skill performs a holistic review based on 12 key principles:
 10. **Fail-Fast Configuration:** Early validation of configuration/options.
 11. **Documentation:** Mandatory XML doc comments for all public members.
 12. **Static Analysis:** Compliance with Roslyn analyzers and `.editorconfig`.
-13. **Reusability Audit:** Flags duplicated implementation patterns that should be extracted into generic reusable abstractions instead of being re-authored in multiple classes.
+13. **Warning Suppression Policy:** Blocks use of `#pragma warning disable`, `NoWarn`, `[SuppressMessage]`, GlobalSuppressions, or analyzer severity downgrades as a way to avoid fixing required diagnostics unless a justified exception is documented.
+14. **Reusability Audit:** Flags duplicated implementation patterns that should be extracted into generic reusable abstractions instead of being re-authored in multiple classes.
 
 ## Reporting Format
 

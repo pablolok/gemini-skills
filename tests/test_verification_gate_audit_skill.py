@@ -36,3 +36,13 @@ class TestVerificationGateAuditSkill(unittest.TestCase):
 
         self.assertIn("read-only with respect to skill infrastructure", content)
         self.assertIn("warning-free build", content)
+
+    def test_verification_gate_skill_blocks_warning_suppression_shortcuts(self) -> None:
+        path = os.path.join("skills", "compliance-audit-verification-gates", "SKILL.md")
+        with open(path, "r", encoding="utf-8") as handle:
+            content = handle.read()
+
+        self.assertIn("Warning-free status must come from fixing the underlying issue", content)
+        self.assertIn("`#pragma warning disable`", content)
+        self.assertIn("`NoWarn`", content)
+        self.assertIn("suppression mechanisms", content)

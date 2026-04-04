@@ -1170,7 +1170,10 @@ class SkillInstaller:
         try:
             source_wrapper_path = os.path.join(source_path, "SKILL.md")
             if os.path.isfile(source_wrapper_path) and self._has_yaml_frontmatter(source_wrapper_path):
-                self._copy_skill_files(os.path.abspath(source_path), os.path.abspath(target_path))
+                abs_source = os.path.abspath(source_path)
+                abs_target = os.path.abspath(target_path)
+                if os.path.normcase(abs_source) != os.path.normcase(abs_target):
+                    self._copy_skill_files(abs_source, abs_target)
             else:
                 if os.path.isfile(source_wrapper_path):
                     self.logger.warning(

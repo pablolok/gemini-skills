@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.3] - 2026-04-04
+- Block warning suppression shortcuts such as pragma, NoWarn, SuppressMessage, and GlobalSuppressions unless explicitly justified.
+
+
 ## [1.3.2] - 2026-03-27
 - Extend the C# audit to flag duplicated implementation patterns and require extraction of generic reusable abstractions when the same behavior is implemented more than once.
 
