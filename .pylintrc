@@ -1,0 +1,21 @@
+[MAIN]
+ignored-modules=termios,tty
+
+[MESSAGES CONTROL]
+disable=
+    broad-exception-caught,
+    import-outside-toplevel,
+    logging-fstring-interpolation,
+    mixed-line-endings,
+    trailing-whitespace,
+    too-many-arguments,
+    too-many-branches,
+    too-many-instance-attributes,
+    too-many-lines,
+    too-many-locals,
+    too-many-return-statements,
+    too-many-statements,
+    unspecified-encoding
+
+[FORMAT]
+max-line-length=120

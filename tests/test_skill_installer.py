@@ -23,6 +23,9 @@ from install import (
     parse_selection_input,
     print_target_project_summary,
     resolve_target_project_path,
+    installer_banner_text,
+    style_text,
+    supports_ansi,
 )
 
 class TestSkillInstaller(unittest.TestCase):
@@ -209,6 +212,164 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertFalse(installer.supports_claude_reference("subagent-balancer-api"))
         self.assertFalse(installer.supports_codex_bridge("subagent-balancer-orchestrator"))
         self.assertFalse(installer.supports_claude_reference("subagent-balancer-orchestrator"))
+
+    def test_supports_ansi_respects_no_color(self) -> None:
+        """Verify NO_COLOR disables ANSI output."""
+        stream = io.StringIO()
+        stream.isatty = lambda: True  # type: ignore[attr-defined]
+        with patch.dict(os.environ, {"NO_COLOR": "1"}, clear=False):
+            self.assertFalse(supports_ansi(stream))
+
+    def test_style_text_and_banner_render_when_color_enabled(self) -> None:
+        """Verify helper formatting functions add ANSI wrappers when enabled."""
+        styled = style_text("hello", ANSI_BOLD, enable_color=True)
+        self.assertTrue(styled.startswith(ANSI_BOLD))
+        self.assertTrue(styled.endswith("\x1b[0m"))
+
+        banner = installer_banner_text(True, subtitle="Custom Subtitle")
+        self.assertIn(INSTALLER_BANNER, banner)
+        self.assertIn("Custom Subtitle", banner)
+
+    def test_parse_selection_input_handles_ranges_and_single_select(self) -> None:
+        """Verify selection parsing handles ranges, reverse ranges, and single-select mode."""
+        self.assertEqual(parse_selection_input("1-3", 5, True), [0, 1, 2])
+        self.assertEqual(parse_selection_input("3-1", 5, True), [2, 1, 0])
+        self.assertEqual(parse_selection_input("0 2 2", 5, True), [0, 1])
+        self.assertEqual(parse_selection_input("2 3", 5, False), [1])
+
+    def test_parse_selection_input_handles_all_and_empty_values(self) -> None:
+        """Verify selection parsing handles all/empty cases safely."""
+        self.assertEqual(parse_selection_input("all", 3, True), [0, 1, 2])
+        self.assertEqual(parse_selection_input("*", 3, True), [0, 1, 2])
+        self.assertEqual(parse_selection_input("", 3, True), [])
+        self.assertEqual(parse_selection_input("1", 0, True), [])
+
+    def test_has_yaml_frontmatter_detects_valid_and_invalid_files(self) -> None:
+        """Verify SKILL.md frontmatter detection handles valid, invalid, and missing files."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+        with tempfile.TemporaryDirectory() as temp_dir:
+            valid_path = os.path.join(temp_dir, "valid.md")
+            invalid_path = os.path.join(temp_dir, "invalid.md")
+
+            with open(valid_path, "w", encoding="utf-8") as handle:
+                handle.write("---\nname: demo\n---\n# Demo\n")
+            with open(invalid_path, "w", encoding="utf-8") as handle:
+                handle.write("# Demo\n")
+
+            self.assertTrue(installer._has_yaml_frontmatter(valid_path))
+            self.assertFalse(installer._has_yaml_frontmatter(invalid_path))
+            self.assertFalse(installer._has_yaml_frontmatter(os.path.join(temp_dir, "missing.md")))
+
+    def test_get_available_codex_bridges_filters_hidden_and_invalid_entries(self) -> None:
+        """Verify only visible bridge directories with valid frontmatter are returned."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            published_dir = os.path.join(temp_dir, "published")
+            codex_dir = os.path.join(temp_dir, ".codex", "skills")
+            os.makedirs(published_dir, exist_ok=True)
+            os.makedirs(codex_dir, exist_ok=True)
+
+            valid_dir = os.path.join(codex_dir, "valid-bridge")
+            invalid_dir = os.path.join(codex_dir, "invalid-bridge")
+            hidden_dir = os.path.join(codex_dir, ".hidden")
+            os.makedirs(valid_dir, exist_ok=True)
+            os.makedirs(invalid_dir, exist_ok=True)
+            os.makedirs(hidden_dir, exist_ok=True)
+
+            with open(os.path.join(valid_dir, "SKILL.md"), "w", encoding="utf-8") as handle:
+                handle.write("---\nname: valid-bridge\n---\n")
+            with open(os.path.join(invalid_dir, "SKILL.md"), "w", encoding="utf-8") as handle:
+                handle.write("# invalid\n")
+            with open(os.path.join(hidden_dir, "SKILL.md"), "w", encoding="utf-8") as handle:
+                handle.write("---\nname: hidden\n---\n")
+
+            temp_installer = SkillInstaller(published_dir, self.mock_ask_user)
+            self.assertEqual(temp_installer.get_available_codex_bridges(), {"valid-bridge"})
+
+    def test_read_metadata_returns_none_when_json_is_invalid(self) -> None:
+        """Verify invalid metadata content is reported as missing metadata."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            metadata_path = os.path.join(temp_dir, "metadata.json")
+            with open(metadata_path, "w", encoding="utf-8") as handle:
+                handle.write("{ invalid json }")
+
+            self.assertIsNone(installer._read_metadata(metadata_path))
+
+    def test_codex_and_claude_bridge_content_use_metadata_description(self) -> None:
+        """Verify generated bridge content reuses installed skill metadata when available."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            metadata_dir = os.path.join(temp_dir, ".gemini", "skills", "demo-skill")
+            os.makedirs(metadata_dir, exist_ok=True)
+            with open(os.path.join(metadata_dir, "metadata.json"), "w", encoding="utf-8") as handle:
+                json.dump({"description": "Installed demo skill."}, handle)
+
+            codex_content = installer.codex_bridge_skill_content("demo-skill", temp_dir)
+            claude_content = installer.claude_reference_skill_content("demo-skill", temp_dir)
+
+            self.assertIn("Installed demo skill.", codex_content)
+            self.assertIn("Installed demo skill.", claude_content)
+            self.assertIn(".gemini/skills/demo-skill/SKILL.md", codex_content)
+            self.assertIn(".gemini/skills/demo-skill/SKILL.md", claude_content)
+
+    def test_codex_bridge_content_falls_back_when_metadata_is_missing(self) -> None:
+        """Verify generated Codex bridge content falls back to the default description."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        content = installer.codex_bridge_skill_content("demo_skill", "missing-project")
+
+        self.assertIn("Codex bridge for the installed Gemini skill 'demo_skill'.", content)
+        self.assertIn("# Demo Skill Bridge", content)
+
+    def test_get_available_codex_bridges_returns_empty_when_source_dir_is_missing(self) -> None:
+        """Verify bridge discovery returns an empty set when the repo has no bridge directory."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            installer = SkillInstaller(os.path.join(temp_dir, "published"), self.mock_ask_user)
+            self.assertEqual(installer.get_available_codex_bridges(), set())
+
+    def test_check_for_updates_reports_newer_published_versions(self) -> None:
+        """Verify update detection compares installed and published metadata."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            installed_dir = os.path.join(
+                temp_dir,
+                ".gemini",
+                "skills",
+                "review-optimization",
+            )
+            os.makedirs(installed_dir, exist_ok=True)
+            with open(
+                os.path.join(installed_dir, "metadata.json"),
+                "w",
+                encoding="utf-8",
+            ) as handle:
+                json.dump({"name": "review-optimization", "version": "0.9.0"}, handle)
+
+            updates = installer.check_for_updates(temp_dir)
+
+            self.assertEqual(len(updates), 1)
+            self.assertEqual(updates[0]["name"], "review-optimization")
+            self.assertEqual(updates[0]["installed"], "0.9.0")
+
+    def test_install_codex_bridge_returns_false_when_skill_missing_or_unsupported(self) -> None:
+        """Verify Codex bridge install short-circuits for unsupported or missing Gemini skills."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.assertFalse(installer.install_codex_bridge("review-optimization", temp_dir))
+            self.assertFalse(installer.install_codex_bridge("subagent-balancer", temp_dir))
+
+    def test_install_claude_reference_returns_false_when_skill_missing(self) -> None:
+        """Verify Claude reference install short-circuits when the Gemini skill is missing."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.assertFalse(installer.install_claude_reference("review-optimization", temp_dir))
 
     def test_install_codex_bridge_generates_reference_when_no_explicit_wrapper_exists(self) -> None:
         """Verify supported skills can get a generated Codex bridge without a repo-owned wrapper."""
