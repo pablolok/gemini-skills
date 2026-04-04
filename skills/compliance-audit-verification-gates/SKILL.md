@@ -27,7 +27,8 @@ You must verify all of the following for the changed code paths:
 4. Required linting, type-checking, and static-analysis checks passed.
 5. Any required build, compile, bundle, or packaging command succeeded.
 6. Build, compile, bundle, lint, and static-analysis output is warning-free unless the repository or user explicitly documents an allowed warning exception.
-7. Manual verification is blocked until the above conditions are green.
+7. Warning-free status must come from fixing the underlying issue, not from suppressing diagnostics through pragmas, `NoWarn`, `.editorconfig` severity downgrades, suppression attributes, or equivalent mechanisms unless an explicit repository exception is documented.
+8. Manual verification is blocked until the above conditions are green.
 
 ## Verification Rules
 
@@ -37,9 +38,10 @@ When performing this audit, you MUST:
 2. Derive the expected verification commands from project documentation, scripts, existing CI conventions, or explicit user instructions.
 3. Treat missing verification evidence as a violation. Do not assume a check passed just because no failure was mentioned.
 4. Treat warnings as violations for required build, compile, bundle, lint, and static-analysis commands unless the warning is explicitly allowed in repository documentation or by direct user instruction.
-5. For compiled or bundled codebases, require a successful and warning-free build before approving manual verification.
-6. For mixed-stack changes, require all relevant gates for each affected stack.
-7. If the correct verification command is genuinely unclear, report that as a blocking gap instead of inventing a command.
+5. Treat warning suppressions used to hide required diagnostics as violations unless the repository explicitly documents the exception and its rationale.
+6. For compiled or bundled codebases, require a successful and warning-free build before approving manual verification.
+7. For mixed-stack changes, require all relevant gates for each affected stack.
+8. If the correct verification command is genuinely unclear, report that as a blocking gap instead of inventing a command.
 
 Examples of expected gates by stack:
 
@@ -70,8 +72,9 @@ Audit for these requirements:
 3. Verify that required tests, linting, type checks, static analysis, and build/compile/bundle commands were actually run when applicable.
 4. Treat missing execution evidence as a violation.
 5. Treat warnings in required build, compile, bundle, lint, or static-analysis output as violations unless the repository explicitly allows them.
-6. For compiled or bundled code, require a successful warning-free build before manual verification.
-7. If the correct command is unclear, report that as a blocking gap rather than guessing.
+6. Treat `#pragma warning disable`, `NoWarn`, `SuppressMessage`, analyzer severity downgrades, and equivalent suppression mechanisms as violations when they are used to avoid required warning remediation.
+7. For compiled or bundled code, require a successful warning-free build before manual verification.
+8. If the correct command is unclear, report that as a blocking gap rather than guessing.
 
 If you find ANY violations, you MUST return a detailed bulleted list of the violations found.
 For each violation, you must specify:

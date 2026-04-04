@@ -195,7 +195,10 @@ class SkillSelector:
                 state = "new"
                 if skill in update_map:
                     update_info = update_map[skill]
-                    status = f" [Update Available] ({update_info['installed']} -> {update_info['latest']})"
+                    status = (
+                        " [Update Available] "
+                        f"({update_info['installed']} -> {update_info['latest']})"
+                    )
                     state = "update"
                 elif skill in installed:
                     status = f" [Installed v{installed[skill]}]"
@@ -417,8 +420,14 @@ class TerminalMultiSelect:
             label_styles, description_styles = self._option_styles(state)
             frame_lines.extend(
                 [
-                    f"{pointer} {selected} {style_text(option['label'], *label_styles, enable_color=self.enable_color)}",
-                    f"    {style_text(description, *description_styles, enable_color=self.enable_color)}",
+                    (
+                        f"{pointer} {selected} "
+                        f"{style_text(option['label'], *label_styles, enable_color=self.enable_color)}"
+                    ),
+                    (
+                        "    "
+                        f"{style_text(description, *description_styles, enable_color=self.enable_color)}"
+                    ),
                 ]
             )
         self._write_frame(frame_lines)
@@ -769,13 +778,18 @@ class SkillInstaller:
             f"Use the installed Gemini skill at `.gemini/skills/{skill_name}/SKILL.md` as the source of truth.\n\n"
             "Workflow:\n\n"
             f"1. Read and follow `.gemini/skills/{skill_name}/SKILL.md`.\n"
-            f"2. If that skill references scripts, metadata, or companion files, resolve them from `.gemini/skills/{skill_name}/`.\n"
-            "3. Do not duplicate the Gemini implementation in `.codex/skills/`. This bridge exists only so Codex can discover and invoke the installed Gemini skill guidance.\n\n"
+            "2. If that skill references scripts, metadata, or companion files, "
+            f"resolve them from `.gemini/skills/{skill_name}/`.\n"
+            "3. Do not duplicate the Gemini implementation in `.codex/skills/`. "
+            "This bridge exists only so Codex can discover and invoke the "
+            "installed Gemini skill guidance.\n\n"
             "## Codex Integration\n\n"
             "Use this bridge when Codex should apply the installed Gemini skill inside the current task.\n\n"
             "1. Treat the installed Gemini skill as the implementation source.\n"
             "2. Keep the Codex bridge lightweight and descriptive.\n"
-            "3. If the project keeps `.codex/skills/` local-only, leave the generated bridge uncommitted and let `skill-manager` manage its ignore entry.\n"
+            "3. If the project keeps `.codex/skills/` local-only, leave the "
+            "generated bridge uncommitted and let `skill-manager` manage its "
+            "ignore entry.\n"
         )
 
     def claude_reference_skill_content(self, skill_name: str, target_project_path: str) -> str:
@@ -798,8 +812,11 @@ class SkillInstaller:
             f"Use the installed Gemini skill at `.gemini/skills/{skill_name}/SKILL.md` as the source of truth.\n\n"
             "Workflow:\n\n"
             f"1. Read and follow `.gemini/skills/{skill_name}/SKILL.md`.\n"
-            f"2. If that skill references scripts, metadata, or companion files, resolve them from `.gemini/skills/{skill_name}/`.\n"
-            "3. Do not duplicate the Gemini implementation in `.claude/skills/`. This reference exists only so Claude can discover and invoke the installed Gemini skill guidance.\n"
+            "2. If that skill references scripts, metadata, or companion files, "
+            f"resolve them from `.gemini/skills/{skill_name}/`.\n"
+            "3. Do not duplicate the Gemini implementation in `.claude/skills/`. "
+            "This reference exists only so Claude can discover and invoke the "
+            "installed Gemini skill guidance.\n"
         )
 
     def get_available_codex_bridges(self) -> typing.Set[str]:
@@ -1147,7 +1164,13 @@ class SkillInstaller:
 
     def install_codex_bridge(self, skill_name: str, target_project_path: str) -> bool:
         """Install a lightweight Codex bridge wrapper for a skill."""
-        source_skill_path = os.path.join(target_project_path, ".gemini", "skills", skill_name, "SKILL.md")
+        source_skill_path = os.path.join(
+            target_project_path,
+            ".gemini",
+            "skills",
+            skill_name,
+            "SKILL.md",
+        )
         if not os.path.isfile(source_skill_path):
             self.logger.info(
                 f"Skipping Codex bridge for '{skill_name}': the Gemini skill is not installed in the target project."
@@ -1170,7 +1193,10 @@ class SkillInstaller:
         try:
             source_wrapper_path = os.path.join(source_path, "SKILL.md")
             if os.path.isfile(source_wrapper_path) and self._has_yaml_frontmatter(source_wrapper_path):
-                self._copy_skill_files(os.path.abspath(source_path), os.path.abspath(target_path))
+                abs_source = os.path.abspath(source_path)
+                abs_target = os.path.abspath(target_path)
+                if os.path.normcase(abs_source) != os.path.normcase(abs_target):
+                    self._copy_skill_files(abs_source, abs_target)
             else:
                 if os.path.isfile(source_wrapper_path):
                     self.logger.warning(
@@ -1193,10 +1219,18 @@ class SkillInstaller:
 
     def install_claude_reference(self, skill_name: str, target_project_path: str) -> bool:
         """Install a lightweight Claude reference skill for an installed Gemini skill."""
-        source_skill_path = os.path.join(target_project_path, ".gemini", "skills", skill_name, "SKILL.md")
+        source_skill_path = os.path.join(
+            target_project_path,
+            ".gemini",
+            "skills",
+            skill_name,
+            "SKILL.md",
+        )
         if not os.path.isfile(source_skill_path):
             self.logger.info(
-                f"Skipping Claude reference for '{skill_name}': the Gemini skill is not installed in the target project."
+                "Skipping Claude reference for '%s': the Gemini skill is not "
+                "installed in the target project.",
+                skill_name,
             )
             return False
 

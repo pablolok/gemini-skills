@@ -70,3 +70,14 @@ class TestFrontendAuditSkills(unittest.TestCase):
         self.assertIn("Reusability Audit", csharp_content)
         self.assertIn("implemented more than once across services", csharp_content)
         self.assertIn("generic reusable abstraction", csharp_content)
+
+    def test_csharp_audit_blocks_warning_suppression_shortcuts(self) -> None:
+        csharp_path = os.path.join("skills", "compliance-audit-c#", "SKILL.md")
+
+        with open(csharp_path, "r", encoding="utf-8") as handle:
+            csharp_content = handle.read()
+
+        self.assertIn("Warning Suppression Policy", csharp_content)
+        self.assertIn("`#pragma warning disable`", csharp_content)
+        self.assertIn("`NoWarn`", csharp_content)
+        self.assertIn("[SuppressMessage]", csharp_content)
