@@ -6,6 +6,7 @@ A specialized Gemini skill for cross-framework frontend styling compliance revie
 
 - reusable styling primitives instead of duplicated component-local CSS
 - design token usage for spacing, color, typography, radius, shadow, and breakpoints
+- themeable semantic color tokens instead of hardcoded product colors in component or app styling
 - selector discipline, maintainable specificity, and avoidance of fragile DOM-coupled rules
 - responsive behavior, accessibility-aware focus and contrast patterns, and theme consistency
 - cleanup of dead styles, duplicated rules, and styling drift across frontend components

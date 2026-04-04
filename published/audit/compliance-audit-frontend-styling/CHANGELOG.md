@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.2] - 2026-04-04
+- Require themeable semantic color tokens instead of hardcoded product colors in frontend styling.
+
+
 ## [1.0.1] - 2026-04-04
 - Add a cross-framework frontend styling audit for reusable CSS primitives, design tokens, and shared UI styling rules.
 

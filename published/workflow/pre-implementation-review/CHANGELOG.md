@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.4] - 2026-04-04
+- Require themeable semantic color tokens during frontend pre-implementation review.
+
+
 ## [1.0.3] - 2026-04-04
 - Integrate pre-implementation review into the start of each Conductor task workflow and add installer workflow injection.
 

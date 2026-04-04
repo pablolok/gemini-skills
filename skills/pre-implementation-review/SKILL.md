@@ -47,6 +47,7 @@ When invoked, you must:
 - Prefer creating a reusable abstraction before implementation when the same pattern is likely to appear in more than one place.
 - Prefer enums or typed named constants over raw numeric codes when the value set is finite, semantic, and part of the domain model.
 - Prefer shared styling primitives, design tokens, or utility layers over duplicating the same CSS structure across multiple frontend components.
+- Prefer themeable semantic color tokens over hardcoded product colors when introducing or changing frontend styling.
 - Do not wait for duplication to land in code if the duplication is already obvious from the request and the existing codebase.
 - Do not force generic abstractions when the use case is truly isolated and unlikely to repeat.
 - Favor explicit inputs/outputs and small extension points over oversized generic frameworks.

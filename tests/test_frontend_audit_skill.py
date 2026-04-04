@@ -39,6 +39,8 @@ class TestFrontendAuditSkills(unittest.TestCase):
 
         self.assertIn("Reusable Styling Primitives", content)
         self.assertIn("Design Tokens", content)
+        self.assertIn("Themeable Colors", content)
+        self.assertIn("Treat hardcoded product colors", content)
         self.assertIn("Framework-Agnostic Practicality", content)
 
     def test_audit_skills_are_read_only_for_skill_infrastructure(self) -> None:
