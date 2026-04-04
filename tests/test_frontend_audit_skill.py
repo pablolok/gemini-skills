@@ -28,6 +28,18 @@ class TestFrontendAuditSkills(unittest.TestCase):
 
         self.assertIn("Angular Audit", content)
         self.assertIn("compliance-audit-angular", content)
+        self.assertIn("Frontend Styling Audit", content)
+        self.assertIn("compliance-audit-frontend-styling", content)
+
+    def test_frontend_styling_audit_source_exists(self) -> None:
+        skill_path = os.path.join("skills", "compliance-audit-frontend-styling", "SKILL.md")
+
+        with open(skill_path, "r", encoding="utf-8") as handle:
+            content = handle.read()
+
+        self.assertIn("Reusable Styling Primitives", content)
+        self.assertIn("Design Tokens", content)
+        self.assertIn("Framework-Agnostic Practicality", content)
 
     def test_audit_skills_are_read_only_for_skill_infrastructure(self) -> None:
         angular_path = os.path.join("skills", "compliance-audit-angular", "SKILL.md")

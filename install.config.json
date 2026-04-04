@@ -12,6 +12,10 @@
       "category": "audit",
       "distribution": "shared"
     },
+    "compliance-audit-frontend-styling": {
+      "category": "audit",
+      "distribution": "shared"
+    },
     "compliance-audit-avalonia": {
       "category": "audit",
       "distribution": "shared"

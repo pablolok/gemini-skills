@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.2] - 2026-04-04
+- Flag duplicated component-local styling early and recommend shared styling primitives and design tokens.
+
+
 ## [1.0.1] - 2026-04-04
 - Encourage enums or typed named constants instead of raw numeric domain codes during planning.
 

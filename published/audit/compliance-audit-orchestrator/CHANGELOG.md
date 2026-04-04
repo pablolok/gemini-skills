@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.2] - 2026-04-04
+- Route frontend styling changes to the dedicated cross-framework frontend styling audit.
+
+
+## [1.4.1] - 2026-04-04
+- Route cross-framework frontend styling changes to `compliance-audit-frontend-styling` when frontend indicators and styling files are present.
+
 ## [1.4.0] - 2026-03-25
 - Route Avalonia UI changes to `compliance-audit-avalonia` when Avalonia project indicators are present.
 

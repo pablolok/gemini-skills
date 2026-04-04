@@ -33,6 +33,7 @@ When invoked, you must:
    - repeated UI widgets such as dropdowns, pickers, menus, cards, dialogs, filters
    - repeated business rules, mappings, validators, request builders, orchestration flows
    - repeated or implicit numeric state/category/status codes that should become named enums or typed abstractions
+   - repeated component-local CSS or SCSS that should become shared styling primitives, design tokens, utilities, or theme rules
    - repeated styling, layout structures, or resource dictionaries
 5. Recommend the narrowest reusable abstraction that solves the planned work without over-generalizing.
 6. Define the intended ownership boundary before implementation:
@@ -45,6 +46,7 @@ When invoked, you must:
 - Prefer reusing or extending existing code when a stable abstraction already exists.
 - Prefer creating a reusable abstraction before implementation when the same pattern is likely to appear in more than one place.
 - Prefer enums or typed named constants over raw numeric codes when the value set is finite, semantic, and part of the domain model.
+- Prefer shared styling primitives, design tokens, or utility layers over duplicating the same CSS structure across multiple frontend components.
 - Do not wait for duplication to land in code if the duplication is already obvious from the request and the existing codebase.
 - Do not force generic abstractions when the use case is truly isolated and unlikely to repeat.
 - Favor explicit inputs/outputs and small extension points over oversized generic frameworks.
