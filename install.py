@@ -556,7 +556,7 @@ class TerminalMultiSelect:
                     return "SPACE"
                 if char == "\x1b":
                     next_char = input_stream.read(1)
-                    if next_char == "[":
+                    if next_char in {"[", "O"}:
                         arrow = input_stream.read(1)
                         return {
                             "A": "UP",

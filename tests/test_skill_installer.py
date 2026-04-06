@@ -784,6 +784,27 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertEqual(action, "back_to_manager")
         self.assertIn("Press Backspace to go back to Skill-Manager.", output.getvalue())
 
+    def test_terminal_multi_select_handles_ss3_arrow_sequences(self) -> None:
+        """Verify terminals using ESC O arrow sequences do not close the selector."""
+        question = {
+            "question": "Pick skills",
+            "multiSelect": True,
+            "options": [
+                {"label": "audit/skill1", "description": "desc1"},
+                {"label": "audit/skill2", "description": "desc2"},
+            ],
+        }
+        output = io.StringIO()
+        selector = TerminalMultiSelect(question, input_stream=io.StringIO(), output_stream=output)
+        keys = iter(["DOWN", "ENTER"])
+
+        selected = selector.run(read_key=lambda: next(keys))
+
+        self.assertEqual(selected, [])
+        rendered = output.getvalue()
+        self.assertIn("audit/skill1", rendered)
+        self.assertIn("audit/skill2", rendered)
+
     @patch.dict("os.environ", {}, clear=True)
     @patch("sys.stdin.isatty", return_value=True)
     @patch("sys.stdout.isatty", return_value=True)
