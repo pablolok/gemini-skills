@@ -114,3 +114,4 @@ class TestFrontendAuditSkills(unittest.TestCase):
         self.assertIn("`#pragma warning disable`", csharp_content)
         self.assertIn("`NoWarn`", csharp_content)
         self.assertIn("[SuppressMessage]", csharp_content)
+        self.assertIn("Generated Entity Framework migration files under `Migrations/`", csharp_content)

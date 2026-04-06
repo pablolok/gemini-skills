@@ -332,6 +332,61 @@ class TestSkillInstaller(unittest.TestCase):
             installer = SkillInstaller(os.path.join(temp_dir, "published"), self.mock_ask_user)
             self.assertEqual(installer.get_available_codex_bridges(), set())
 
+    def test_shared_skills_can_generate_codex_and_claude_artifacts_via_installer(self) -> None:
+        """Verify every shared supported skill can generate both managed tool-specific artifacts."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with open("install.config.json", "r", encoding="utf-8") as handle:
+            install_config = json.load(handle)
+
+        shared_skills = {
+            skill_name: skill_config
+            for skill_name, skill_config in install_config["skills"].items()
+            if skill_config.get("distribution", install_config["defaults"]["distribution"]) == "shared"
+        }
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            for skill_name, skill_config in shared_skills.items():
+                category = skill_config["category"]
+                rel_path = f"{category}/{skill_name}"
+                self.assertTrue(
+                    installer.install_skill(rel_path, temp_dir),
+                    msg=f"Failed to install Gemini skill {skill_name}",
+                )
+
+                if installer.supports_codex_bridge(skill_name):
+                    self.assertTrue(
+                        installer.install_codex_bridge(skill_name, temp_dir),
+                        msg=f"Failed to generate Codex bridge for {skill_name}",
+                    )
+                    self.assertTrue(
+                        os.path.isfile(
+                            os.path.join(temp_dir, ".codex", "skills", skill_name, "SKILL.md")
+                        )
+                    )
+
+                if installer.supports_claude_reference(skill_name):
+                    self.assertTrue(
+                        installer.install_claude_reference(skill_name, temp_dir),
+                        msg=f"Failed to generate Claude reference for {skill_name}",
+                    )
+                    self.assertTrue(
+                        os.path.isfile(
+                            os.path.join(temp_dir, ".claude", "skills", skill_name, "SKILL.md")
+                        )
+                    )
+
+            gitignore_path = os.path.join(temp_dir, ".gitignore")
+            with open(gitignore_path, "r", encoding="utf-8") as handle:
+                gitignore = handle.read()
+
+            for skill_name in shared_skills:
+                self.assertIn(f".gemini/skills/{skill_name}/", gitignore)
+                if installer.supports_codex_bridge(skill_name):
+                    self.assertIn(f".codex/skills/{skill_name}/", gitignore)
+                if installer.supports_claude_reference(skill_name):
+                    self.assertIn(f".claude/skills/{skill_name}/", gitignore)
+
     def test_check_for_updates_reports_newer_published_versions(self) -> None:
         """Verify update detection compares installed and published metadata."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)

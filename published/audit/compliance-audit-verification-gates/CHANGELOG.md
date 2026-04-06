@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.1.3] - 2026-04-06
+- Allow localized warning suppressions in generated Entity Framework migration files under `Migrations/`
+
+
 ## [1.1.2] - 2026-04-04
 - Block unrequested code removals and behavior reductions as verification-gate regressions.
 

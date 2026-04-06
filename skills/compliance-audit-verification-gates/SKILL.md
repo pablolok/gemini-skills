@@ -27,7 +27,7 @@ You must verify all of the following for the changed code paths:
 4. Required linting, type-checking, and static-analysis checks passed.
 5. Any required build, compile, bundle, or packaging command succeeded.
 6. Build, compile, bundle, lint, and static-analysis output is warning-free unless the repository or user explicitly documents an allowed warning exception.
-7. Warning-free status must come from fixing the underlying issue, not from suppressing diagnostics through pragmas, `NoWarn`, `.editorconfig` severity downgrades, suppression attributes, or equivalent mechanisms unless an explicit repository exception is documented.
+7. Warning-free status must come from fixing the underlying issue, not from suppressing diagnostics through pragmas, `NoWarn`, `.editorconfig` severity downgrades, suppression attributes, or equivalent mechanisms unless an explicit repository exception is documented. Generated Entity Framework migration files under `Migrations/` are an allowed exception when the suppression stays confined to migration code and exists to preserve compatibility with future model or property changes.
 8. Code removals, disabled behaviors, deleted branches, or stripped configuration introduced during the implementation are justified by the requested change instead of being accidental regressions.
 9. Manual verification is blocked until the above conditions are green.
 
@@ -39,7 +39,7 @@ When performing this audit, you MUST:
 2. Derive the expected verification commands from project documentation, scripts, existing CI conventions, or explicit user instructions.
 3. Treat missing verification evidence as a violation. Do not assume a check passed just because no failure was mentioned.
 4. Treat warnings as violations for required build, compile, bundle, lint, and static-analysis commands unless the warning is explicitly allowed in repository documentation or by direct user instruction.
-5. Treat warning suppressions used to hide required diagnostics as violations unless the repository explicitly documents the exception and its rationale.
+5. Treat warning suppressions used to hide required diagnostics as violations unless the repository explicitly documents the exception and its rationale. Do not flag suppressions inside generated Entity Framework migration files under `Migrations/` when they are limited to that generated migration code.
 6. For compiled or bundled codebases, require a successful and warning-free build before approving manual verification.
 7. For mixed-stack changes, require all relevant gates for each affected stack.
 8. Inspect the diff for removals or behavior-reducing edits. If code, markup, styling, configuration, conditionals, or data mappings were removed, verify that the request actually asked for that removal or that the repository context clearly required it.
@@ -75,7 +75,7 @@ Audit for these requirements:
 3. Verify that required tests, linting, type checks, static analysis, and build/compile/bundle commands were actually run when applicable.
 4. Treat missing execution evidence as a violation.
 5. Treat warnings in required build, compile, bundle, lint, or static-analysis output as violations unless the repository explicitly allows them.
-6. Treat `#pragma warning disable`, `NoWarn`, `SuppressMessage`, analyzer severity downgrades, and equivalent suppression mechanisms as violations when they are used to avoid required warning remediation.
+6. Treat `#pragma warning disable`, `NoWarn`, `SuppressMessage`, analyzer severity downgrades, and equivalent suppression mechanisms as violations when they are used to avoid required warning remediation, except for generated Entity Framework migration files under `Migrations/` where the suppression is kept local to the migration.
 7. For compiled or bundled code, require a successful warning-free build before manual verification.
 8. Inspect the change diff for removed code paths, deleted UI elements, stripped configuration, or reduced behavior and confirm that the request explicitly called for those removals.
 9. Treat unexplained removals as regressions even when automated verification is green.

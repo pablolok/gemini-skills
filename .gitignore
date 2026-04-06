@@ -169,6 +169,10 @@ cython_debug/
 # Ignore the local skill-manager installation manifest
 .gemini/skill-manager-manifest.json
 # Ignore skill directories installed and managed by skill-manager
+.gemini/skills/compliance-audit-angular/
+.gemini/skills/compliance-audit-avalonia/
+.gemini/skills/compliance-audit-c#/
+.gemini/skills/compliance-audit-frontend-styling/
 .gemini/skills/compliance-audit-orchestrator/
 .gemini/skills/compliance-audit-scripts/
 .gemini/skills/compliance-audit-verification-gates/
@@ -176,6 +180,10 @@ cython_debug/
 .gemini/skills/pre-implementation-review/
 .gemini/skills/review-optimization/
 .gemini/skills/skill-manager/
+.codex/skills/compliance-audit-angular/
+.codex/skills/compliance-audit-avalonia/
+.codex/skills/compliance-audit-c#/
+.codex/skills/compliance-audit-frontend-styling/
 .codex/skills/compliance-audit-orchestrator/
 .codex/skills/compliance-audit-scripts/
 .codex/skills/compliance-audit-verification-gates/
@@ -183,6 +191,11 @@ cython_debug/
 .codex/skills/pre-implementation-review/
 .codex/skills/review-optimization/
 .codex/skills/skill-manager/
+.claude/skills/changelog-manager/
+.claude/skills/compliance-audit-angular/
+.claude/skills/compliance-audit-avalonia/
+.claude/skills/compliance-audit-c#/
+.claude/skills/compliance-audit-frontend-styling/
 .claude/skills/compliance-audit-orchestrator/
 .claude/skills/compliance-audit-scripts/
 .claude/skills/compliance-audit-verification-gates/
@@ -190,4 +203,5 @@ cython_debug/
 .claude/skills/pre-implementation-review/
 .claude/skills/review-optimization/
 .claude/skills/skill-manager/
+.claude/skills/skill-publisher/
 # <<< skill-manager managed workspace files <<<

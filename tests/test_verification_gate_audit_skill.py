@@ -46,6 +46,7 @@ class TestVerificationGateAuditSkill(unittest.TestCase):
         self.assertIn("`#pragma warning disable`", content)
         self.assertIn("`NoWarn`", content)
         self.assertIn("suppression mechanisms", content)
+        self.assertIn("Entity Framework migration files under `Migrations/`", content)
 
     def test_verification_gate_skill_blocks_unrequested_removals(self) -> None:
         path = os.path.join("skills", "compliance-audit-verification-gates", "SKILL.md")
@@ -55,3 +56,11 @@ class TestVerificationGateAuditSkill(unittest.TestCase):
         self.assertIn("Inspect the diff for removals or behavior-reducing edits", content)
         self.assertIn("Treat unexplained removals as regressions", content)
         self.assertIn("removed functionality without an explicit request", content)
+
+    def test_verification_gate_skill_allows_generated_migration_suppressions(self) -> None:
+        path = os.path.join("skills", "compliance-audit-verification-gates", "SKILL.md")
+        with open(path, "r", encoding="utf-8") as handle:
+            content = handle.read()
+
+        self.assertIn("generated Entity Framework migration files under `Migrations/`", content)
+        self.assertIn("limited to that generated migration code", content)
