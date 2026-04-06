@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.6] - 2026-04-06
+- Flag repeated or semantic hardcoded string literals and prefer centralization through shared constants, resources, or configuration
+
+
 ## [1.3.5] - 2026-04-06
 - Allow localized warning suppressions in generated Entity Framework migration files under `Migrations/`
 

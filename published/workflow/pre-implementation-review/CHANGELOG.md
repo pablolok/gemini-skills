@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.5] - 2026-04-06
+- Flag repeated or semantic hardcoded string literals early and steer them toward shared constants, resources, or configuration during planning
+
+
 ## [1.0.4] - 2026-04-04
 - Require themeable semantic color tokens during frontend pre-implementation review.
 

@@ -37,6 +37,7 @@ Please review the recently modified files in this project and verify strict comp
 10. **Documentation:** Verify that all modules, classes, and functions include standard docstrings or comment-based help (PEP 8 compliant for Python).
 11. **Static Analysis & Linting:** Code must pass standard static analysis tools without warnings before being considered compliant.
 12. **Domain Modeling Clarity:** Prefer enums or other named typed abstractions over raw numeric codes when representing finite statuses, modes, result codes, action types, or workflow steps inside the script logic. Treat unexplained magic numbers in those scenarios as a readability and maintainability violation unless an external CLI, file format, or protocol requires the numeric value at the boundary.
+13. **String Literal Centralization:** Treat repeated or semantically meaningful hardcoded string literals as a maintainability violation when they should instead come from a shared constant, resource mapping, typed abstraction, or configuration boundary. Leave strings inline only when they are truly local, one-off, or fixed by an external command, protocol, or file format at that exact boundary.
 
 If you find ANY violations, you MUST return a detailed bulleted list of the violations found.
 For each violation, you must specify:

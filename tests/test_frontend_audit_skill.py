@@ -84,6 +84,20 @@ class TestFrontendAuditSkills(unittest.TestCase):
         self.assertIn("Domain Modeling Clarity", csharp_content)
         self.assertIn("Prefer enums or other strongly typed named abstractions", csharp_content)
 
+    def test_audit_skills_discourage_semantic_hardcoded_strings(self) -> None:
+        angular_path = os.path.join("skills", "compliance-audit-angular", "SKILL.md")
+        avalonia_path = os.path.join("skills", "compliance-audit-avalonia", "SKILL.md")
+        csharp_path = os.path.join("skills", "compliance-audit-c#", "SKILL.md")
+        scripts_path = os.path.join("skills", "compliance-audit-scripts", "SKILL.md")
+        styling_path = os.path.join("skills", "compliance-audit-frontend-styling", "SKILL.md")
+
+        for path in [angular_path, avalonia_path, csharp_path, scripts_path, styling_path]:
+            with open(path, "r", encoding="utf-8") as handle:
+                content = handle.read()
+
+            self.assertIn("String Literal Centralization", content)
+            self.assertIn("hardcoded string literals", content)
+
     def test_avalonia_audit_requires_reusable_control_extraction(self) -> None:
         avalonia_path = os.path.join("skills", "compliance-audit-avalonia", "SKILL.md")
 

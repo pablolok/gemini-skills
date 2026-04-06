@@ -59,6 +59,15 @@ class TestPreImplementationReviewSkill(unittest.TestCase):
         self.assertIn("themeable semantic color tokens", content)
         self.assertIn("hardcoded product colors", content)
 
+    def test_skill_flags_semantic_string_literals_for_centralization(self) -> None:
+        skill_path = os.path.join("skills", "pre-implementation-review", "SKILL.md")
+
+        with open(skill_path, "r", encoding="utf-8") as handle:
+            content = handle.read()
+
+        self.assertIn("semantic string literals", content)
+        self.assertIn("shared constants, resource keys, typed wrappers, or configuration inputs", content)
+
     def test_readme_describes_conductor_workflow_integration(self) -> None:
         readme_path = os.path.join("skills", "pre-implementation-review", "README.md")
 

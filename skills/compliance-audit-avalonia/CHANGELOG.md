@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.3] - 2026-04-06
+- Flag repeated or semantic hardcoded string literals and prefer centralization through shared constants, resources, or configuration
+
+
 ## [1.0.2] - 2026-04-04
 - Prefer enums over raw numeric UI state and workflow codes when the value set is finite and semantic.
 

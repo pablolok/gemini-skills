@@ -17,6 +17,7 @@ Use this when a request is still in the reasoning or planning phase, especially 
 - UI features that may repeat across screens
 - shared backend or service logic
 - validators, mappers, request builders, or orchestration flows
+- repeated semantic string literals that should probably become shared constants, resources, or configuration
 - refactors where the developer should decide reuse strategy before writing code
 
 ## Conductor Workflow Integration

@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.3.3] - 2026-04-06
+- Flag repeated or semantic hardcoded string literals and prefer centralization through shared constants, resources, or configuration
+
+
 ## [1.3.2] - 2026-04-04
 - Prefer enums or named typed constants over raw numeric script status and workflow codes when the value set is finite and semantic.
 

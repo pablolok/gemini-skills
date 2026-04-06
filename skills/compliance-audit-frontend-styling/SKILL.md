@@ -40,8 +40,9 @@ Please review the recently modified frontend styling files in this project and v
 7. **Accessibility-Aware States:** Verify visible focus states, adequate contrast, non-hover-only affordances, and motion choices that remain usable and accessible. Styling changes should not quietly remove keyboard-visible or contrast-safe states.
 8. **Theme Consistency:** Preserve the project's theming model. Avoid ad hoc color systems, local shadow systems, or one-off type scales when the project already has a shared visual language.
 9. **Dead Style Cleanup:** Flag stale selectors, duplicated declarations, dead variants, and copy-pasted style blocks that should be consolidated or removed.
-10. **Framework-Agnostic Practicality:** Adapt to the stack in front of you. Angular, React, Vue, Svelte, or plain web apps may use different styling mechanisms, but the same reuse, token, and maintainability principles still apply.
-11. **Documentation & Clarity:** Shared style APIs, utility conventions, token layers, and theme extension points should be named clearly and documented where the codebase expects it.
+10. **String Literal Centralization:** Treat repeated or semantically meaningful hardcoded string literals related to theme names, token keys, utility identifiers, class-name contracts, or styling state names as a maintainability violation when they should instead come from shared constants, token definitions, or another central styling contract. Leave strings inline only when they are truly local and non-reusable.
+11. **Framework-Agnostic Practicality:** Adapt to the stack in front of you. Angular, React, Vue, Svelte, or plain web apps may use different styling mechanisms, but the same reuse, token, and maintainability principles still apply.
+12. **Documentation & Clarity:** Shared style APIs, utility conventions, token layers, and theme extension points should be named clearly and documented where the codebase expects it.
 
 If you find ANY violations, you MUST return a detailed bulleted list of the violations found.
 For each violation, you must specify:
