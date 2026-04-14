@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.6.12] - 2026-04-14
+- Merge codex_bridge and copilot_bridge into agents_bridge targeting .agents/skills/
+- Both OpenAI Codex CLI and GitHub Copilot CLI read .agents/skills/ per open agent skills standard
+- Replace four-layer skill structure with three-layer: gemini, agents, claude
+- Update SKILL.md sections 9-10: rename Codex Bridge Hygiene to Agents Bridge Hygiene, remove Copilot section
+
 ## [1.6.11] - 2026-03-29
 - Add explicit target-project support and show install or uninstall target paths
 
