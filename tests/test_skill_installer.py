@@ -377,6 +377,64 @@ class TestSkillInstaller(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp_dir:
             self.assertFalse(installer.install_claude_reference("review-optimization", temp_dir))
 
+    def test_migrate_legacy_skill_locations_moves_gemini_shared_to_agents(self) -> None:
+        """Verify shared skills in .gemini/skills/ are migrated to .agents/skills/."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Place a shared skill under the old .gemini/skills/ location
+            old_dir = os.path.join(temp_dir, ".gemini", "skills", "review-optimization")
+            os.makedirs(old_dir)
+            with open(os.path.join(old_dir, "metadata.json"), "w", encoding="utf-8") as fh:
+                json.dump({"name": "review-optimization", "version": "1.0.0"}, fh)
+
+            installer.migrate_legacy_skill_locations(temp_dir)
+
+            # Skill must land in .agents/skills/
+            new_dir = os.path.join(temp_dir, ".agents", "skills", "review-optimization")
+            self.assertTrue(os.path.isdir(new_dir))
+            self.assertFalse(os.path.isdir(old_dir))
+
+    def test_migrate_legacy_skill_locations_moves_codex_skills_to_agents(self) -> None:
+        """Verify skills in .codex/skills/ are migrated to .agents/skills/."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_dir = os.path.join(temp_dir, ".codex", "skills", "review-optimization")
+            os.makedirs(old_dir)
+            with open(os.path.join(old_dir, "SKILL.md"), "w", encoding="utf-8") as fh:
+                fh.write("---\nname: review-optimization\n---\n")
+
+            installer.migrate_legacy_skill_locations(temp_dir)
+
+            new_dir = os.path.join(temp_dir, ".agents", "skills", "review-optimization")
+            self.assertTrue(os.path.isdir(new_dir))
+            self.assertFalse(os.path.isdir(old_dir))
+
+    def test_migrate_legacy_skill_locations_updates_manifest_kind(self) -> None:
+        """Verify manifest 'gemini' entries for shared skills become 'agents' after migration."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Create old .gemini/skills/ dir for a shared skill
+            old_dir = os.path.join(temp_dir, ".gemini", "skills", "review-optimization")
+            os.makedirs(old_dir)
+            with open(os.path.join(old_dir, "metadata.json"), "w", encoding="utf-8") as fh:
+                json.dump({"name": "review-optimization", "version": "1.0.0"}, fh)
+
+            # Write a manifest with a "gemini" entry for this shared skill
+            manifest_path = os.path.join(temp_dir, ".gemini", "skill-manager-manifest.json")
+            with open(manifest_path, "w", encoding="utf-8") as fh:
+                json.dump({"gemini": ["review-optimization"], "agents": [], "claude": []}, fh)
+
+            installer.migrate_legacy_skill_locations(temp_dir)
+
+            with open(manifest_path, "r", encoding="utf-8") as fh:
+                manifest = json.load(fh)
+
+            self.assertNotIn("review-optimization", manifest.get("gemini", []))
+            self.assertIn("review-optimization", manifest.get("agents", []))
+
     def test_ensure_managed_gitignore_entries_preserves_user_content_outside_managed_block(self) -> None:
         """Verify gitignore updates keep user content outside the managed block."""
 
