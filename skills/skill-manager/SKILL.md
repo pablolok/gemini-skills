@@ -34,18 +34,17 @@ installer.install_skill(skill_path, os.getcwd())
 ```
 
 For direct human CLI usage, `install.py` may use a richer terminal multi-select UI. For Gemini or programmatic usage, keep using the lightweight `ask_user`-compatible flow exposed by `SkillSelector` and `SkillInstaller`.
-For direct CLI usage, the installer should resolve the target project from `--target-project` / `--project-root` when present, otherwise from the current working directory, and it should print the exact target path plus the managed `.gemini/`, `.codex/`, `.claude/`, `.agents/`, and `skill-manager` integration locations after a successful install.
+For direct CLI usage, the installer should resolve the target project from `--target-project` / `--project-root` when present, otherwise from the current working directory, and it should print the exact target path plus the managed `.gemini/`, `.agents/`, `.claude/`, and `skill-manager` integration locations after a successful install.
 
-If the user also wants Codex, Claude, or Copilot companion artifacts, install the Gemini skill first and then use `install_codex_bridge(...)`, `install_claude_reference(...)`, and/or `install_copilot_bridge(...)`, or pass `--with-codex`, `--with-claude`, and `--with-copilot` through the installed `/skill-manager:install` helper.
+If the user also wants agents bridge or Claude companion artifacts, install the Gemini skill first and then use `install_agents_bridge(...)` and/or `install_claude_reference(...)`, or pass `--with-agents` and `--with-claude` through the installed `/skill-manager:install` helper.
 Only offer those companion artifacts when the repo-level `install.config.json` marks the skill as eligible for them.
-For Codex, prefer an explicit repo-owned wrapper when one exists; otherwise generate a lightweight bridge for supported shared skills instead of skipping Codex support entirely.
 
 ### 2b. Uninstall Skills
 To remove managed skills, use the `uninstall.py` entry point or the installed `/skill-manager:uninstall` helper.
 
 Rules:
 - Only offer skills currently tracked as managed.
-- Do not treat arbitrary local `.gemini/skills/`, `.codex/skills/`, `.claude/skills/`, or `.agents/skills/` folders as uninstall candidates.
+- Do not treat arbitrary local `.gemini/skills/`, `.agents/skills/`, or `.claude/skills/` folders as uninstall candidates.
 - Reuse the existing uninstall runtime path instead of duplicating manifest, companion cleanup, or `.gitignore` refresh logic.
 - For direct CLI usage, resolve the target project from `--target-project` / `--project-root` when present, otherwise from the current working directory, and print the exact target path so the user can verify where the uninstall is operating.
 - If uninstalling one managed artifact raises an OS-level removal error, log it, keep that artifact registered, and continue removing the other managed companion artifacts instead of crashing the whole uninstall flow.
@@ -96,10 +95,10 @@ Important:
 - The installer should not write `tools.core`. Workspace tool overrides can shadow built-in Gemini tools such as `ask_user`, so `skill-manager` must preserve any existing tool configuration.
 - The installer should also add a narrow user policy in `~/.gemini/policies/skill-manager-plan-mode.toml` so those same commands can run while Gemini is in Plan Mode.
 - The installer should also maintain a small managed block in the project `.gitignore` for the managed skill artifacts it creates.
-- That block should ignore `.gemini/commands/`, `.gemini/settings.json`, `.gemini/skill-manager-manifest.json`, and only the exact `.gemini/skills/<skill>/`, `.codex/skills/<skill>/`, `.claude/skills/<skill>/`, and `.agents/skills/<skill>/` directories that were installed by `skill-manager`.
+- That block should ignore `.gemini/commands/`, `.gemini/settings.json`, `.gemini/skill-manager-manifest.json`, and only the exact `.gemini/skills/<skill>/`, `.agents/skills/<skill>/`, and `.claude/skills/<skill>/` directories that were installed by `skill-manager`.
 - If the managed block already exists, replace only the content between the markers and preserve the rest of the user's `.gitignore`.
-- If `.gemini/skill-manager-manifest.json` is missing, bootstrap exact skill entries from the existing local `.gemini/skills/`, `.codex/skills/`, `.claude/skills/`, and `.agents/skills/` directories before writing the managed block.
-- Use `install.config.json` as the source of truth for whether a skill is `shared` or `gemini-only`, and for whether Codex bridges or Claude references should be offered at install time.
+- If `.gemini/skill-manager-manifest.json` is missing, bootstrap exact skill entries from the existing local `.gemini/skills/`, `.agents/skills/`, and `.claude/skills/` directories before writing the managed block.
+- Use `install.config.json` as the source of truth for whether a skill is `shared` or `gemini-only`, and for whether agents bridges or Claude references should be offered at install time.
 - Hard stop: never rewrite, regenerate, or replace the full `.gitignore` file to satisfy `skill-manager` behavior.
 - Hard stop: if an edit path would touch anything outside the managed marker block, abort that path and fix the implementation instead.
 
@@ -111,18 +110,19 @@ If a user reports that the startup hook or `/skill-manager:*` commands do not ap
 3. Verify `<project>/.gemini/settings.json` still contains the `skill-manager-update-check` SessionStart hook and that existing tool settings were preserved rather than overwritten.
 4. Verify `~/.gemini/policies/skill-manager-plan-mode.toml` exists and contains the allowlist rule for the `skill-manager` Python helper commands in `modes = ["plan"]`.
 5. Verify `<project>/.gemini/commands/skill-manager/` exists with the generated `.toml` command files.
-6. Verify the project `.gitignore` contains the managed `skill-manager` block that ignores `.gemini/commands/`, `.gemini/settings.json`, `.gemini/skill-manager-manifest.json`, and the exact installed skill directories (`.gemini/skills/`, `.codex/skills/`, `.claude/skills/`, `.agents/skills/`) managed by `skill-manager`.
+6. Verify the project `.gitignore` contains the managed `skill-manager` block that ignores `.gemini/commands/`, `.gemini/settings.json`, `.gemini/skill-manager-manifest.json`, and the exact installed skill directories (`.gemini/skills/`, `.agents/skills/`, `.claude/skills/`) managed by `skill-manager`.
 7. If Gemini was already open when the skill was installed or updated, instruct the user to run `/commands reload` and restart Gemini if Plan Mode policies appear unchanged.
 8. Test with `/skill-manager:list`.
 9. If the command exists but Gemini reports the shell command is blocked, explain that the user-level or system-level Gemini policy is still overriding the new plan policy.
 
-### 9. Codex Bridge Hygiene
+### 9. Agents Bridge Hygiene
 
-For projects that also use Codex:
+For projects that also use OpenAI Codex CLI or GitHub Copilot CLI (both read `.agents/skills/`):
 - Keep real Gemini skills in `.gemini/skills/`.
-- Keep `.codex/skills/` lightweight and descriptive.
-- Only commit Codex bridge wrappers when they are intentionally repo-owned.
-- If a Codex bridge is just local helper state for one project, instruct the user to add it to `.gitignore` rather than versioning it.
+- Keep `.agents/skills/` lightweight and reference-only.
+- Prefer generated agents bridge skills that point agents at the installed Gemini skill path instead of copying the Gemini payload.
+- If an agents bridge is only local helper state for one project, instruct the user to add it to `.gitignore` rather than versioning it.
+- Do not generate agents bridges for skills marked `distribution: "gemini-only"` or for skills with `supports.agents_bridge: false` in `install.config.json`.
 
 ### 10. Claude Reference Skills
 
@@ -132,16 +132,6 @@ For projects that also use Claude:
 - Prefer generated Claude reference skills that point Claude at the installed Gemini skill path instead of copying the Gemini payload.
 - If a Claude reference skill is only local helper state for one project, instruct the user to add it to `.gitignore` rather than versioning it.
 - Do not generate Claude references for skills marked `distribution: "gemini-only"` or for skills with `supports.claude_reference: false` in `install.config.json`.
-
-### 11. Copilot CLI Bridge Skills
-
-For projects that also use GitHub Copilot CLI:
-- Keep real Gemini skills in `.gemini/skills/`.
-- Keep `.agents/skills/` lightweight and reference-only.
-- Prefer generated Copilot CLI bridge skills that point Copilot at the installed Gemini skill path instead of copying the Gemini payload.
-- If a Copilot bridge skill is only local helper state for one project, instruct the user to add it to `.gitignore` rather than versioning it.
-- Do not generate Copilot bridges for skills marked `distribution: "gemini-only"` or for skills with `supports.copilot_bridge: false` in `install.config.json`.
-- The generated bridge is placed under `.agents/skills/<skill-name>/SKILL.md` and uses the same lightweight format as Claude references, with an additional "Layer Conventions" table to help Copilot CLI understand the four-layer skill structure.
 
 ## Integration
 This skill ensures that official skills are physically copied into the target project (replacing legacy junctions) to enable robust version tracking. It automatically triggers `post_install.py` hooks to maintain workflow consistency across different project environments, including Gemini-local update hooks and custom command setup when the installed skill supports them.

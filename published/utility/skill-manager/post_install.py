@@ -273,15 +273,21 @@ def _load_managed_skill_manifest(target_project_path: str) -> Dict[str, Any]:
         payload = json.load(handle)
 
     manifest: Dict[str, Any] = {}
-    for key in ("gemini", "codex", "claude", "copilot"):
+    for key in ("gemini", "agents", "claude"):
         values = payload.get(key, [])
         manifest[key] = sorted({str(value) for value in values if str(value).strip()})
+    # Migration: merge old "codex" and "copilot" keys into "agents"
+    for old_key in ("codex", "copilot"):
+        old_values = payload.get(old_key, [])
+        merged = set(manifest["agents"])
+        merged.update(str(v) for v in old_values if str(v).strip())
+        manifest["agents"] = sorted(merged)
     return manifest
 
 
 def _read_managed_gitignore_entries(target_project_path: str) -> Dict[str, Any]:
     gitignore_path = os.path.join(target_project_path, ".gitignore")
-    manifest: Dict[str, Any] = {"gemini": [], "codex": [], "claude": [], "copilot": []}
+    manifest: Dict[str, Any] = {"gemini": [], "agents": [], "claude": []}
     if not os.path.exists(gitignore_path):
         return manifest
 
@@ -296,13 +302,18 @@ def _read_managed_gitignore_entries(target_project_path: str) -> Dict[str, Any]:
     block = content[start:end]
     prefixes = {
         "gemini": ".gemini/skills/",
-        "codex": ".codex/skills/",
+        "agents": ".agents/skills/",
         "claude": ".claude/skills/",
-        "copilot": ".agents/skills/",
     }
 
     for raw_line in block.splitlines():
         line = raw_line.strip()
+        # Backward compat: recognize old .codex/skills/ entries as agents
+        if line.startswith(".codex/skills/") and line.endswith("/"):
+            skill_name = line[len(".codex/skills/"):-1].strip()
+            if skill_name:
+                manifest["agents"].append(skill_name)
+            continue
         for kind, prefix in prefixes.items():
             if line.startswith(prefix) and line.endswith("/"):
                 skill_name = line[len(prefix):-1].strip()
@@ -328,12 +339,10 @@ def _write_managed_skill_manifest(target_project_path: str, manifest: Dict[str, 
 
 
 def _companion_skill_still_supported(kind: str, skill_name: str) -> bool:
-    if kind == "codex":
-        return _supports_flag(skill_name, "codex_bridge")
+    if kind == "agents":
+        return _supports_flag(skill_name, "agents_bridge")
     if kind == "claude":
         return _supports_flag(skill_name, "claude_reference")
-    if kind == "copilot":
-        return _supports_flag(skill_name, "copilot_bridge")
     return True
 
 
@@ -362,18 +371,17 @@ def _remove_junction(path: str) -> None:
 def _normalize_managed_skill_manifest(target_project_path: str, manifest: Dict[str, Any]) -> Dict[str, Any]:
     base_paths = {
         "gemini": os.path.join(target_project_path, ".gemini", "skills"),
-        "codex": os.path.join(target_project_path, ".codex", "skills"),
+        "agents": os.path.join(target_project_path, ".agents", "skills"),
         "claude": os.path.join(target_project_path, ".claude", "skills"),
-        "copilot": os.path.join(target_project_path, ".agents", "skills"),
     }
     normalized: Dict[str, Any] = {}
     changed = False
 
-    for kind in ("gemini", "codex", "claude", "copilot"):
+    for kind in ("gemini", "agents", "claude"):
         kept: list[str] = []
         for skill_name in manifest.get(kind, []):
             skill_path = os.path.join(base_paths[kind], skill_name)
-            if kind in ("codex", "claude", "copilot") and not _companion_skill_still_supported(kind, skill_name):
+            if kind in ("agents", "claude") and not _companion_skill_still_supported(kind, skill_name):
                 if os.path.isdir(skill_path):
                     if _is_link_or_junction(skill_path):
                         _remove_junction(skill_path)
@@ -409,11 +417,10 @@ def _build_managed_skill_ignore_entries(manifest: Dict[str, Any]) -> list[str]:
     entries: list[str] = []
     base_paths = {
         "gemini": ".gemini/skills",
-        "codex": ".codex/skills",
+        "agents": ".agents/skills",
         "claude": ".claude/skills",
-        "copilot": ".agents/skills",
     }
-    for kind in ("gemini", "codex", "claude", "copilot"):
+    for kind in ("gemini", "agents", "claude"):
         for skill_name in manifest.get(kind, []):
             entries.append(f"{base_paths[kind]}/{skill_name}/")
     return entries

@@ -6,7 +6,7 @@ This repository is skill-driven. When a task matches an installed repo-local ski
 
 - If the user asks to `publish`, `sync`, `republish`, or otherwise update `published/`, use `skill-publisher`.
 - Do not edit `published/` manually to satisfy a publish request. Publish from `skills/` through the publisher flow.
-- If a task involves skill installation, updates, Codex bridge setup, Claude reference-skill setup, Copilot CLI bridge setup, or managed `.gitignore` behavior, use `skill-manager`.
+- If a task involves skill installation, updates, agents bridge setup, Claude reference-skill setup, or managed `.gitignore` behavior, use `skill-manager`.
 - If a task involves changelog normalization or version-entry cleanup, use `changelog-manager` before publishing when needed.
 
 ## Gitignore Guardrail
@@ -41,13 +41,13 @@ These repo-local skills are expected to be usable when their task type matches:
 
 - Use `install.config.json` as the source of truth for installer-facing skill scope.
 - Treat skills marked `distribution: "shared"` as normal cross-tool skills.
-- Treat skills marked `distribution: "gemini-only"` as Gemini-specific skills that should not automatically be treated as Codex bridge, Claude reference, or Copilot CLI bridge candidates.
+- Treat skills marked `distribution: "gemini-only"` as Gemini-specific skills that should not automatically be treated as agents bridge or Claude reference candidates.
 - The balancer family is Gemini-only unless a future task explicitly adds real cross-tool integration for it.
 
 ## Bridge And Reference Expectations
 
-- Every skill marked `distribution: "shared"` must be installable with a Codex bridge, a Claude reference skill, and a Copilot CLI bridge through `skill-manager`.
-- Treat `.codex/skills/`, `.claude/skills/`, and `.agents/skills/` entries created by `skill-manager` as managed installation artifacts, not as repo-owned source files.
+- Every skill marked `distribution: "shared"` must be installable with an agents bridge (`.agents/skills/`) and a Claude reference skill (`.claude/skills/`) through `skill-manager`.
+- Treat `.agents/skills/` and `.claude/skills/` entries created by `skill-manager` as managed installation artifacts, not as repo-owned source files.
 - Do not rely on versioning generated bridge or reference files to prove coverage. Coverage must be verified by testing the installer flow that generates them.
 - When adding a new shared skill or changing bridge eligibility, update installer behavior and tests so all tool-specific artifacts are generated together.
 
@@ -62,7 +62,7 @@ These repo-local skills are expected to be usable when their task type matches:
 - Treat `skills/` as the source of truth.
 - Keep `skills/<skill>/metadata.json`, `CHANGELOG.md`, `README.md`, and `SKILL.md` aligned before publishing.
 - Let the publish flow update metadata/changelog versions and copy to `published/`.
-- After publishing, verify any related Codex bridge wrappers in `.codex/skills/`, Claude reference skills in `.claude/skills/`, and Copilot CLI bridge skills in `.agents/skills/` still accurately describe the Gemini skill they point to.
+- After publishing, verify any related agents bridge skills in `.agents/skills/` and Claude reference skills in `.claude/skills/` still accurately describe the Gemini skill they point to.
 
 ## Audit Expectations
 

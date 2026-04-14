@@ -694,17 +694,13 @@ class SkillInstaller:
         return {
             "distribution": skill_config.get("distribution", defaults.get("distribution", "shared")),
             "supports": {
-                "codex_bridge": skill_supports.get(
-                    "codex_bridge",
-                    default_supports.get("codex_bridge", True),
+                "agents_bridge": skill_supports.get(
+                    "agents_bridge",
+                    default_supports.get("agents_bridge", True),
                 ),
                 "claude_reference": skill_supports.get(
                     "claude_reference",
                     default_supports.get("claude_reference", True),
-                ),
-                "copilot_bridge": skill_supports.get(
-                    "copilot_bridge",
-                    default_supports.get("copilot_bridge", True),
                 ),
             },
         }
@@ -737,10 +733,6 @@ class SkillInstaller:
         metadata_path = os.path.join(self.published_dir, skill_rel_path, "metadata.json")
         return self._read_metadata(metadata_path)
 
-    def codex_bridges_dir(self) -> str:
-        """Resolve the source directory containing Codex bridge wrappers."""
-        return os.path.join(os.path.dirname(self.published_dir), ".codex", "skills")
-
     def _has_yaml_frontmatter(self, skill_md_path: str) -> bool:
         """Return whether a SKILL.md file starts with basic YAML frontmatter."""
         try:
@@ -762,13 +754,17 @@ class SkillInstaller:
                 return True
         return False
 
-    def codex_bridge_skill_content(self, skill_name: str, target_project_path: str) -> str:
-        """Build a lightweight Codex bridge that points at the installed Gemini skill."""
+    def agents_bridge_skill_content(self, skill_name: str, target_project_path: str) -> str:
+        """Build a lightweight agents bridge that points at the installed Gemini skill.
+
+        Compatible with any tool that reads .agents/skills/ — including OpenAI Codex CLI
+        and GitHub Copilot CLI.
+        """
         metadata = self.get_installed_skill_metadata(skill_name, target_project_path) or {}
         description = metadata.get(
             "description",
             (
-                f"Codex bridge for the installed Gemini skill '{skill_name}'. "
+                f"Agents bridge for the installed Gemini skill '{skill_name}'. "
                 "Use the Gemini skill as the source of truth."
             ),
         )
@@ -784,16 +780,17 @@ class SkillInstaller:
             f"1. Read and follow `.gemini/skills/{skill_name}/SKILL.md`.\n"
             "2. If that skill references scripts, metadata, or companion files, "
             f"resolve them from `.gemini/skills/{skill_name}/`.\n"
-            "3. Do not duplicate the Gemini implementation in `.codex/skills/`. "
-            "This bridge exists only so Codex can discover and invoke the "
+            "3. Do not duplicate the Gemini implementation in `.agents/skills/`. "
+            "This bridge exists only so compatible agent tools can discover and invoke the "
             "installed Gemini skill guidance.\n\n"
-            "## Codex Integration\n\n"
-            "Use this bridge when Codex should apply the installed Gemini skill inside the current task.\n\n"
-            "1. Treat the installed Gemini skill as the implementation source.\n"
-            "2. Keep the Codex bridge lightweight and descriptive.\n"
-            "3. If the project keeps `.codex/skills/` local-only, leave the "
-            "generated bridge uncommitted and let `skill-manager` manage its "
-            "ignore entry.\n"
+            "## Layer Conventions\n\n"
+            "This project uses a three-layer skill structure:\n\n"
+            "| Layer | Path | Consumer |\n"
+            "|---|---|---|\n"
+            "| Source of truth | `.gemini/skills/` | Gemini CLI |\n"
+            "| Agent bridges | `.agents/skills/` | OpenAI Codex CLI, GitHub Copilot CLI, and compatible agents |\n"
+            "| Claude references | `.claude/skills/` | Claude Code (also read by Copilot CLI) |\n\n"
+            "When installing new skills, ensure all three layers are kept in sync for shared skills.\n"
         )
 
     def claude_reference_skill_content(self, skill_name: str, target_project_path: str) -> str:
@@ -823,67 +820,12 @@ class SkillInstaller:
             "installed Gemini skill guidance.\n"
         )
 
-    def copilot_bridge_skill_content(self, skill_name: str, target_project_path: str) -> str:
-        """Build a lightweight Copilot CLI bridge that points at the installed Gemini skill."""
-        metadata = self.get_installed_skill_metadata(skill_name, target_project_path) or {}
-        description = metadata.get(
-            "description",
-            (
-                f"Copilot CLI bridge for the installed Gemini skill '{skill_name}'. "
-                "Use the Gemini skill as the source of truth."
-            ),
-        )
-        title = re.sub(r"[-_]+", " ", skill_name).strip().title() or skill_name
-        return (
-            "---\n"
-            f"name: {skill_name}\n"
-            f"description: {description}\n"
-            "---\n\n"
-            f"# {title} Reference\n\n"
-            f"Use the installed Gemini skill at `.gemini/skills/{skill_name}/SKILL.md` as the source of truth.\n\n"
-            "Workflow:\n\n"
-            f"1. Read and follow `.gemini/skills/{skill_name}/SKILL.md`.\n"
-            "2. If that skill references scripts, metadata, or companion files, "
-            f"resolve them from `.gemini/skills/{skill_name}/`.\n"
-            "3. Do not duplicate the Gemini implementation in `.agents/skills/`. "
-            "This reference exists only so Copilot CLI can discover and invoke the "
-            "installed Gemini skill guidance.\n\n"
-            "## Layer Conventions\n\n"
-            "This project uses a four-layer skill structure:\n\n"
-            "| Layer | Path | Consumer |\n"
-            "|---|---|---|\n"
-            "| Source of truth | `.gemini/skills/` | Gemini CLI |\n"
-            "| Codex bridges | `.codex/skills/` | Codex / OpenAI agents |\n"
-            "| Claude references | `.claude/skills/` | Claude Code |\n"
-            "| Copilot bridges | `.agents/skills/` | Copilot CLI |\n\n"
-            "When installing new skills, ensure all four layers are kept in sync for shared skills.\n"
-        )
-
-    def get_available_codex_bridges(self) -> typing.Set[str]:
-        """Return skill names that have an explicit Codex bridge wrapper."""
-        bridges_dir = self.codex_bridges_dir()
-        if not os.path.isdir(bridges_dir):
-            return set()
-
-        bridges: typing.Set[str] = set()
-        for item in os.listdir(bridges_dir):
-            bridge_path = os.path.join(bridges_dir, item)
-            skill_md = os.path.join(bridge_path, "SKILL.md")
-            if (
-                os.path.isdir(bridge_path)
-                and not item.startswith(".")
-                and os.path.isfile(skill_md)
-                and self._has_yaml_frontmatter(skill_md)
-            ):
-                bridges.add(item)
-        return bridges
-
-    def supports_codex_bridge(self, skill_name: str) -> bool:
-        """Check whether a skill can get a Codex bridge."""
+    def supports_agents_bridge(self, skill_name: str) -> bool:
+        """Check whether a skill can get an agents bridge."""
         if not skill_name:
             return False
         skill_config = self.get_skill_config(skill_name)
-        return bool(skill_config["supports"].get("codex_bridge", True))
+        return bool(skill_config["supports"].get("agents_bridge", True))
 
     def supports_claude_reference(self, skill_name: str) -> bool:
         """Check whether a skill can get a generated Claude reference skill."""
@@ -891,13 +833,6 @@ class SkillInstaller:
             return False
         skill_config = self.get_skill_config(skill_name)
         return bool(skill_config["supports"].get("claude_reference", True))
-
-    def supports_copilot_bridge(self, skill_name: str) -> bool:
-        """Check whether a skill can get a generated Copilot CLI bridge skill."""
-        if not skill_name:
-            return False
-        skill_config = self.get_skill_config(skill_name)
-        return bool(skill_config["supports"].get("copilot_bridge", True))
 
     def get_installed_skill_metadata(
         self,
@@ -989,12 +924,18 @@ class SkillInstaller:
             with open(manifest_path, "r", encoding="utf-8") as handle:
                 payload = json.load(handle)
         except Exception:
-            return {"gemini": [], "codex": [], "claude": [], "copilot": []}
+            return {"gemini": [], "agents": [], "claude": []}
 
         manifest: typing.Dict[str, typing.List[str]] = {}
-        for key in ("gemini", "codex", "claude", "copilot"):
+        for key in ("gemini", "agents", "claude"):
             values = payload.get(key, [])
             manifest[key] = sorted({str(value) for value in values if str(value).strip()})
+        # Migration: merge old "codex" and "copilot" keys into "agents"
+        for old_key in ("codex", "copilot"):
+            old_values = payload.get(old_key, [])
+            merged = set(manifest["agents"])
+            merged.update(str(v) for v in old_values if str(v).strip())
+            manifest["agents"] = sorted(merged)
         return manifest
 
     def _read_managed_gitignore_entries(
@@ -1003,7 +944,7 @@ class SkillInstaller:
     ) -> typing.Dict[str, typing.List[str]]:
         """Recover managed skill entries from the existing skill-manager gitignore block."""
         gitignore_path = os.path.join(target_project_path, ".gitignore")
-        manifest: typing.Dict[str, typing.List[str]] = {"gemini": [], "codex": [], "claude": [], "copilot": []}
+        manifest: typing.Dict[str, typing.List[str]] = {"gemini": [], "agents": [], "claude": []}
         if not os.path.exists(gitignore_path):
             return manifest
 
@@ -1018,13 +959,18 @@ class SkillInstaller:
         block = content[start:end]
         prefixes = {
             "gemini": ".gemini/skills/",
-            "codex": ".codex/skills/",
+            "agents": ".agents/skills/",
             "claude": ".claude/skills/",
-            "copilot": ".agents/skills/",
         }
 
         for raw_line in block.splitlines():
             line = raw_line.strip()
+            # Backward compat: recognize old .codex/skills/ entries as agents
+            if line.startswith(".codex/skills/") and line.endswith("/"):
+                skill_name = line[len(".codex/skills/"):-1].strip()
+                if skill_name:
+                    manifest["agents"].append(skill_name)
+                continue
             for kind, prefix in prefixes.items():
                 if line.startswith(prefix) and line.endswith("/"):
                     skill_name = line[len(prefix):-1].strip()
@@ -1057,12 +1003,10 @@ class SkillInstaller:
 
     def _companion_skill_still_supported(self, kind: str, skill_name: str) -> bool:
         """Return whether a managed companion skill is still eligible under install config."""
-        if kind == "codex":
-            return self.supports_codex_bridge(skill_name)
+        if kind == "agents":
+            return self.supports_agents_bridge(skill_name)
         if kind == "claude":
             return self.supports_claude_reference(skill_name)
-        if kind == "copilot":
-            return self.supports_copilot_bridge(skill_name)
         return True
 
     def _normalize_managed_skill_manifest(
@@ -1073,18 +1017,17 @@ class SkillInstaller:
         """Prune stale managed companion artifacts that are no longer supported."""
         base_paths = {
             "gemini": os.path.join(target_project_path, ".gemini", "skills"),
-            "codex": os.path.join(target_project_path, ".codex", "skills"),
+            "agents": os.path.join(target_project_path, ".agents", "skills"),
             "claude": os.path.join(target_project_path, ".claude", "skills"),
-            "copilot": os.path.join(target_project_path, ".agents", "skills"),
         }
         normalized: typing.Dict[str, typing.List[str]] = {}
         changed = False
 
-        for kind in ("gemini", "codex", "claude", "copilot"):
+        for kind in ("gemini", "agents", "claude"):
             kept: typing.List[str] = []
             for skill_name in manifest.get(kind, []):
                 skill_path = os.path.join(base_paths[kind], skill_name)
-                if kind in ("codex", "claude", "copilot") and not self._companion_skill_still_supported(kind, skill_name):
+                if kind in ("agents", "claude") and not self._companion_skill_still_supported(kind, skill_name):
                     if os.path.isdir(skill_path):
                         self._remove_directory_tree(skill_path)
                     changed = True
@@ -1142,11 +1085,10 @@ class SkillInstaller:
         entries: typing.List[str] = []
         base_paths = {
             "gemini": ".gemini/skills",
-            "codex": ".codex/skills",
+            "agents": ".agents/skills",
             "claude": ".claude/skills",
-            "copilot": ".agents/skills",
         }
-        for kind in ("gemini", "codex", "claude", "copilot"):
+        for kind in ("gemini", "agents", "claude"):
             base_path = base_paths[kind]
             for skill_name in manifest.get(kind, []):
                 entries.append(f"{base_path}/{skill_name}/")
@@ -1159,7 +1101,7 @@ class SkillInstaller:
             self._load_managed_skill_manifest(target_project_path),
         )
         names = set()
-        for kind in ("gemini", "codex", "claude", "copilot"):
+        for kind in ("gemini", "agents", "claude"):
             names.update(manifest.get(kind, []))
         return sorted(names)
 
@@ -1214,8 +1156,8 @@ class SkillInstaller:
             self.logger.info(f"  - {update['name']}: {update['installed']} -> {update['latest']}")
         self.logger.info("\nRun 'python install.py' or 'python check_updates.py' to update.\n")
 
-    def install_codex_bridge(self, skill_name: str, target_project_path: str) -> bool:
-        """Install a lightweight Codex bridge wrapper for a skill."""
+    def install_agents_bridge(self, skill_name: str, target_project_path: str) -> bool:
+        """Install a lightweight agents bridge for a skill, targeting .agents/skills/."""
         source_skill_path = os.path.join(
             target_project_path,
             ".gemini",
@@ -1225,48 +1167,31 @@ class SkillInstaller:
         )
         if not os.path.isfile(source_skill_path):
             self.logger.info(
-                f"Skipping Codex bridge for '{skill_name}': the Gemini skill is not installed in the target project."
+                f"Skipping agents bridge for '{skill_name}': the Gemini skill is not installed in the target project."
             )
             return False
 
-        if not self.supports_codex_bridge(skill_name):
+        if not self.supports_agents_bridge(skill_name):
             self.logger.info(
-                f"Skipping Codex bridge for '{skill_name}': this skill is not eligible for Codex bridge generation."
+                f"Skipping agents bridge for '{skill_name}': this skill is not eligible for agents bridge generation."
             )
             return False
 
-        source_path = os.path.join(self.codex_bridges_dir(), skill_name)
-        target_skills_dir = os.path.join(target_project_path, ".codex", "skills")
-        os.makedirs(target_skills_dir, exist_ok=True)
-        target_path = os.path.join(target_skills_dir, skill_name)
-        target_skill_path = os.path.join(target_path, "SKILL.md")
+        target_skill_dir = os.path.join(target_project_path, ".agents", "skills", skill_name)
+        os.makedirs(target_skill_dir, exist_ok=True)
+        target_skill_path = os.path.join(target_skill_dir, "SKILL.md")
 
-        self.logger.info(f"Installing Codex bridge for '{skill_name}'...")
+        self.logger.info(f"Installing agents bridge for '{skill_name}'...")
         try:
-            source_wrapper_path = os.path.join(source_path, "SKILL.md")
-            if os.path.isfile(source_wrapper_path) and self._has_yaml_frontmatter(source_wrapper_path):
-                abs_source = os.path.abspath(source_path)
-                abs_target = os.path.abspath(target_path)
-                if os.path.normcase(abs_source) != os.path.normcase(abs_target):
-                    self._copy_skill_files(abs_source, abs_target)
-            else:
-                if os.path.isfile(source_wrapper_path):
-                    self.logger.warning(
-                        "Skipping invalid repo-owned Codex bridge for '%s' at '%s'; "
-                        "falling back to generated bridge content.",
-                        skill_name,
-                        source_wrapper_path,
-                    )
-                os.makedirs(target_path, exist_ok=True)
-                content = self.codex_bridge_skill_content(skill_name, target_project_path)
-                with open(target_skill_path, "w", encoding="utf-8") as handle:
-                    handle.write(content)
-            self._register_managed_skill(target_project_path, "codex", skill_name)
+            content = self.agents_bridge_skill_content(skill_name, target_project_path)
+            with open(target_skill_path, "w", encoding="utf-8") as handle:
+                handle.write(content)
+            self._register_managed_skill(target_project_path, "agents", skill_name)
             self.ensure_managed_gitignore_entries(target_project_path)
-            self.logger.info(f"Successfully installed Codex bridge for '{skill_name}'.")
+            self.logger.info(f"Successfully installed agents bridge for '{skill_name}'.")
             return True
         except Exception as e:
-            self.logger.error(f"Failed to install Codex bridge for '{skill_name}': {e}")
+            self.logger.error(f"Failed to install agents bridge for '{skill_name}': {e}")
             return False
 
     def install_claude_reference(self, skill_name: str, target_project_path: str) -> bool:
@@ -1303,46 +1228,6 @@ class SkillInstaller:
             self.logger.error(f"Failed to install Claude reference skill for '{skill_name}': {e}")
             return False
 
-    def install_copilot_bridge(self, skill_name: str, target_project_path: str) -> bool:
-        """Install a lightweight Copilot CLI bridge skill for an installed Gemini skill."""
-        source_skill_path = os.path.join(
-            target_project_path,
-            ".gemini",
-            "skills",
-            skill_name,
-            "SKILL.md",
-        )
-        if not os.path.isfile(source_skill_path):
-            self.logger.info(
-                "Skipping Copilot bridge for '%s': the Gemini skill is not "
-                "installed in the target project.",
-                skill_name,
-            )
-            return False
-
-        if not self.supports_copilot_bridge(skill_name):
-            self.logger.info(
-                f"Skipping Copilot bridge for '{skill_name}': this skill is not eligible for Copilot bridge generation."
-            )
-            return False
-
-        target_skill_dir = os.path.join(target_project_path, ".agents", "skills", skill_name)
-        os.makedirs(target_skill_dir, exist_ok=True)
-        target_skill_path = os.path.join(target_skill_dir, "SKILL.md")
-
-        self.logger.info(f"Installing Copilot CLI bridge for '{skill_name}'...")
-        try:
-            content = self.copilot_bridge_skill_content(skill_name, target_project_path)
-            with open(target_skill_path, "w", encoding="utf-8") as handle:
-                handle.write(content)
-            self._register_managed_skill(target_project_path, "copilot", skill_name)
-            self.ensure_managed_gitignore_entries(target_project_path)
-            self.logger.info(f"Successfully installed Copilot CLI bridge for '{skill_name}'.")
-            return True
-        except Exception as e:
-            self.logger.error(f"Failed to install Copilot CLI bridge for '{skill_name}': {e}")
-            return False
-
     def uninstall_skill(self, skill_name: str, target_project_path: str) -> bool:
         """Remove a managed Gemini skill and any managed Codex/Claude/Copilot companions."""
         if not skill_name:
@@ -1354,10 +1239,21 @@ class SkillInstaller:
         removed = False
         targets = {
             "gemini": os.path.join(target_project_path, ".gemini", "skills", skill_name),
-            "codex": os.path.join(target_project_path, ".codex", "skills", skill_name),
+            "agents": os.path.join(target_project_path, ".agents", "skills", skill_name),
             "claude": os.path.join(target_project_path, ".claude", "skills", skill_name),
-            "copilot": os.path.join(target_project_path, ".agents", "skills", skill_name),
         }
+
+        # Also attempt to clean up any stale .codex/skills/<skill>/ from old installs
+        stale_codex_path = os.path.join(target_project_path, ".codex", "skills", skill_name)
+        if os.path.isdir(stale_codex_path):
+            try:
+                self._remove_directory_tree(stale_codex_path)
+            except OSError as exc:
+                self.logger.warning(
+                    "Could not remove stale Codex artifact at '%s': %s",
+                    stale_codex_path,
+                    exc,
+                )
 
         failed_kinds: typing.Set[str] = set()
         for kind, path in targets.items():
@@ -1586,27 +1482,27 @@ def _manual_switch_response(
     return {"answers": {"0": []}, "action": action}
 
 
-def prompt_for_codex_support(
+def prompt_for_agents_support(
     ask_user_fn: typing.Callable[[typing.Dict[str, typing.Any]], AskUserResponse],
     skill_names: typing.Sequence[str],
 ) -> typing.Set[str]:
-    """Ask whether supported skills should also receive Codex bridge wrappers."""
+    """Ask whether supported skills should also receive agents bridge wrappers."""
     bridgeable = sorted(set(skill_names))
     if not bridgeable:
         return set()
 
     response = ask_user_fn({
         "questions": [{
-            "header": "Codex Support",
+            "header": "Agents Support",
             "question": (
-                "Install matching Codex bridge wrappers in .codex/skills for supported selected skills?"
+                "Install agent bridge skills in .agents/skills for supported selected skills?"
             ),
             "type": "choice",
             "multiSelect": False,
             "options": [
                 {
                     "label": "yes",
-                    "description": "Add lightweight Codex bridge wrappers for the supported selected skills.",
+                    "description": "Add lightweight agent bridge skills for the supported selected skills. Compatible with Codex CLI, Copilot CLI, and compatible agent tools.",
                 },
                 {
                     "label": "no",
@@ -1658,43 +1554,6 @@ def prompt_for_claude_support(
         answer = str(response.get("answers", {}).get("0", "")).strip().lower()
 
     return set(referenceable) if answer == "yes" else set()
-
-
-def prompt_for_copilot_support(
-    ask_user_fn: typing.Callable[[typing.Dict[str, typing.Any]], AskUserResponse],
-    skill_names: typing.Sequence[str],
-) -> typing.Set[str]:
-    """Ask whether selected skills should also receive Copilot CLI bridge skills."""
-    bridgeable = sorted(set(skill_names))
-    if not bridgeable:
-        return set()
-
-    response = ask_user_fn({
-        "questions": [{
-            "header": "Copilot CLI Support",
-            "question": (
-                "Install generated Copilot CLI bridge skills in .agents/skills for the selected skills?"
-            ),
-            "type": "choice",
-            "multiSelect": False,
-            "options": [
-                {
-                    "label": "yes",
-                    "description": "Add lightweight Copilot CLI bridge skills that point at the installed Gemini skills.",
-                },
-                {
-                    "label": "no",
-                    "description": "Install only the Gemini skill payloads into .gemini/skills.",
-                },
-            ],
-        }]
-    })
-
-    answer = ""
-    if isinstance(response, dict):
-        answer = str(response.get("answers", {}).get("0", "")).strip().lower()
-
-    return set(bridgeable) if answer == "yes" else set()
 
 
 def get_cli_ask_user(argv: typing.Optional[typing.Sequence[str]] = None) -> typing.Callable:
@@ -1752,19 +1611,16 @@ def print_target_project_summary(
     target_project: str,
     *,
     skill_names: typing.Optional[typing.Sequence[str]] = None,
-    include_codex: bool = False,
+    include_agents: bool = False,
     include_claude: bool = False,
-    include_copilot: bool = False,
 ) -> None:
     """Show the exact project path and managed locations touched by the installer."""
     print(f"Target project: {target_project}")
     print(f"Gemini skills: {os.path.join(target_project, '.gemini', 'skills')}")
-    if include_codex:
-        print(f"Codex bridges: {os.path.join(target_project, '.codex', 'skills')}")
+    if include_agents:
+        print(f"Agent bridges: {os.path.join(target_project, '.agents', 'skills')}")
     if include_claude:
         print(f"Claude references: {os.path.join(target_project, '.claude', 'skills')}")
-    if include_copilot:
-        print(f"Copilot bridges: {os.path.join(target_project, '.agents', 'skills')}")
     if skill_names and "skill-manager" in set(skill_names):
         print(f"Gemini commands: {os.path.join(target_project, '.gemini', 'commands', 'skill-manager')}")
         print(f"Gemini settings: {os.path.join(target_project, '.gemini', 'settings.json')}")
@@ -1845,28 +1701,22 @@ def main() -> None:
         manage_module.main()
         return
     selected_skill_names = [os.path.basename(skill_path) for skill_path in selected]
-    codex_candidates = [
-        skill_name for skill_name in selected_skill_names if installer.supports_codex_bridge(skill_name)
+    agents_candidates = [
+        skill_name for skill_name in selected_skill_names if installer.supports_agents_bridge(skill_name)
     ]
     claude_candidates = [
         skill_name for skill_name in selected_skill_names if installer.supports_claude_reference(skill_name)
     ]
-    copilot_candidates = [
-        skill_name for skill_name in selected_skill_names if installer.supports_copilot_bridge(skill_name)
-    ]
-    install_codex_for = prompt_for_codex_support(ask_user_fn, codex_candidates)
+    install_agents_for = prompt_for_agents_support(ask_user_fn, agents_candidates)
     install_claude_for = prompt_for_claude_support(ask_user_fn, claude_candidates)
-    install_copilot_for = prompt_for_copilot_support(ask_user_fn, copilot_candidates)
 
     for skill_path in selected:
         if installer.install_skill(skill_path, target_project):
             skill_name = os.path.basename(skill_path)
-            if skill_name in install_codex_for:
-                installer.install_codex_bridge(skill_name, target_project)
+            if skill_name in install_agents_for:
+                installer.install_agents_bridge(skill_name, target_project)
             if skill_name in install_claude_for:
                 installer.install_claude_reference(skill_name, target_project)
-            if skill_name in install_copilot_for:
-                installer.install_copilot_bridge(skill_name, target_project)
 
     changed = installer.ensure_managed_gitignore_entries(target_project)
     if not selected:
@@ -1876,9 +1726,8 @@ def main() -> None:
         print_target_project_summary(
             target_project,
             skill_names=selected_skill_names,
-            include_codex=bool(install_codex_for),
+            include_agents=bool(install_agents_for),
             include_claude=bool(install_claude_for),
-            include_copilot=bool(install_copilot_for),
         )
     logger.info(
         "Managed .gitignore entries were %s.",
