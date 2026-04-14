@@ -4,7 +4,8 @@
     "distribution": "shared",
     "supports": {
       "codex_bridge": true,
-      "claude_reference": true
+      "claude_reference": true,
+      "copilot_bridge": true
     }
   },
   "skills": {
@@ -49,7 +50,8 @@
       "distribution": "gemini-only",
       "supports": {
         "codex_bridge": false,
-        "claude_reference": false
+        "claude_reference": false,
+        "copilot_bridge": false
       }
     },
     "subagent-balancer-api": {
@@ -57,7 +59,8 @@
       "distribution": "gemini-only",
       "supports": {
         "codex_bridge": false,
-        "claude_reference": false
+        "claude_reference": false,
+        "copilot_bridge": false
       }
     },
     "subagent-balancer-orchestrator": {
@@ -65,7 +68,8 @@
       "distribution": "gemini-only",
       "supports": {
         "codex_bridge": false,
-        "claude_reference": false
+        "claude_reference": false,
+        "copilot_bridge": false
       }
     },
     "conductor-workflow-optimization": {

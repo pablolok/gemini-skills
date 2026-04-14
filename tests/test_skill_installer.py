@@ -201,18 +201,29 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertTrue(installer.supports_claude_reference("review-optimization"))
         self.assertFalse(installer.supports_claude_reference(""))
 
+    def test_supports_copilot_bridge_for_skill_name(self) -> None:
+        """Verify Copilot CLI bridge skills can be generated for selected skills."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        self.assertTrue(installer.supports_copilot_bridge("review-optimization"))
+        self.assertFalse(installer.supports_copilot_bridge(""))
+
     def test_install_config_marks_balancer_family_as_gemini_only(self) -> None:
-        """Verify Gemini-only skills are not treated as Codex/Claude companion candidates."""
+        """Verify Gemini-only skills are not treated as Codex/Claude/Copilot companion candidates."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         self.assertTrue(installer.supports_codex_bridge("compliance-audit-verification-gates"))
         self.assertTrue(installer.supports_claude_reference("compliance-audit-verification-gates"))
+        self.assertTrue(installer.supports_copilot_bridge("compliance-audit-verification-gates"))
         self.assertFalse(installer.supports_codex_bridge("subagent-balancer"))
         self.assertFalse(installer.supports_claude_reference("subagent-balancer"))
+        self.assertFalse(installer.supports_copilot_bridge("subagent-balancer"))
         self.assertFalse(installer.supports_codex_bridge("subagent-balancer-api"))
         self.assertFalse(installer.supports_claude_reference("subagent-balancer-api"))
+        self.assertFalse(installer.supports_copilot_bridge("subagent-balancer-api"))
         self.assertFalse(installer.supports_codex_bridge("subagent-balancer-orchestrator"))
         self.assertFalse(installer.supports_claude_reference("subagent-balancer-orchestrator"))
+        self.assertFalse(installer.supports_copilot_bridge("subagent-balancer-orchestrator"))
 
     def test_supports_ansi_respects_no_color(self) -> None:
         """Verify NO_COLOR disables ANSI output."""
@@ -299,7 +310,7 @@ class TestSkillInstaller(unittest.TestCase):
 
             self.assertIsNone(installer._read_metadata(metadata_path))
 
-    def test_codex_and_claude_bridge_content_use_metadata_description(self) -> None:
+    def test_codex_claude_and_copilot_bridge_content_use_metadata_description(self) -> None:
         """Verify generated bridge content reuses installed skill metadata when available."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
@@ -311,11 +322,14 @@ class TestSkillInstaller(unittest.TestCase):
 
             codex_content = installer.codex_bridge_skill_content("demo-skill", temp_dir)
             claude_content = installer.claude_reference_skill_content("demo-skill", temp_dir)
+            copilot_content = installer.copilot_bridge_skill_content("demo-skill", temp_dir)
 
             self.assertIn("Installed demo skill.", codex_content)
             self.assertIn("Installed demo skill.", claude_content)
+            self.assertIn("Installed demo skill.", copilot_content)
             self.assertIn(".gemini/skills/demo-skill/SKILL.md", codex_content)
             self.assertIn(".gemini/skills/demo-skill/SKILL.md", claude_content)
+            self.assertIn(".gemini/skills/demo-skill/SKILL.md", copilot_content)
 
     def test_codex_bridge_content_falls_back_when_metadata_is_missing(self) -> None:
         """Verify generated Codex bridge content falls back to the default description."""
@@ -332,8 +346,8 @@ class TestSkillInstaller(unittest.TestCase):
             installer = SkillInstaller(os.path.join(temp_dir, "published"), self.mock_ask_user)
             self.assertEqual(installer.get_available_codex_bridges(), set())
 
-    def test_shared_skills_can_generate_codex_and_claude_artifacts_via_installer(self) -> None:
-        """Verify every shared supported skill can generate both managed tool-specific artifacts."""
+    def test_shared_skills_can_generate_codex_claude_and_copilot_artifacts_via_installer(self) -> None:
+        """Verify every shared supported skill can generate all three managed tool-specific artifacts."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         with open("install.config.json", "r", encoding="utf-8") as handle:
@@ -376,6 +390,17 @@ class TestSkillInstaller(unittest.TestCase):
                         )
                     )
 
+                if installer.supports_copilot_bridge(skill_name):
+                    self.assertTrue(
+                        installer.install_copilot_bridge(skill_name, temp_dir),
+                        msg=f"Failed to generate Copilot bridge for {skill_name}",
+                    )
+                    self.assertTrue(
+                        os.path.isfile(
+                            os.path.join(temp_dir, ".agents", "skills", skill_name, "SKILL.md")
+                        )
+                    )
+
             gitignore_path = os.path.join(temp_dir, ".gitignore")
             with open(gitignore_path, "r", encoding="utf-8") as handle:
                 gitignore = handle.read()
@@ -386,6 +411,8 @@ class TestSkillInstaller(unittest.TestCase):
                     self.assertIn(f".codex/skills/{skill_name}/", gitignore)
                 if installer.supports_claude_reference(skill_name):
                     self.assertIn(f".claude/skills/{skill_name}/", gitignore)
+                if installer.supports_copilot_bridge(skill_name):
+                    self.assertIn(f".agents/skills/{skill_name}/", gitignore)
 
     def test_check_for_updates_reports_newer_published_versions(self) -> None:
         """Verify update detection compares installed and published metadata."""
@@ -450,7 +477,45 @@ class TestSkillInstaller(unittest.TestCase):
             self.assertIn("Use the installed Gemini skill", content)
             self.assertIn(".gemini/skills/compliance-audit-verification-gates/SKILL.md", content)
 
-    def test_ensure_managed_gitignore_entries_preserves_existing_content(self) -> None:
+    def test_install_copilot_bridge_returns_false_when_skill_missing_or_unsupported(self) -> None:
+        """Verify Copilot bridge install short-circuits for unsupported or missing Gemini skills."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            self.assertFalse(installer.install_copilot_bridge("review-optimization", temp_dir))
+            self.assertFalse(installer.install_copilot_bridge("subagent-balancer", temp_dir))
+
+    def test_install_copilot_bridge_generates_bridge_when_no_explicit_wrapper_exists(self) -> None:
+        """Verify supported skills can get a generated Copilot bridge without a repo-owned wrapper."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            installer.install_skill("audit/compliance-audit-verification-gates", temp_dir)
+
+            success = installer.install_copilot_bridge("compliance-audit-verification-gates", temp_dir)
+
+            self.assertTrue(success)
+            bridge_path = os.path.join(
+                temp_dir,
+                ".agents",
+                "skills",
+                "compliance-audit-verification-gates",
+                "SKILL.md",
+            )
+            self.assertTrue(os.path.isfile(bridge_path))
+            with open(bridge_path, "r", encoding="utf-8") as handle:
+                content = handle.read()
+            self.assertIn("Use the installed Gemini skill", content)
+            self.assertIn(".gemini/skills/compliance-audit-verification-gates/SKILL.md", content)
+
+    def test_copilot_bridge_content_falls_back_when_metadata_is_missing(self) -> None:
+        """Verify generated Copilot bridge content falls back to the default description."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        content = installer.copilot_bridge_skill_content("demo_skill", "missing-project")
+
+        self.assertIn("Copilot CLI bridge for the installed Gemini skill 'demo_skill'.", content)
+        self.assertIn("# Demo Skill", content)
         """Verify gitignore updates keep user content outside the managed block."""
 
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
@@ -486,11 +551,13 @@ class TestSkillInstaller(unittest.TestCase):
             os.makedirs(os.path.join(temp_dir, ".gemini", "skills", "alpha"))
             os.makedirs(os.path.join(temp_dir, ".codex", "skills", "beta"))
             os.makedirs(os.path.join(temp_dir, ".claude", "skills", "gamma"))
+            os.makedirs(os.path.join(temp_dir, ".agents", "skills", "delta"))
             with open(os.path.join(temp_dir, ".gitignore"), "w", encoding="utf-8") as handle:
                 handle.write(
                     "# >>> skill-manager managed workspace files >>>\n"
                     ".gemini/skills/alpha/\n"
                     ".codex/skills/beta/\n"
+                    ".agents/skills/delta/\n"
                     "# <<< skill-manager managed workspace files <<<\n"
                 )
 
@@ -502,14 +569,16 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertIn(".gemini/skills/alpha/", gitignore)
         self.assertIn(".codex/skills/beta/", gitignore)
         self.assertNotIn(".claude/skills/gamma/", gitignore)
+        self.assertIn(".agents/skills/delta/", gitignore)
 
     def test_ensure_managed_gitignore_entries_prunes_ineligible_companion_skills(self) -> None:
-        """Verify stale Claude/Codex entries are removed when install config no longer allows them."""
+        """Verify stale Claude/Codex/Copilot entries are removed when install config no longer allows them."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             os.makedirs(os.path.join(temp_dir, ".gemini", "skills", "subagent-balancer"))
             os.makedirs(os.path.join(temp_dir, ".claude", "skills", "subagent-balancer"))
+            os.makedirs(os.path.join(temp_dir, ".agents", "skills", "subagent-balancer"))
             manifest_path = os.path.join(temp_dir, ".gemini", "skill-manager-manifest.json")
             os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
             with open(manifest_path, "w", encoding="utf-8") as handle:
@@ -518,6 +587,7 @@ class TestSkillInstaller(unittest.TestCase):
                         "gemini": ["subagent-balancer"],
                         "codex": [],
                         "claude": ["subagent-balancer"],
+                        "copilot": ["subagent-balancer"],
                     },
                     handle,
                     indent=2,
@@ -533,8 +603,11 @@ class TestSkillInstaller(unittest.TestCase):
 
             self.assertIn(".gemini/skills/subagent-balancer/", gitignore)
             self.assertNotIn(".claude/skills/subagent-balancer/", gitignore)
+            self.assertNotIn(".agents/skills/subagent-balancer/", gitignore)
             self.assertEqual(manifest["claude"], [])
+            self.assertEqual(manifest["copilot"], [])
             self.assertFalse(os.path.exists(os.path.join(temp_dir, ".claude", "skills", "subagent-balancer")))
+            self.assertFalse(os.path.exists(os.path.join(temp_dir, ".agents", "skills", "subagent-balancer")))
 
     @patch("subprocess.run")
     @patch("os.path.exists")

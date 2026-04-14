@@ -273,7 +273,7 @@ def _load_managed_skill_manifest(target_project_path: str) -> Dict[str, Any]:
         payload = json.load(handle)
 
     manifest: Dict[str, Any] = {}
-    for key in ("gemini", "codex", "claude"):
+    for key in ("gemini", "codex", "claude", "copilot"):
         values = payload.get(key, [])
         manifest[key] = sorted({str(value) for value in values if str(value).strip()})
     return manifest
@@ -281,7 +281,7 @@ def _load_managed_skill_manifest(target_project_path: str) -> Dict[str, Any]:
 
 def _read_managed_gitignore_entries(target_project_path: str) -> Dict[str, Any]:
     gitignore_path = os.path.join(target_project_path, ".gitignore")
-    manifest: Dict[str, Any] = {"gemini": [], "codex": [], "claude": []}
+    manifest: Dict[str, Any] = {"gemini": [], "codex": [], "claude": [], "copilot": []}
     if not os.path.exists(gitignore_path):
         return manifest
 
@@ -298,6 +298,7 @@ def _read_managed_gitignore_entries(target_project_path: str) -> Dict[str, Any]:
         "gemini": ".gemini/skills/",
         "codex": ".codex/skills/",
         "claude": ".claude/skills/",
+        "copilot": ".agents/skills/",
     }
 
     for raw_line in block.splitlines():
@@ -331,6 +332,8 @@ def _companion_skill_still_supported(kind: str, skill_name: str) -> bool:
         return _supports_flag(skill_name, "codex_bridge")
     if kind == "claude":
         return _supports_flag(skill_name, "claude_reference")
+    if kind == "copilot":
+        return _supports_flag(skill_name, "copilot_bridge")
     return True
 
 
@@ -361,15 +364,16 @@ def _normalize_managed_skill_manifest(target_project_path: str, manifest: Dict[s
         "gemini": os.path.join(target_project_path, ".gemini", "skills"),
         "codex": os.path.join(target_project_path, ".codex", "skills"),
         "claude": os.path.join(target_project_path, ".claude", "skills"),
+        "copilot": os.path.join(target_project_path, ".agents", "skills"),
     }
     normalized: Dict[str, Any] = {}
     changed = False
 
-    for kind in ("gemini", "codex", "claude"):
+    for kind in ("gemini", "codex", "claude", "copilot"):
         kept: list[str] = []
         for skill_name in manifest.get(kind, []):
             skill_path = os.path.join(base_paths[kind], skill_name)
-            if kind in ("codex", "claude") and not _companion_skill_still_supported(kind, skill_name):
+            if kind in ("codex", "claude", "copilot") and not _companion_skill_still_supported(kind, skill_name):
                 if os.path.isdir(skill_path):
                     if _is_link_or_junction(skill_path):
                         _remove_junction(skill_path)
@@ -407,8 +411,9 @@ def _build_managed_skill_ignore_entries(manifest: Dict[str, Any]) -> list[str]:
         "gemini": ".gemini/skills",
         "codex": ".codex/skills",
         "claude": ".claude/skills",
+        "copilot": ".agents/skills",
     }
-    for kind in ("gemini", "codex", "claude"):
+    for kind in ("gemini", "codex", "claude", "copilot"):
         for skill_name in manifest.get(kind, []):
             entries.append(f"{base_paths[kind]}/{skill_name}/")
     return entries
