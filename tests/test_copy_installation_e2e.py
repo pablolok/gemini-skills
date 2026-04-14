@@ -59,15 +59,16 @@ class TestCopyInstallationE2E(unittest.TestCase):
         
         self.assertTrue(success)
         
-        target_path = os.path.join(self.project_dir, ".gemini", "skills", self.skill_name)
+        # test-skill is not in install.config.json so it defaults to shared → .agents/skills/
+        target_path = os.path.join(self.project_dir, ".agents", "skills", self.skill_name)
         self.assertTrue(os.path.exists(target_path))
         self.assertTrue(os.path.isfile(os.path.join(target_path, "SKILL.md")))
         self.assertTrue(os.path.isfile(os.path.join(target_path, "metadata.json")))
         self.assertTrue(os.path.isfile(os.path.join(target_path, "CHANGELOG.md")))
         with open(os.path.join(self.project_dir, ".gitignore"), "r", encoding="utf-8") as f:
             gitignore = f.read()
-        self.assertIn(f".gemini/skills/{self.skill_name}/", gitignore)
-        self.assertNotIn(".gemini/skills/\n", gitignore)
+        self.assertIn(f".agents/skills/{self.skill_name}/", gitignore)
+        self.assertNotIn(".agents/skills/\n", gitignore)
         
         # Verify it's NOT a link (junction or symlink)
         self.assertFalse(os.path.islink(target_path))
@@ -89,87 +90,11 @@ class TestCopyInstallationE2E(unittest.TestCase):
         success = self.installer.install_skill(skill_rel_path, self.project_dir)
         self.assertTrue(success)
         
-        target_skill_md = os.path.join(self.project_dir, ".gemini", "skills", self.skill_name, "SKILL.md")
+        # test-skill defaults to shared → .agents/skills/
+        target_skill_md = os.path.join(self.project_dir, ".agents", "skills", self.skill_name, "SKILL.md")
         with open(target_skill_md, "r") as f:
             content = f.read()
         self.assertEqual(content, "# Updated Test Skill")
-
-    def test_install_codex_bridge_copies_wrapper(self) -> None:
-        """Verify that install_codex_bridge copies the lightweight wrapper."""
-        skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
-        self.installer.install_skill(skill_rel_path, self.project_dir)
-
-        success = self.installer.install_codex_bridge(self.skill_name, self.project_dir)
-
-        self.assertTrue(success)
-
-        target_path = os.path.join(self.project_dir, ".codex", "skills", self.skill_name)
-        self.assertTrue(os.path.exists(target_path))
-        self.assertTrue(os.path.isfile(os.path.join(target_path, "SKILL.md")))
-
-        with open(os.path.join(target_path, "SKILL.md"), "r") as f:
-            content = f.read()
-        self.assertIn("# Test Codex Bridge", content)
-        with open(os.path.join(self.project_dir, ".gitignore"), "r", encoding="utf-8") as f:
-            gitignore = f.read()
-        self.assertIn(f".codex/skills/{self.skill_name}/", gitignore)
-
-    def test_install_codex_bridge_falls_back_when_wrapper_is_invalid(self) -> None:
-        """Verify invalid repo-owned wrappers fall back to generated bridge content."""
-        skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
-        self.installer.install_skill(skill_rel_path, self.project_dir)
-
-        with open(os.path.join(self.codex_bridge_path, "SKILL.md"), "w", encoding="utf-8") as f:
-            f.write("")
-
-        success = self.installer.install_codex_bridge(self.skill_name, self.project_dir)
-
-        self.assertTrue(success)
-
-        target_skill_md = os.path.join(
-            self.project_dir,
-            ".codex",
-            "skills",
-            self.skill_name,
-            "SKILL.md",
-        )
-        with open(target_skill_md, "r", encoding="utf-8") as f:
-            content = f.read()
-
-        self.assertIn("---\nname: test-skill\n", content)
-        self.assertIn("Use the installed Gemini skill", content)
-        self.assertIn(f".gemini/skills/{self.skill_name}/SKILL.md", content)
-
-    def test_install_codex_bridge_treats_self_install_as_already_present(self) -> None:
-        """Verify self-install does not fail when the repo-owned bridge already is the target path."""
-        skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
-        self.installer.install_skill(skill_rel_path, self.project_dir)
-
-        repo_project_dir = self.test_dir
-        repo_gemini_path = os.path.join(
-            repo_project_dir,
-            ".gemini",
-            "skills",
-            self.skill_name,
-        )
-        os.makedirs(repo_gemini_path, exist_ok=True)
-        with open(os.path.join(repo_gemini_path, "SKILL.md"), "w", encoding="utf-8") as f:
-            f.write("# Installed Gemini Skill")
-
-        success = self.installer.install_codex_bridge(self.skill_name, repo_project_dir)
-
-        self.assertTrue(success)
-        target_skill_md = os.path.join(
-            repo_project_dir,
-            ".codex",
-            "skills",
-            self.skill_name,
-            "SKILL.md",
-        )
-        self.assertTrue(os.path.isfile(target_skill_md))
-        with open(os.path.join(repo_project_dir, ".gitignore"), "r", encoding="utf-8") as f:
-            gitignore = f.read()
-        self.assertIn(f".codex/skills/{self.skill_name}/", gitignore)
 
     def test_install_claude_reference_creates_reference_skill(self) -> None:
         """Verify that install_claude_reference writes a lightweight reference skill."""
@@ -185,29 +110,27 @@ class TestCopyInstallationE2E(unittest.TestCase):
 
         with open(target_path, "r", encoding="utf-8") as f:
             content = f.read()
+        # test-skill defaults to shared → reference points to .agents/skills/
         self.assertIn("Use the installed Gemini skill", content)
-        self.assertIn(f".gemini/skills/{self.skill_name}/SKILL.md", content)
+        self.assertIn(f".agents/skills/{self.skill_name}/SKILL.md", content)
         with open(os.path.join(self.project_dir, ".gitignore"), "r", encoding="utf-8") as f:
             gitignore = f.read()
         self.assertIn(f".claude/skills/{self.skill_name}/", gitignore)
 
     def test_uninstall_skill_removes_managed_artifacts(self) -> None:
-        """Verify uninstall removes Gemini/Codex/Claude artifacts and refreshes gitignore."""
+        """Verify uninstall removes agents/Claude artifacts and refreshes gitignore."""
         skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
         self.installer.install_skill(skill_rel_path, self.project_dir)
-        self.installer.install_codex_bridge(self.skill_name, self.project_dir)
         self.installer.install_claude_reference(self.skill_name, self.project_dir)
 
         success = self.installer.uninstall_skill(self.skill_name, self.project_dir)
 
         self.assertTrue(success)
-        self.assertFalse(os.path.exists(os.path.join(self.project_dir, ".gemini", "skills", self.skill_name)))
-        self.assertFalse(os.path.exists(os.path.join(self.project_dir, ".codex", "skills", self.skill_name)))
+        self.assertFalse(os.path.exists(os.path.join(self.project_dir, ".agents", "skills", self.skill_name)))
         self.assertFalse(os.path.exists(os.path.join(self.project_dir, ".claude", "skills", self.skill_name)))
         with open(os.path.join(self.project_dir, ".gitignore"), "r", encoding="utf-8") as f:
             gitignore = f.read()
-        self.assertNotIn(f".gemini/skills/{self.skill_name}/", gitignore)
-        self.assertNotIn(f".codex/skills/{self.skill_name}/", gitignore)
+        self.assertNotIn(f".agents/skills/{self.skill_name}/", gitignore)
         self.assertNotIn(f".claude/skills/{self.skill_name}/", gitignore)
 
     def test_uninstall_skill_ignores_unmanaged_skill(self) -> None:
@@ -226,15 +149,14 @@ class TestCopyInstallationE2E(unittest.TestCase):
         """Verify uninstall fails gracefully without crashing when a managed artifact cannot be removed."""
         skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
         self.installer.install_skill(skill_rel_path, self.project_dir)
-        self.installer.install_codex_bridge(self.skill_name, self.project_dir)
 
-        gemini_path = os.path.join(self.project_dir, ".gemini", "skills", self.skill_name)
-        codex_path = os.path.join(self.project_dir, ".codex", "skills", self.skill_name)
+        # test-skill defaults to shared → .agents/skills/
+        agents_path = os.path.join(self.project_dir, ".agents", "skills", self.skill_name)
 
         original_remove = self.installer._remove_directory_tree
 
         def failing_remove(path: str) -> None:
-            if path == gemini_path:
+            if path == agents_path:
                 raise PermissionError("locked")
             original_remove(path)
 
@@ -245,16 +167,16 @@ class TestCopyInstallationE2E(unittest.TestCase):
             self.installer._remove_directory_tree = original_remove  # type: ignore[method-assign]
 
         self.assertFalse(success)
-        self.assertTrue(os.path.isdir(gemini_path))
-        self.assertFalse(os.path.exists(codex_path))
+        self.assertTrue(os.path.isdir(agents_path))
 
     @unittest.skipUnless(os.name == "nt", "Windows junction tests only run on Windows")
     def test_uninstall_skill_removes_legacy_junction_artifact(self) -> None:
-        """Verify uninstall removes a managed skill even if its Gemini payload is a junction."""
+        """Verify uninstall removes a managed skill even if its payload is a junction."""
         skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
         self.installer.install_skill(skill_rel_path, self.project_dir)
 
-        target_path = os.path.join(self.project_dir, ".gemini", "skills", self.skill_name)
+        # test-skill defaults to shared → .agents/skills/
+        target_path = os.path.join(self.project_dir, ".agents", "skills", self.skill_name)
         shutil.rmtree(target_path)
 
         import subprocess
@@ -275,7 +197,8 @@ class TestCopyInstallationE2E(unittest.TestCase):
     def test_transition_from_junction_to_copy(self) -> None:
         """Verify that a legacy junction is correctly replaced by a copy."""
         skill_rel_path = f"{self.skill_cat}/{self.skill_name}"
-        target_skills_dir = os.path.join(self.project_dir, ".gemini", "skills")
+        # test-skill defaults to shared → .agents/skills/
+        target_skills_dir = os.path.join(self.project_dir, ".agents", "skills")
         os.makedirs(target_skills_dir, exist_ok=True)
         target_path = os.path.join(target_skills_dir, self.skill_name)
         

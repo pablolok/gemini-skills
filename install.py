@@ -754,47 +754,8 @@ class SkillInstaller:
                 return True
         return False
 
-    def agents_bridge_skill_content(self, skill_name: str, target_project_path: str) -> str:
-        """Build a lightweight agents bridge that points at the installed Gemini skill.
-
-        Compatible with any tool that reads .agents/skills/ — including OpenAI Codex CLI
-        and GitHub Copilot CLI.
-        """
-        metadata = self.get_installed_skill_metadata(skill_name, target_project_path) or {}
-        description = metadata.get(
-            "description",
-            (
-                f"Agents bridge for the installed Gemini skill '{skill_name}'. "
-                "Use the Gemini skill as the source of truth."
-            ),
-        )
-        title = re.sub(r"[-_]+", " ", skill_name).strip().title() or skill_name
-        return (
-            "---\n"
-            f"name: {skill_name}\n"
-            f"description: {description}\n"
-            "---\n\n"
-            f"# {title} Bridge\n\n"
-            f"Use the installed Gemini skill at `.gemini/skills/{skill_name}/SKILL.md` as the source of truth.\n\n"
-            "Workflow:\n\n"
-            f"1. Read and follow `.gemini/skills/{skill_name}/SKILL.md`.\n"
-            "2. If that skill references scripts, metadata, or companion files, "
-            f"resolve them from `.gemini/skills/{skill_name}/`.\n"
-            "3. Do not duplicate the Gemini implementation in `.agents/skills/`. "
-            "This bridge exists only so compatible agent tools can discover and invoke the "
-            "installed Gemini skill guidance.\n\n"
-            "## Layer Conventions\n\n"
-            "This project uses a three-layer skill structure:\n\n"
-            "| Layer | Path | Consumer |\n"
-            "|---|---|---|\n"
-            "| Source of truth | `.gemini/skills/` | Gemini CLI |\n"
-            "| Agent bridges | `.agents/skills/` | OpenAI Codex CLI, GitHub Copilot CLI, and compatible agents |\n"
-            "| Claude references | `.claude/skills/` | Claude Code (also read by Copilot CLI) |\n\n"
-            "When installing new skills, ensure all three layers are kept in sync for shared skills.\n"
-        )
-
     def claude_reference_skill_content(self, skill_name: str, target_project_path: str) -> str:
-        """Build a lightweight Claude reference skill that points at the installed Gemini skill."""
+        """Build a lightweight Claude reference skill that points at the installed skill."""
         metadata = self.get_installed_skill_metadata(skill_name, target_project_path) or {}
         description = metadata.get(
             "description",
@@ -804,28 +765,29 @@ class SkillInstaller:
             ),
         )
         title = re.sub(r"[-_]+", " ", skill_name).strip().title() or skill_name
+        if self._is_shared_skill(skill_name):
+            skill_location = f".agents/skills/{skill_name}"
+        else:
+            skill_location = f".gemini/skills/{skill_name}"
         return (
             "---\n"
             f"name: {skill_name}\n"
             f"description: {description}\n"
             "---\n\n"
             f"# {title} Reference\n\n"
-            f"Use the installed Gemini skill at `.gemini/skills/{skill_name}/SKILL.md` as the source of truth.\n\n"
+            f"Use the installed Gemini skill at `{skill_location}/SKILL.md` as the source of truth.\n\n"
             "Workflow:\n\n"
-            f"1. Read and follow `.gemini/skills/{skill_name}/SKILL.md`.\n"
+            f"1. Read and follow `{skill_location}/SKILL.md`.\n"
             "2. If that skill references scripts, metadata, or companion files, "
-            f"resolve them from `.gemini/skills/{skill_name}/`.\n"
+            f"resolve them from `{skill_location}/`.\n"
             "3. Do not duplicate the Gemini implementation in `.claude/skills/`. "
             "This reference exists only so Claude can discover and invoke the "
             "installed Gemini skill guidance.\n"
         )
 
     def supports_agents_bridge(self, skill_name: str) -> bool:
-        """Check whether a skill can get an agents bridge."""
-        if not skill_name:
-            return False
-        skill_config = self.get_skill_config(skill_name)
-        return bool(skill_config["supports"].get("agents_bridge", True))
+        """Check whether a skill is eligible for installation in .agents/skills/ (shared distribution)."""
+        return self._is_shared_skill(skill_name)
 
     def supports_claude_reference(self, skill_name: str) -> bool:
         """Check whether a skill can get a generated Claude reference skill."""
@@ -834,14 +796,30 @@ class SkillInstaller:
         skill_config = self.get_skill_config(skill_name)
         return bool(skill_config["supports"].get("claude_reference", True))
 
+    def _is_shared_skill(self, skill_name: str) -> bool:
+        """Return whether a skill uses shared distribution (installed to .agents/skills/)."""
+        if not skill_name:
+            return False
+        return self.get_skill_config(skill_name).get("distribution", "shared") == "shared"
+
     def get_installed_skill_metadata(
         self,
         skill_name: str,
         target_project_path: str
     ) -> typing.Optional[typing.Dict[str, typing.Any]]:
-        """Read and parse the metadata.json for an installed skill."""
-        metadata_path = os.path.join(target_project_path, ".gemini", "skills", skill_name, "metadata.json")
-        return self._read_metadata(metadata_path)
+        """Read and parse the metadata.json for an installed skill.
+
+        Checks .agents/skills/ (shared) then .gemini/skills/ (gemini-only).
+        """
+        for skills_dir in (
+            os.path.join(target_project_path, ".agents", "skills"),
+            os.path.join(target_project_path, ".gemini", "skills"),
+        ):
+            metadata_path = os.path.join(skills_dir, skill_name, "metadata.json")
+            meta = self._read_metadata(metadata_path)
+            if meta is not None:
+                return meta
+        return None
 
     def _read_metadata(self, metadata_path: str) -> typing.Optional[typing.Dict[str, typing.Any]]:
         """Read and parse a metadata.json file."""
@@ -1108,41 +1086,47 @@ class SkillInstaller:
     def check_for_updates(self, target_project_path: str) -> typing.List[typing.Dict[str, str]]:
         """Check all installed skills for available updates."""
         updates = []
-        target_skills_dir = os.path.join(target_project_path, ".gemini", "skills")
-        if not os.path.exists(target_skills_dir):
-            return updates
-
         available_skills = self.get_available_skills()
-        # Create a reverse map: skill_name -> rel_path
         name_to_rel = {}
         for cat, skills in available_skills.items():
             for s in skills:
                 name_to_rel[s] = os.path.join(cat, s)
 
-        for skill_name in os.listdir(target_skills_dir):
-            skill_path = os.path.join(target_skills_dir, skill_name)
-            if not os.path.isdir(skill_path):
+        seen: typing.Set[str] = set()
+        for target_skills_dir in (
+            os.path.join(target_project_path, ".agents", "skills"),
+            os.path.join(target_project_path, ".gemini", "skills"),
+        ):
+            if not os.path.exists(target_skills_dir):
                 continue
 
-            installed_meta = self.get_installed_skill_metadata(skill_name, target_project_path)
-            if not installed_meta or "version" not in installed_meta:
-                continue
+            for skill_name in os.listdir(target_skills_dir):
+                if skill_name in seen:
+                    continue
+                skill_path = os.path.join(target_skills_dir, skill_name)
+                if not os.path.isdir(skill_path):
+                    continue
+                seen.add(skill_name)
 
-            rel_path = name_to_rel.get(skill_name)
-            if not rel_path:
-                continue
+                installed_meta = self.get_installed_skill_metadata(skill_name, target_project_path)
+                if not installed_meta or "version" not in installed_meta:
+                    continue
 
-            latest_meta = self.get_skill_metadata(rel_path)
-            if not latest_meta or "version" not in latest_meta:
-                continue
+                rel_path = name_to_rel.get(skill_name)
+                if not rel_path:
+                    continue
 
-            if self.version_comparator.is_newer(installed_meta["version"], latest_meta["version"]):
-                updates.append({
-                    "name": skill_name,
-                    "installed": installed_meta["version"],
-                    "latest": latest_meta["version"],
-                    "rel_path": rel_path
-                })
+                latest_meta = self.get_skill_metadata(rel_path)
+                if not latest_meta or "version" not in latest_meta:
+                    continue
+
+                if self.version_comparator.is_newer(installed_meta["version"], latest_meta["version"]):
+                    updates.append({
+                        "name": skill_name,
+                        "installed": installed_meta["version"],
+                        "latest": latest_meta["version"],
+                        "rel_path": rel_path
+                    })
 
         return updates
 
@@ -1156,53 +1140,13 @@ class SkillInstaller:
             self.logger.info(f"  - {update['name']}: {update['installed']} -> {update['latest']}")
         self.logger.info("\nRun 'python install.py' or 'python check_updates.py' to update.\n")
 
-    def install_agents_bridge(self, skill_name: str, target_project_path: str) -> bool:
-        """Install a lightweight agents bridge for a skill, targeting .agents/skills/."""
-        source_skill_path = os.path.join(
-            target_project_path,
-            ".gemini",
-            "skills",
-            skill_name,
-            "SKILL.md",
-        )
-        if not os.path.isfile(source_skill_path):
-            self.logger.info(
-                f"Skipping agents bridge for '{skill_name}': the Gemini skill is not installed in the target project."
-            )
-            return False
-
-        if not self.supports_agents_bridge(skill_name):
-            self.logger.info(
-                f"Skipping agents bridge for '{skill_name}': this skill is not eligible for agents bridge generation."
-            )
-            return False
-
-        target_skill_dir = os.path.join(target_project_path, ".agents", "skills", skill_name)
-        os.makedirs(target_skill_dir, exist_ok=True)
-        target_skill_path = os.path.join(target_skill_dir, "SKILL.md")
-
-        self.logger.info(f"Installing agents bridge for '{skill_name}'...")
-        try:
-            content = self.agents_bridge_skill_content(skill_name, target_project_path)
-            with open(target_skill_path, "w", encoding="utf-8") as handle:
-                handle.write(content)
-            self._register_managed_skill(target_project_path, "agents", skill_name)
-            self.ensure_managed_gitignore_entries(target_project_path)
-            self.logger.info(f"Successfully installed agents bridge for '{skill_name}'.")
-            return True
-        except Exception as e:
-            self.logger.error(f"Failed to install agents bridge for '{skill_name}': {e}")
-            return False
-
     def install_claude_reference(self, skill_name: str, target_project_path: str) -> bool:
-        """Install a lightweight Claude reference skill for an installed Gemini skill."""
-        source_skill_path = os.path.join(
-            target_project_path,
-            ".gemini",
-            "skills",
-            skill_name,
-            "SKILL.md",
-        )
+        """Install a lightweight Claude reference skill for an installed skill."""
+        if self._is_shared_skill(skill_name):
+            source_base = os.path.join(target_project_path, ".agents", "skills", skill_name)
+        else:
+            source_base = os.path.join(target_project_path, ".gemini", "skills", skill_name)
+        source_skill_path = os.path.join(source_base, "SKILL.md")
         if not os.path.isfile(source_skill_path):
             self.logger.info(
                 "Skipping Claude reference for '%s': the Gemini skill is not "
@@ -1278,35 +1222,44 @@ class SkillInstaller:
         return removed and not failed_kinds
 
     def install_skill(self, skill_rel_path: str, target_project_path: str) -> bool:
-        """Install a skill by copying files to the target project."""
+        """Install a skill by copying files to the target project.
+
+        Shared skills are installed to .agents/skills/ so all compatible tools
+        (Gemini CLI, Copilot CLI, Codex CLI) can discover them without conflicts.
+        Gemini-only skills are installed to .gemini/skills/.
+        """
         source_path = os.path.join(self.published_dir, skill_rel_path)
         skill_name = os.path.basename(skill_rel_path)
-        
-        target_skills_dir = os.path.join(target_project_path, ".gemini", "skills")
+
+        is_shared = self._is_shared_skill(skill_name)
+        if is_shared:
+            target_skills_dir = os.path.join(target_project_path, ".agents", "skills")
+            kind = "agents"
+        else:
+            target_skills_dir = os.path.join(target_project_path, ".gemini", "skills")
+            kind = "gemini"
+
         if not os.path.exists(target_skills_dir):
             os.makedirs(target_skills_dir)
-            
+
         target_path = os.path.join(target_skills_dir, skill_name)
-        
+
         if os.path.exists(target_path):
             self.logger.info(f"Skill '{skill_name}' already exists. Overwriting...")
-            # Use a robust check for junctions and symlinks
             if self._is_link_or_junction(target_path):
                 self._remove_junction(target_path)
-            # shutil.copytree with dirs_exist_ok=True will handle existing directories
 
         self.logger.info(f"Installing skill '{skill_name}' via file copying...")
         try:
             self._copy_skill_files(os.path.abspath(source_path), os.path.abspath(target_path))
-            self._register_managed_skill(target_project_path, "gemini", skill_name)
+            self._register_managed_skill(target_project_path, kind, skill_name)
             self.ensure_managed_gitignore_entries(target_project_path)
             self.logger.info(f"Successfully installed '{skill_name}'.")
-            
-            # Check for post-install hook
+
             hook_path = os.path.join(source_path, "post_install.py")
             if os.path.exists(hook_path):
                 self._run_post_install_hook(hook_path, target_project_path)
-                
+
             return True
         except Exception as e:
             self.logger.error(f"Failed to install '{skill_name}': {e}")
@@ -1482,43 +1435,6 @@ def _manual_switch_response(
     return {"answers": {"0": []}, "action": action}
 
 
-def prompt_for_agents_support(
-    ask_user_fn: typing.Callable[[typing.Dict[str, typing.Any]], AskUserResponse],
-    skill_names: typing.Sequence[str],
-) -> typing.Set[str]:
-    """Ask whether supported skills should also receive agents bridge wrappers."""
-    bridgeable = sorted(set(skill_names))
-    if not bridgeable:
-        return set()
-
-    response = ask_user_fn({
-        "questions": [{
-            "header": "Agents Support",
-            "question": (
-                "Install agent bridge skills in .agents/skills for supported selected skills?"
-            ),
-            "type": "choice",
-            "multiSelect": False,
-            "options": [
-                {
-                    "label": "yes",
-                    "description": "Add lightweight agent bridge skills for the supported selected skills. Compatible with Codex CLI, Copilot CLI, and compatible agent tools.",
-                },
-                {
-                    "label": "no",
-                    "description": "Install only the Gemini skill payloads into .gemini/skills.",
-                },
-            ],
-        }]
-    })
-
-    answer = ""
-    if isinstance(response, dict):
-        answer = str(response.get("answers", {}).get("0", "")).strip().lower()
-
-    return set(bridgeable) if answer == "yes" else set()
-
-
 def prompt_for_claude_support(
     ask_user_fn: typing.Callable[[typing.Dict[str, typing.Any]], AskUserResponse],
     skill_names: typing.Sequence[str],
@@ -1539,11 +1455,11 @@ def prompt_for_claude_support(
             "options": [
                 {
                     "label": "yes",
-                    "description": "Add lightweight Claude reference skills that point at the installed Gemini skills.",
+                    "description": "Add lightweight Claude reference skills that point at the installed skills.",
                 },
                 {
                     "label": "no",
-                    "description": "Install only the Gemini skill payloads into .gemini/skills.",
+                    "description": "Install skill payloads only (no Claude references).",
                 },
             ],
         }]
@@ -1611,14 +1527,12 @@ def print_target_project_summary(
     target_project: str,
     *,
     skill_names: typing.Optional[typing.Sequence[str]] = None,
-    include_agents: bool = False,
     include_claude: bool = False,
 ) -> None:
     """Show the exact project path and managed locations touched by the installer."""
     print(f"Target project: {target_project}")
-    print(f"Gemini skills: {os.path.join(target_project, '.gemini', 'skills')}")
-    if include_agents:
-        print(f"Agent bridges: {os.path.join(target_project, '.agents', 'skills')}")
+    print(f"Agent skills: {os.path.join(target_project, '.agents', 'skills')}")
+    print(f"Gemini-only skills: {os.path.join(target_project, '.gemini', 'skills')}")
     if include_claude:
         print(f"Claude references: {os.path.join(target_project, '.claude', 'skills')}")
     if skill_names and "skill-manager" in set(skill_names):
@@ -1701,20 +1615,14 @@ def main() -> None:
         manage_module.main()
         return
     selected_skill_names = [os.path.basename(skill_path) for skill_path in selected]
-    agents_candidates = [
-        skill_name for skill_name in selected_skill_names if installer.supports_agents_bridge(skill_name)
-    ]
     claude_candidates = [
         skill_name for skill_name in selected_skill_names if installer.supports_claude_reference(skill_name)
     ]
-    install_agents_for = prompt_for_agents_support(ask_user_fn, agents_candidates)
     install_claude_for = prompt_for_claude_support(ask_user_fn, claude_candidates)
 
     for skill_path in selected:
         if installer.install_skill(skill_path, target_project):
             skill_name = os.path.basename(skill_path)
-            if skill_name in install_agents_for:
-                installer.install_agents_bridge(skill_name, target_project)
             if skill_name in install_claude_for:
                 installer.install_claude_reference(skill_name, target_project)
 
@@ -1726,7 +1634,6 @@ def main() -> None:
         print_target_project_summary(
             target_project,
             skill_names=selected_skill_names,
-            include_agents=bool(install_agents_for),
             include_claude=bool(install_claude_for),
         )
     logger.info(

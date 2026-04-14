@@ -45,7 +45,7 @@ class TestSkillManagerPostInstall(unittest.TestCase):
 
             settings_path = os.path.join(temp_dir, ".gemini", "settings.json")
             command_dir = os.path.join(temp_dir, ".gemini", "commands", "skill-manager")
-            config_path = os.path.join(temp_dir, ".gemini", "skills", "skill-manager", "runtime_config.json")
+            config_path = os.path.join(temp_dir, ".agents", "skills", "skill-manager", "runtime_config.json")
             policy_path = os.path.join(fake_home, ".gemini", "policies", "skill-manager-plan-mode.toml")
             gitignore_path = os.path.join(temp_dir, ".gitignore")
 
@@ -76,8 +76,8 @@ class TestSkillManagerPostInstall(unittest.TestCase):
                 install_command = handle.read()
 
             self.assertIn("Update installed Gemini skills", update_command)
-            self.assertIn("python .gemini/skills/skill-manager/scripts/update_skills.py", update_command)
-            self.assertIn("python .gemini/skills/skill-manager/scripts/list_skills.py", list_command)
+            self.assertIn("python .agents/skills/skill-manager/scripts/update_skills.py", update_command)
+            self.assertIn("python .agents/skills/skill-manager/scripts/list_skills.py", list_command)
             self.assertIn("--with-claude", install_command)
             self.assertIn(".claude/skills/", install_command)
 
@@ -92,7 +92,7 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             self.assertTrue(config["published_dir"].endswith(os.path.join("gemini-skills", "published")))
             self.assertIn('modes = ["plan"]', policy)
             self.assertIn("list_skills.py", policy)
-            self.assertIn(".gemini/skills/skill-manager/", gitignore)
+            self.assertIn(".agents/skills/skill-manager/", gitignore)
             self.assertIn(".gemini/commands/", gitignore)
             self.assertIn(".gemini/settings.json", gitignore)
             self.assertIn(".gemini/skill-manager-manifest.json", gitignore)
@@ -147,7 +147,7 @@ class TestSkillManagerPostInstall(unittest.TestCase):
 
             self.assertIn("node_modules/", gitignore)
             self.assertIn("custom-file.txt", gitignore)
-            self.assertIn(".gemini/skills/skill-manager/", gitignore)
+            self.assertIn(".agents/skills/skill-manager/", gitignore)
             self.assertIn(".gemini/commands/", gitignore)
             self.assertIn(".gemini/settings.json", gitignore)
             self.assertIn(".gemini/skill-manager-manifest.json", gitignore)

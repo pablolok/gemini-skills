@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.6.14] - 2026-04-14
+- Move runtime_config.json to .agents/skills/skill-manager/
+
+
+## [1.6.13] - 2026-04-14
+- Route skill-manager registration from .gemini/skills to .agents/skills and update all script path references
+
+
 ## [1.6.12] - 2026-04-14
 - Merge codex_bridge and copilot_bridge into agents_bridge targeting .agents/skills/
 - Both OpenAI Codex CLI and GitHub Copilot CLI read .agents/skills/ per open agent skills standard

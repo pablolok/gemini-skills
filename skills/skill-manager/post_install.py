@@ -15,15 +15,15 @@ from typing import Any, Dict
 
 
 HOOK_NAME = "skill-manager-update-check"
-HOOK_COMMAND = "python .gemini/skills/skill-manager/scripts/session_start_hook.py"
+HOOK_COMMAND = "python .agents/skills/skill-manager/scripts/session_start_hook.py"
 PLAN_POLICY_FILENAME = "skill-manager-plan-mode.toml"
 PLAN_POLICY_CONTENT = '''[[rule]]
 toolName = "run_shell_command"
 commandPrefix = [
-  "python .gemini/skills/skill-manager/scripts/list_skills.py",
-  "python .gemini/skills/skill-manager/scripts/install_skills.py",
-  "python .gemini/skills/skill-manager/scripts/update_skills.py",
-  "python .gemini/skills/skill-manager/scripts/uninstall_skills.py"
+  "python .agents/skills/skill-manager/scripts/list_skills.py",
+  "python .agents/skills/skill-manager/scripts/install_skills.py",
+  "python .agents/skills/skill-manager/scripts/update_skills.py",
+  "python .agents/skills/skill-manager/scripts/uninstall_skills.py"
 ]
 decision = "allow"
 priority = 100
@@ -40,7 +40,7 @@ Summarize:
 - any updates available right now
 
 ```text
-!{python .gemini/skills/skill-manager/scripts/list_skills.py}
+!{python .agents/skills/skill-manager/scripts/list_skills.py}
 ```
 """
 ''',
@@ -56,7 +56,7 @@ Use the command output below as the source of truth. Report the result clearly:
 - if the updater failed, surface the failure reason
 
 ```text
-!{python .gemini/skills/skill-manager/scripts/update_skills.py}
+!{python .agents/skills/skill-manager/scripts/update_skills.py}
 ```
 """
 ''',
@@ -73,7 +73,7 @@ If the project also uses Codex and the command was run without `--with-codex`, t
 If the project also uses Claude and the command was run without `--with-claude`, tell the user they can rerun the same install command with `--with-claude` to add generated lightweight `.claude/skills/` reference skills for the selected Gemini skills.
 
 ```text
-!{python .gemini/skills/skill-manager/scripts/install_skills.py {{args}}}
+!{python .agents/skills/skill-manager/scripts/install_skills.py {{args}}}
 ```
 """
 ''',
@@ -88,7 +88,7 @@ Use the command output below as the source of truth. If the uninstall succeeds, 
 If the user did not provide any skill names, explain the installed skills from the command output and tell them to rerun `/skill-manager:uninstall <skill-name> [more-skills]`.
 
 ```text
-!{python .gemini/skills/skill-manager/scripts/uninstall_skills.py {{args}}}
+!{python .agents/skills/skill-manager/scripts/uninstall_skills.py {{args}}}
 ```
 """
 ''',
@@ -199,7 +199,7 @@ def _write_custom_commands(target_project_path: str) -> None:
 def _write_runtime_config(target_project_path: str, source_repo_root: str) -> None:
     config_path = os.path.join(
         target_project_path,
-        ".gemini",
+        ".agents",
         "skills",
         "skill-manager",
         "runtime_config.json",
@@ -462,7 +462,7 @@ def integrate(target_project_path: str) -> None:
 
     _write_custom_commands(target_project_path)
     _write_runtime_config(target_project_path, source_repo_root)
-    _register_managed_skill(target_project_path, "gemini", "skill-manager")
+    _register_managed_skill(target_project_path, "agents", "skill-manager")
     _ensure_gitignore_entries(target_project_path)
     policy_path = _write_plan_policy()
 

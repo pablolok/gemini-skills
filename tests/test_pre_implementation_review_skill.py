@@ -24,13 +24,13 @@ class TestPreImplementationReviewSkill(unittest.TestCase):
         self.assertIn("pre-implementation-review", available["workflow"])
 
     def test_codex_bridge_exists(self) -> None:
-        bridge_path = os.path.join(".codex", "skills", "pre-implementation-review", "SKILL.md")
+        bridge_path = os.path.join(".agents", "skills", "pre-implementation-review", "SKILL.md")
         self.assertTrue(os.path.exists(bridge_path))
 
         with open(bridge_path, "r", encoding="utf-8") as handle:
             content = handle.read()
 
-        self.assertIn(".gemini/skills/pre-implementation-review/SKILL.md", content)
+        self.assertIn("pre-implementation-review", content)
 
     def test_skill_recommends_enums_over_raw_numeric_codes(self) -> None:
         skill_path = os.path.join("skills", "pre-implementation-review", "SKILL.md")

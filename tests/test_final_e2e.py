@@ -44,7 +44,7 @@ class TestFinalE2E(unittest.TestCase):
         # 1. Initial Installation (older version of skill1)
         # We'll simulate having an old version by installing and then manually downgrade
         installer.install_skill("audit/skill1", self.project_dir)
-        with open(os.path.join(self.project_dir, ".gemini", "skills", "skill1", "metadata.json"), "w") as f:
+        with open(os.path.join(self.project_dir, ".agents", "skills", "skill1", "metadata.json"), "w") as f:
             json.dump({"name": "skill1", "version": "1.0.0"}, f)
             
         # 2. Check for updates
@@ -69,7 +69,7 @@ class TestFinalE2E(unittest.TestCase):
         # Setup: Project with old skill1
         installer = SkillInstaller(self.published_dir, lambda x: {})
         installer.install_skill("audit/skill1", self.project_dir)
-        with open(os.path.join(self.project_dir, ".gemini", "skills", "skill1", "metadata.json"), "w") as f:
+        with open(os.path.join(self.project_dir, ".agents", "skills", "skill1", "metadata.json"), "w") as f:
             json.dump({"name": "skill1", "version": "1.0.0"}, f)
             
         # Change current directory to project_dir for the script

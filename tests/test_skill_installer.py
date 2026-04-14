@@ -135,7 +135,7 @@ class TestSkillInstaller(unittest.TestCase):
         
         installer.install_skill(skill_path, target_project)
         
-        expected_target = os.path.join(target_project, ".gemini", "skills", "review-optimization")
+        expected_target = os.path.join(target_project, ".agents", "skills", "review-optimization")
         mock_copytree.assert_called_once_with(
             os.path.abspath(os.path.join(self.published_dir, skill_path)),
             os.path.abspath(expected_target),
@@ -279,43 +279,24 @@ class TestSkillInstaller(unittest.TestCase):
 
             self.assertIsNone(installer._read_metadata(metadata_path))
 
-    def test_agents_and_claude_bridge_content_use_metadata_description(self) -> None:
-        """Verify generated bridge content reuses installed skill metadata when available."""
+    def test_claude_reference_content_uses_metadata_description(self) -> None:
+        """Verify generated Claude reference content reuses installed skill metadata when available."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            metadata_dir = os.path.join(temp_dir, ".gemini", "skills", "demo-skill")
+            # demo-skill is not in install.config.json so defaults to shared → .agents/skills/
+            metadata_dir = os.path.join(temp_dir, ".agents", "skills", "demo-skill")
             os.makedirs(metadata_dir, exist_ok=True)
             with open(os.path.join(metadata_dir, "metadata.json"), "w", encoding="utf-8") as handle:
                 json.dump({"description": "Installed demo skill."}, handle)
 
-            agents_content = installer.agents_bridge_skill_content("demo-skill", temp_dir)
             claude_content = installer.claude_reference_skill_content("demo-skill", temp_dir)
 
-            self.assertIn("Installed demo skill.", agents_content)
             self.assertIn("Installed demo skill.", claude_content)
-            self.assertIn(".gemini/skills/demo-skill/SKILL.md", agents_content)
-            self.assertIn(".gemini/skills/demo-skill/SKILL.md", claude_content)
+            self.assertIn(".agents/skills/demo-skill/SKILL.md", claude_content)
 
-    def test_agents_bridge_content_falls_back_when_metadata_is_missing(self) -> None:
-        """Verify generated agents bridge content falls back to the default description."""
-        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
-
-        content = installer.agents_bridge_skill_content("demo_skill", "missing-project")
-
-        self.assertIn("Agents bridge for the installed Gemini skill 'demo_skill'.", content)
-        self.assertIn("# Demo Skill Bridge", content)
-
-    def test_agents_bridge_discovery_returns_empty_when_no_bridge_dir_exists(self) -> None:
-        """Verify that the installer handles missing .agents/skills dir gracefully."""
-        with tempfile.TemporaryDirectory() as temp_dir:
-            installer = SkillInstaller(os.path.join(temp_dir, "published"), self.mock_ask_user)
-            # .agents/skills/ not created yet — install_agents_bridge returns False without Gemini skill
-            result = installer.install_agents_bridge("no-such-skill", temp_dir)
-            self.assertFalse(result)
-
-    def test_shared_skills_can_generate_agents_and_claude_artifacts_via_installer(self) -> None:
-        """Verify every shared supported skill can generate all managed tool-specific artifacts."""
+    def test_shared_skills_install_to_agents_dir_and_generate_claude_references(self) -> None:
+        """Verify every shared skill installs to .agents/skills/ and can generate Claude references."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         with open("install.config.json", "r", encoding="utf-8") as handle:
@@ -333,19 +314,14 @@ class TestSkillInstaller(unittest.TestCase):
                 rel_path = f"{category}/{skill_name}"
                 self.assertTrue(
                     installer.install_skill(rel_path, temp_dir),
-                    msg=f"Failed to install Gemini skill {skill_name}",
+                    msg=f"Failed to install skill {skill_name}",
                 )
-
-                if installer.supports_agents_bridge(skill_name):
-                    self.assertTrue(
-                        installer.install_agents_bridge(skill_name, temp_dir),
-                        msg=f"Failed to generate agents bridge for {skill_name}",
-                    )
-                    self.assertTrue(
-                        os.path.isfile(
-                            os.path.join(temp_dir, ".agents", "skills", skill_name, "SKILL.md")
-                        )
-                    )
+                self.assertTrue(
+                    os.path.isfile(
+                        os.path.join(temp_dir, ".agents", "skills", skill_name, "SKILL.md")
+                    ),
+                    msg=f"Skill {skill_name} not found in .agents/skills/",
+                )
 
                 if installer.supports_claude_reference(skill_name):
                     self.assertTrue(
@@ -363,9 +339,8 @@ class TestSkillInstaller(unittest.TestCase):
                 gitignore = handle.read()
 
             for skill_name in shared_skills:
-                self.assertIn(f".gemini/skills/{skill_name}/", gitignore)
-                if installer.supports_agents_bridge(skill_name):
-                    self.assertIn(f".agents/skills/{skill_name}/", gitignore)
+                self.assertIn(f".agents/skills/{skill_name}/", gitignore)
+                self.assertNotIn(f".gemini/skills/{skill_name}/", gitignore)
                 if installer.supports_claude_reference(skill_name):
                     self.assertIn(f".claude/skills/{skill_name}/", gitignore)
 
@@ -374,9 +349,10 @@ class TestSkillInstaller(unittest.TestCase):
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         with tempfile.TemporaryDirectory() as temp_dir:
+            # review-optimization is a shared skill, so it lives in .agents/skills/
             installed_dir = os.path.join(
                 temp_dir,
-                ".gemini",
+                ".agents",
                 "skills",
                 "review-optimization",
             )
@@ -394,52 +370,12 @@ class TestSkillInstaller(unittest.TestCase):
             self.assertEqual(updates[0]["name"], "review-optimization")
             self.assertEqual(updates[0]["installed"], "0.9.0")
 
-    def test_install_agents_bridge_returns_false_when_skill_missing_or_unsupported(self) -> None:
-        """Verify agents bridge install short-circuits for unsupported or missing Gemini skills."""
-        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            self.assertFalse(installer.install_agents_bridge("review-optimization", temp_dir))
-            self.assertFalse(installer.install_agents_bridge("subagent-balancer", temp_dir))
-
     def test_install_claude_reference_returns_false_when_skill_missing(self) -> None:
         """Verify Claude reference install short-circuits when the Gemini skill is missing."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         with tempfile.TemporaryDirectory() as temp_dir:
             self.assertFalse(installer.install_claude_reference("review-optimization", temp_dir))
-
-    def test_install_agents_bridge_generates_bridge_for_supported_skill(self) -> None:
-        """Verify supported skills can get a generated agents bridge."""
-        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            installer.install_skill("audit/compliance-audit-verification-gates", temp_dir)
-
-            success = installer.install_agents_bridge("compliance-audit-verification-gates", temp_dir)
-
-            self.assertTrue(success)
-            bridge_path = os.path.join(
-                temp_dir,
-                ".agents",
-                "skills",
-                "compliance-audit-verification-gates",
-                "SKILL.md",
-            )
-            self.assertTrue(os.path.isfile(bridge_path))
-            with open(bridge_path, "r", encoding="utf-8") as handle:
-                content = handle.read()
-            self.assertIn("Use the installed Gemini skill", content)
-            self.assertIn(".gemini/skills/compliance-audit-verification-gates/SKILL.md", content)
-
-    def test_agents_bridge_content_falls_back_when_metadata_is_missing(self) -> None:
-        """Verify generated agents bridge content falls back to the default description."""
-        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
-
-        content = installer.agents_bridge_skill_content("demo_skill", "missing-project")
-
-        self.assertIn("Agents bridge for the installed Gemini skill 'demo_skill'.", content)
-        self.assertIn("# Demo Skill Bridge", content)
 
     def test_ensure_managed_gitignore_entries_preserves_user_content_outside_managed_block(self) -> None:
         """Verify gitignore updates keep user content outside the managed block."""
@@ -877,7 +813,6 @@ class TestSkillInstaller(unittest.TestCase):
         print_target_project_summary(
             "C:/repo/sample",
             skill_names=["skill-manager", "review-optimization"],
-            include_agents=True,
             include_claude=True,
         )
 
