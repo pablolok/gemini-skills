@@ -1,5 +1,5 @@
 ---
-name: compliance-audit-c#
+name: compliance-audit-csharp
 description: A specialized compliance audit for C# and .NET projects. Enforces architectural patterns like TDD, Dependency Injection, and the Repository Pattern for .cs files.
 ---
 
