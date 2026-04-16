@@ -1044,13 +1044,22 @@ class SkillInstaller:
         claude_dir = os.path.join(target_project_path, ".claude", "skills")
         changed = False
 
+        # Mapping of old_name -> new_name for any rename performed (e.g., c# -> csharp)
+        rename_map: typing.Dict[str, str] = {}
+
         # Collect skills that need to move from gemini → agents
         new_gemini: typing.List[str] = []
         new_agents: typing.Set[str] = set(manifest.get("agents", []))
 
+        def _clean_name(n: str) -> str:
+            # Only replace '#' → 'sharp' to avoid broader unintended renames
+            return n.replace("#", "sharp")
+
+        # Handle manifest entries under 'gemini'
         for skill_name in manifest.get("gemini", []):
             gemini_path = os.path.join(gemini_dir, skill_name)
-            agents_path = os.path.join(agents_dir, skill_name)
+            clean_skill = _clean_name(skill_name) if "#" in skill_name else skill_name
+            agents_path = os.path.join(agents_dir, clean_skill)
             if self._is_shared_skill(skill_name) and os.path.isdir(gemini_path):
                 if not os.path.isdir(agents_path):
                     os.makedirs(agents_dir, exist_ok=True)
@@ -1060,10 +1069,13 @@ class SkillInstaller:
                     # Already in the right place; remove the old copy if present
                     self.logger.info("Removing stale .gemini/skills/%s (already in .agents/skills)", skill_name)
                     self._remove_directory_tree(gemini_path)
-                new_agents.add(skill_name)
+                new_agents.add(clean_skill)
+                if clean_skill != skill_name:
+                    rename_map[skill_name] = clean_skill
                 changed = True
             else:
-                new_gemini.append(skill_name)
+                # Keep manifest entry (may rename if contains '#')
+                new_gemini.append(clean_skill)
 
         # Also migrate any shared skills present on disk in .gemini/skills/ but not tracked
         if os.path.isdir(gemini_dir):
@@ -1072,8 +1084,9 @@ class SkillInstaller:
                     continue
                 if not self._is_shared_skill(skill_name):
                     continue
+                clean_skill = _clean_name(skill_name) if "#" in skill_name else skill_name
                 gemini_path = os.path.join(gemini_dir, skill_name)
-                agents_path = os.path.join(agents_dir, skill_name)
+                agents_path = os.path.join(agents_dir, clean_skill)
                 if not os.path.isdir(agents_path):
                     os.makedirs(agents_dir, exist_ok=True)
                     shutil.move(gemini_path, agents_path)
@@ -1081,7 +1094,9 @@ class SkillInstaller:
                 else:
                     self._remove_directory_tree(gemini_path)
                     self.logger.info("Removed stale .gemini/skills/%s (already in .agents/skills)", skill_name)
-                new_agents.add(skill_name)
+                new_agents.add(clean_skill)
+                if clean_skill != skill_name:
+                    rename_map[skill_name] = clean_skill
                 changed = True
 
         # Migrate .codex/skills/ stubs → .agents/skills/
@@ -1090,7 +1105,8 @@ class SkillInstaller:
                 codex_path = os.path.join(codex_dir, skill_name)
                 if not os.path.isdir(codex_path):
                     continue
-                agents_path = os.path.join(agents_dir, skill_name)
+                clean_skill = _clean_name(skill_name) if "#" in skill_name else skill_name
+                agents_path = os.path.join(agents_dir, clean_skill)
                 if not os.path.isdir(agents_path):
                     os.makedirs(agents_dir, exist_ok=True)
                     shutil.move(codex_path, agents_path)
@@ -1098,10 +1114,12 @@ class SkillInstaller:
                 else:
                     self._remove_directory_tree(codex_path)
                     self.logger.info("Removed stale .codex/skills/%s (already in .agents/skills)", skill_name)
-                new_agents.add(skill_name)
+                new_agents.add(clean_skill)
+                if clean_skill != skill_name:
+                    rename_map[skill_name] = clean_skill
                 changed = True
 
-        # Fix .claude/skills/ reference files: update paths and rename invalid dirs
+        # Fix .claude/skills/ reference files: update paths, rename invalid dirs, and fix frontmatter name
         if os.path.isdir(claude_dir):
             for entry in os.listdir(claude_dir):
                 entry_path = os.path.join(claude_dir, entry)
@@ -1111,8 +1129,7 @@ class SkillInstaller:
                 if not os.path.isfile(skill_md):
                     continue
 
-                # Rename dirs with invalid characters (e.g. compliance-audit-c# → compliance-audit-csharp)
-                clean_entry = entry.replace("#", "sharp")
+                clean_entry = _clean_name(entry) if "#" in entry else entry
                 if clean_entry != entry:
                     new_entry_path = os.path.join(claude_dir, clean_entry)
                     if not os.path.isdir(new_entry_path):
@@ -1126,6 +1143,7 @@ class SkillInstaller:
                             claude_entries.discard(entry)
                             claude_entries.add(clean_entry)
                             manifest["claude"] = sorted(claude_entries)
+                        rename_map[entry] = clean_entry
                         changed = True
 
                 # Update SKILL.md content: fix paths and fix invalid name in frontmatter
@@ -1135,9 +1153,15 @@ class SkillInstaller:
                     updated = content
                     if ".gemini/skills/" in updated:
                         updated = updated.replace(".gemini/skills/", ".agents/skills/")
-                    # Fix invalid name field (e.g. "name: compliance-audit-c#" → "name: compliance-audit-csharp")
-                    if clean_entry != entry and f"name: {entry}" in updated:
+
+                    # Fix name: frontmatter lines conservatively
+                    # Handle variations: name: value   or name: "value" or name: 'value'
+                    if clean_entry != entry:
+                        # Replace exact occurrences in frontmatter and JSON-like patterns
                         updated = updated.replace(f"name: {entry}", f"name: {clean_entry}")
+                        updated = updated.replace(f'"name": "{entry}"', f'"name": "{clean_entry}"')
+                        updated = updated.replace(f"'name': '{entry}'", f"'name': '{clean_entry}'")
+
                     if updated != content:
                         with open(skill_md, "w", encoding="utf-8") as handle:
                             handle.write(updated)
@@ -1146,7 +1170,44 @@ class SkillInstaller:
                 except OSError:
                     pass
 
+        # Patch references across the target project for any renamed skills
+        if rename_map:
+            exts = (".md", ".json", ".yml", ".yaml", ".py", ".txt", ".ini", ".rst")
+            for root, _, files in os.walk(target_project_path):
+                for fname in files:
+                    if not fname.lower().endswith(exts):
+                        continue
+                    fpath = os.path.join(root, fname)
+                    try:
+                        with open(fpath, "r", encoding="utf-8") as fh:
+                            content = fh.read()
+                    except Exception:
+                        continue
+                    updated = content
+                    for old, new in rename_map.items():
+                        # Path replacements
+                        updated = updated.replace(f".gemini/skills/{old}", f".agents/skills/{new}")
+                        updated = updated.replace(f".agents/skills/{old}", f".agents/skills/{new}")
+                        # Frontmatter / simple key replacements
+                        updated = updated.replace(f"name: {old}", f"name: {new}")
+                        updated = updated.replace(f'"name": "{old}"', f'"name": "{new}"')
+                        # Conservative raw replacement (only when old contains '#')
+                        if "#" in old:
+                            updated = updated.replace(old, new)
+                    if updated != content:
+                        try:
+                            with open(fpath, "w", encoding="utf-8") as fh:
+                                fh.write(updated)
+                            self.logger.info("Patched references in %s", fpath)
+                        except OSError:
+                            pass
+            # Update manifest lists after renames
+            manifest["gemini"] = sorted(set(new_gemini))
+            manifest["agents"] = sorted(new_agents)
+            changed = True
+
         if changed:
+            # Ensure manifest lists reflect the new layout (agents/gemini)
             manifest["gemini"] = sorted(set(new_gemini))
             manifest["agents"] = sorted(new_agents)
             self._write_managed_skill_manifest(target_project_path, manifest)
