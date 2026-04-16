@@ -435,6 +435,29 @@ class TestSkillInstaller(unittest.TestCase):
             self.assertNotIn("review-optimization", manifest.get("gemini", []))
             self.assertIn("review-optimization", manifest.get("agents", []))
 
+    def test_migrate_legacy_skill_locations_renames_invalid_claude_dir_and_fixes_name(self) -> None:
+        """Verify .claude/skills dirs with # are renamed and the name: frontmatter is updated."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            old_claude_dir = os.path.join(temp_dir, ".claude", "skills", "compliance-audit-c#")
+            os.makedirs(old_claude_dir)
+            skill_md_path = os.path.join(old_claude_dir, "SKILL.md")
+            with open(skill_md_path, "w", encoding="utf-8") as fh:
+                fh.write("---\nname: compliance-audit-c#\ndescription: test\n---\nContent.\n")
+
+            installer.migrate_legacy_skill_locations(temp_dir)
+
+            new_claude_dir = os.path.join(temp_dir, ".claude", "skills", "compliance-audit-csharp")
+            self.assertTrue(os.path.isdir(new_claude_dir))
+            self.assertFalse(os.path.isdir(old_claude_dir))
+
+            new_skill_md = os.path.join(new_claude_dir, "SKILL.md")
+            with open(new_skill_md, "r", encoding="utf-8") as fh:
+                content = fh.read()
+            self.assertIn("name: compliance-audit-csharp", content)
+            self.assertNotIn("compliance-audit-c#", content)
+
     def test_ensure_managed_gitignore_entries_preserves_user_content_outside_managed_block(self) -> None:
         """Verify gitignore updates keep user content outside the managed block."""
 

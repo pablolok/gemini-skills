@@ -1112,8 +1112,6 @@ class SkillInstaller:
                     continue
 
                 # Rename dirs with invalid characters (e.g. compliance-audit-c# → compliance-audit-csharp)
-                clean_entry = entry.replace("#", "sharp").replace(".", "-").replace(" ", "-")
-                # Only apply the # fix specifically
                 clean_entry = entry.replace("#", "sharp")
                 if clean_entry != entry:
                     new_entry_path = os.path.join(claude_dir, clean_entry)
@@ -1130,15 +1128,20 @@ class SkillInstaller:
                             manifest["claude"] = sorted(claude_entries)
                         changed = True
 
-                # Update any .gemini/skills/ paths in the reference file to .agents/skills/
+                # Update SKILL.md content: fix paths and fix invalid name in frontmatter
                 try:
                     with open(skill_md, "r", encoding="utf-8") as handle:
                         content = handle.read()
-                    if ".gemini/skills/" in content:
-                        updated = content.replace(".gemini/skills/", ".agents/skills/")
+                    updated = content
+                    if ".gemini/skills/" in updated:
+                        updated = updated.replace(".gemini/skills/", ".agents/skills/")
+                    # Fix invalid name field (e.g. "name: compliance-audit-c#" → "name: compliance-audit-csharp")
+                    if clean_entry != entry and f"name: {entry}" in updated:
+                        updated = updated.replace(f"name: {entry}", f"name: {clean_entry}")
+                    if updated != content:
                         with open(skill_md, "w", encoding="utf-8") as handle:
                             handle.write(updated)
-                        self.logger.info("Updated .claude/skills/%s/SKILL.md paths", entry)
+                        self.logger.info("Updated .claude/skills/%s/SKILL.md", clean_entry)
                         changed = True
                 except OSError:
                     pass
