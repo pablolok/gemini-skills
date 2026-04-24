@@ -180,6 +180,7 @@ class SkillSelector:
             typing.Callable[[str, str, str], str]
         ] = None,
         switch_action: typing.Optional[typing.Mapping[str, typing.Any]] = None,
+        target_path: typing.Optional[str] = None,
     ) -> typing.Tuple[typing.List[str], typing.Optional[str]]:
         """Prompt user to select skills from available categories with status info."""
         options: typing.List[typing.Dict[str, str]] = []
@@ -218,18 +219,19 @@ class SkillSelector:
         if not options:
             return []
 
-        response = self.ask_user({
-            "questions": [{
-                "header": header,
-                "question": question_text,
-                "banner_subtitle": banner_subtitle,
-                "close_label": close_label,
-                "switch_action": dict(switch_action or {}),
-                "type": "choice",
-                "multiSelect": True,
-                "options": options
-            }]
-        })
+        question_dict: typing.Dict[str, typing.Any] = {
+            "header": header,
+            "question": question_text,
+            "banner_subtitle": banner_subtitle,
+            "close_label": close_label,
+            "switch_action": dict(switch_action or {}),
+            "type": "choice",
+            "multiSelect": True,
+            "options": options,
+        }
+        if target_path:
+            question_dict["target_path"] = target_path
+        response = self.ask_user({"questions": [question_dict]})
 
         # Parse the standard tool response structure
         if isinstance(response, dict) and "answers" in response:
@@ -345,6 +347,16 @@ class TerminalMultiSelect:
             ).splitlines(),
             "",
         ]
+        target_path = self.question.get("target_path")
+        if target_path:
+            frame_lines.append(
+                style_text(
+                    f"Installing into: {target_path}",
+                    ANSI_CYAN,
+                    enable_color=self.enable_color,
+                )
+            )
+            frame_lines.append("")
         question = self.question.get("question", "Select option(s):")
         frame_lines.append(style_text(question, ANSI_BOLD, enable_color=self.enable_color))
         if self._has_multiple_groups():
@@ -1541,6 +1553,10 @@ def manual_ask_user(config: typing.Dict[str, typing.Any]) -> typing.Dict[str, ty
 
     print(installer_banner_text(enable_color, question.get("banner_subtitle", "Skill-Manager Installer")))
     print()
+    target_path = question.get("target_path")
+    if target_path:
+        print(style_text(f"Installing into: {target_path}", ANSI_CYAN, enable_color=enable_color))
+        print()
     print(style_text(question["question"], ANSI_BOLD, enable_color=enable_color))
     if is_multi:
         print(
@@ -1684,11 +1700,16 @@ def get_cli_ask_user(argv: typing.Optional[typing.Sequence[str]] = None) -> typi
     return terminal_ask_user
 
 
-def find_git_root(start_path: str) -> typing.Optional[str]:
-    """Return the nearest parent directory that contains a .git entry."""
+def find_git_root(start_path: str, max_depth: int = 2) -> typing.Optional[str]:
+    """Return the nearest parent directory that contains a .git entry.
+
+    Traversal is capped at ``max_depth`` levels above ``start_path`` so that
+    unrelated git repositories further up the filesystem (e.g. a Dropbox root)
+    are not mistaken for the target project.
+    """
     current = os.path.abspath(start_path)
 
-    while True:
+    for _ in range(max_depth + 1):
         if os.path.exists(os.path.join(current, ".git")):
             return current
 
@@ -1696,6 +1717,8 @@ def find_git_root(start_path: str) -> typing.Optional[str]:
         if parent == current:
             return None
         current = parent
+
+    return None
 
 
 def resolve_target_project_path(argv: typing.Optional[typing.Sequence[str]] = None) -> str:
@@ -1811,6 +1834,7 @@ def main() -> None:
             "action": "back_to_manager",
             "aliases": ["back", "backspace"],
         },
+        target_path=target_project,
     )
     if action == "back_to_manager":
         import manage as manage_module

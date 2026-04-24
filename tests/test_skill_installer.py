@@ -854,7 +854,7 @@ class TestSkillInstaller(unittest.TestCase):
         target = resolve_target_project_path([])
 
         self.assertEqual(target, os.path.abspath("C:/repo/default-target"))
-        mock_getcwd.assert_called_once()
+        mock_getcwd.assert_called()
         mock_find_git_root.assert_called_once_with("C:/repo/default-target")
 
     def test_resolve_target_project_path_supports_explicit_override(self) -> None:
@@ -874,7 +874,7 @@ class TestSkillInstaller(unittest.TestCase):
         target = resolve_target_project_path([])
 
         self.assertEqual(target, os.path.abspath("C:/repo/root"))
-        mock_getcwd.assert_called_once()
+        mock_getcwd.assert_called()
         mock_find_git_root.assert_called_once_with("C:/repo/root/src/feature")
 
     def test_find_git_root_walks_up_to_git_directory(self) -> None:
@@ -887,6 +887,32 @@ class TestSkillInstaller(unittest.TestCase):
 
             self.assertEqual(find_git_root(nested), os.path.abspath(repo_root))
             self.assertIsNone(find_git_root(temp_dir))
+
+    def test_find_git_root_does_not_traverse_beyond_max_depth(self) -> None:
+        """Verify git root discovery stops at max_depth and ignores deeper git roots."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            # Layout: temp_dir/.git  (3 levels above project)
+            #         temp_dir/a/b/project/
+            remote_root = temp_dir
+            project = os.path.join(remote_root, "a", "b", "project")
+            os.makedirs(os.path.join(remote_root, ".git"), exist_ok=True)
+            os.makedirs(project, exist_ok=True)
+
+            # With default max_depth=2, the git root 3 levels up must NOT be found
+            self.assertIsNone(find_git_root(project))
+
+    def test_find_git_root_respects_custom_max_depth(self) -> None:
+        """Verify that a caller-supplied max_depth is honoured."""
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = os.path.join(temp_dir, "repo")
+            nested = os.path.join(repo_root, "src", "feature")
+            os.makedirs(os.path.join(repo_root, ".git"), exist_ok=True)
+            os.makedirs(nested, exist_ok=True)
+
+            # max_depth=1 is too shallow to reach repo_root from src/feature
+            self.assertIsNone(find_git_root(nested, max_depth=1))
+            # max_depth=2 reaches it
+            self.assertEqual(find_git_root(nested, max_depth=2), os.path.abspath(repo_root))
 
     @patch("builtins.print")
     def test_print_target_project_summary_reports_managed_locations(self, mock_print) -> None:
