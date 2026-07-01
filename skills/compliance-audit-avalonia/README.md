@@ -1,6 +1,6 @@
 # Conductor Compliance Audit Skill (Avalonia UI)
 
-A specialized Gemini skill for Avalonia UI compliance reviews.
+A specialized Claude Code skill for Avalonia UI compliance reviews.
 
 ## What It Checks
 

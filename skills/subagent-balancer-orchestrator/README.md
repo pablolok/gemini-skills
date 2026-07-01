@@ -1,11 +1,11 @@
 # Subagent Balancer Orchestrator
 
-A thin router for Gemini delegation policy selection.
+A thin router for Claude delegation policy selection.
 
 ## What It Adds
 
 - One entry point for choosing the correct balancer.
-- Automatic routing between Gemini CLI quota preservation and billed Gemini API cost preservation.
+- Automatic routing between Claude Code quota preservation and billed Anthropic API cost preservation.
 - A safe local fallback when the execution environment is unclear.
 
 ## Main Files
@@ -15,12 +15,12 @@ A thin router for Gemini delegation policy selection.
 
 ## Codex Integration
 
-- This should be the default Codex entry point for any skill that may delegate Gemini work.
+- This should be the default Codex entry point for any skill that may delegate Claude work.
 - Codex-side audit and review flows should call the orchestrator first, then follow its selected balancer rather than hardcoding CLI-vs-API logic.
 - Only bypass the orchestrator when the environment is already explicit and there is no ambiguity about which balancer applies.
 
 ## Typical Usage
 
 ```bash
-python skills/subagent-balancer-orchestrator/scripts/select_balancer.py --mode auto --context "Vertex AI batch processing with token pricing"
+python skills/subagent-balancer-orchestrator/scripts/select_balancer.py --mode auto --context "Anthropic API batch processing with token pricing"
 ```

@@ -1,4 +1,4 @@
-"""Gemini SessionStart hook for skill-manager update notifications."""
+"""Claude Code SessionStart hook for skill-manager update notifications."""
 
 from __future__ import annotations
 

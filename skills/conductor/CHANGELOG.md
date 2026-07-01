@@ -1,0 +1,14 @@
+# Changelog
+
+All notable changes to the `conductor` skill are documented here.
+
+## [1.0.0]
+
+### Added
+- Initial release: Claude Code adaptation of the Conductor Context-Driven Development workflow.
+- Slash commands installed into `.claude/commands/conductor/`: `setup`, `new-track`,
+  `implement`, `status`, `review`, `revert`.
+- Bundled `conductor/` workspace templates (`index`, `product`, `product-guidelines`,
+  `tech-stack`, `workflow`, `tracks`, `code_styleguides/general`).
+- `post_install.py` hook that installs the commands and scaffolds the workspace without
+  overwriting existing files.

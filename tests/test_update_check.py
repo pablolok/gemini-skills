@@ -30,7 +30,7 @@ class TestUpdateCheck(unittest.TestCase):
             json.dump({"name": "test-skill", "version": "1.1.0"}, f)
             
         # Target project with older version installed
-        self.target_skill_path = os.path.join(self.project_dir, ".gemini", "skills", self.skill_name)
+        self.target_skill_path = os.path.join(self.project_dir, ".claude", "skills", self.skill_name)
         os.makedirs(self.target_skill_path)
         with open(os.path.join(self.target_skill_path, "metadata.json"), "w") as f:
             json.dump({"name": "test-skill", "version": "1.0.0"}, f)

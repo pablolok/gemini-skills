@@ -1,4 +1,4 @@
-"""Apply installed Gemini skill updates for the current project."""
+"""Apply installed Claude skill updates for the current project."""
 
 from __future__ import annotations
 
@@ -21,7 +21,7 @@ def main() -> int:
     try:
         pending = check_updates()
         if not pending:
-            print("All installed Gemini skills are already up to date.")
+            print("All installed Claude skills are already up to date.")
             return 0
 
         applied = apply_updates()
@@ -32,7 +32,7 @@ def main() -> int:
         print(f"Updated {len(applied)} skill(s):")
         for update in applied:
             print(f"- {update['name']}: {update['installed']} -> {update['latest']}")
-        print("Run /skills reload and /commands reload if Gemini CLI is already open.")
+        print("Restart Claude Code or start a new session to load the updated skills.")
         return 0
     except Exception as exc:  # pragma: no cover
         LOGGER.error("Skill update failed: %s", exc)

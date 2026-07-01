@@ -17,7 +17,7 @@ When you are triggered (manually or as part of the checkpoint protocol), you MUS
     *   **Performance Evaluation:** Evaluate if activated skills performed as expected or required manual overrides.
     *   **Skill Quality:** Flag any "noisy" or "inefficient" skills that should be refactored.
     *   **Balancer Selection:** Verify that delegation either used `subagent-balancer-orchestrator` first, or chose the correct direct balancer for the environment.
-    *   **Version Drift:** Flag when installed `.gemini/skills/` balancers are behind the corresponding `published/` versions.
+    *   **Version Drift:** Flag when installed `.claude/skills/` balancers are behind the corresponding `published/` versions.
 3.  **Cross-Reference Source of Truth:** Compare the actual execution against the `plan.md` and `workflow.md`.
 4.  **Recommend Improvements:** Suggest alternative tool sequences or strategies for future tasks to minimize context usage and turns.
 5.  **Check Routing Clarity:** If audit or workflow skills still bypass the balancer orchestrator or still refer to only one balancer after the CLI/API split, recommend updating those skills to carry the separation forward.
@@ -33,12 +33,12 @@ Your analysis MUST cover:
 
 ## Interactive Remediation
 
-You MUST NOT apply changes automatically. Instead, provide interactive recommendations via `ask_user`:
+You MUST NOT apply changes automatically. Instead, provide interactive recommendations via AskUserQuestion:
 - **Workflow Refinement:** "I noticed a more efficient pattern for [task type]. Would you like to update the `workflow.md` guidelines?"
 - **Skill Update:** "The skill '[skill name]' was used but required manual correction. Should we refine its `SKILL.md` now?"
 - **New Skill Proposal:** "I detected a recurring manual pattern for [process]. Where would you like to save this new specialized skill?"
-    - **Global:** Save to the central `gemini-skills` repository.
-    - **Local:** Save to the current project's `.gemini/skills/` directory.
+    - **Global:** Save to the central `claude-skills` repository.
+    - **Local:** Save to the current project's `.claude/skills/` directory.
     - **Custom Path:** Prompt for a specific absolute or relative path (directories will be created if they don't exist).
 
 

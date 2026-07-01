@@ -1,4 +1,4 @@
-"""Capture Gemini quota stats and choose a subagent model safely."""
+"""Capture Claude Code usage stats and choose a subagent model safely."""
 
 from __future__ import annotations
 
@@ -21,31 +21,31 @@ sys.modules[SPEC.name] = SELECTOR
 SPEC.loader.exec_module(SELECTOR)
 
 
-DEFAULT_STATS_COMMAND = 'gemini -p "/stats model" --output-format text'
+DEFAULT_STATS_COMMAND = 'claude -p "/stats model" --output-format text'
 DEFAULT_STATS_COMMAND_CANDIDATES = (
-    'gemini -p "/stats model" --output-format text',
-    'gemini -p "/stats model" --output-format json',
-    'gemini -p "/stats model"',
+    'claude -p "/stats model" --output-format text',
+    'claude -p "/stats model" --output-format json',
+    'claude -p "/stats model"',
 )
 DEFAULT_CACHE_FILE = THIS_DIR.parent / ".quota-cache.txt"
 
 
 def extract_snapshot_text(output: str) -> str:
-    """Normalize text or JSON-like command output into a quota snapshot string."""
+    """Normalize text or JSON-like command output into a usage snapshot string."""
     stripped = output.strip()
     if not stripped:
         raise RuntimeError("Stats command returned no stdout.")
-    if "gemini-" in stripped:
+    if "claude-" in stripped:
         return stripped
 
     try:
         payload = json.loads(stripped)
     except json.JSONDecodeError as exc:
-        raise RuntimeError("Stats command output was not a usable quota snapshot.") from exc
+        raise RuntimeError("Stats command output was not a usable usage snapshot.") from exc
 
     def walk(value: Any) -> str | None:
         if isinstance(value, str):
-            return value if "gemini-" in value else None
+            return value if "claude-" in value else None
         if isinstance(value, dict):
             for nested in value.values():
                 found = walk(nested)
@@ -62,7 +62,7 @@ def extract_snapshot_text(output: str) -> str:
 
     extracted = walk(payload)
     if not extracted:
-        raise RuntimeError("Could not extract Gemini quota data from structured stats output.")
+        raise RuntimeError("Could not extract Claude usage data from structured stats output.")
     return extracted.strip()
 
 
@@ -81,7 +81,7 @@ def run_stats_command(command: str, timeout_seconds: int) -> str:
 
 def candidate_stats_commands(stats_command: str | None) -> list[str]:
     """Build the ordered list of stats capture commands to try."""
-    env_command = os.environ.get("GEMINI_STATS_COMMAND")
+    env_command = os.environ.get("CLAUDE_STATS_COMMAND")
     commands: list[str] = []
     for candidate in (stats_command, env_command, *DEFAULT_STATS_COMMAND_CANDIDATES):
         if candidate and candidate not in commands:
@@ -140,7 +140,7 @@ def choose_route(args: argparse.Namespace) -> dict[str, Any]:
         return {
             "route": "local",
             "selected_model": None,
-            "reason": "Could not acquire live Gemini stats or a cached quota snapshot.",
+            "reason": "Could not acquire live Claude Code stats or a cached usage snapshot.",
             "snapshot_source": source,
             "ranked_candidates": [],
         }

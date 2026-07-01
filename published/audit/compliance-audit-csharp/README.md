@@ -1,10 +1,10 @@
 # Conductor Compliance Audit Skill (C#)
 
-A specialized skill for the **Gemini CLI** to enforce architectural rigor and engineering standards during the development of C#/.NET projects.
+A specialized skill for **Claude Code** to enforce architectural rigor and engineering standards during the development of C#/.NET projects.
 
 ## Overview
 
-This skill automates the "Sub-Agent Compliance Audit" step of the **Conductor** workflow. When invoked, it first applies quota-aware routing and explicit model-selection guardrails, then delegates only if that route is justified. If the user selected Pro or rejected Flash or preview models, the skill must preserve that choice or keep the audit local.
+This skill automates the "Sub-Agent Compliance Audit" step of the **Conductor** workflow. When invoked, it first applies quota-aware routing and explicit model-selection guardrails, then delegates only if that route is justified. If the user selected Opus or rejected Sonnet or Haiku models, the skill must preserve that choice or keep the audit local.
 
 ## Audit Criteria
 

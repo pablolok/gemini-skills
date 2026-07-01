@@ -36,7 +36,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Removed {len(removed)} skill(s):")
         for item in removed:
             print(f"- {item}")
-        print("Run /skills reload and /commands reload if Gemini CLI is already open.")
+        print("Restart Claude Code or start a new session to refresh the skill list.")
         return 0
     except Exception as exc:  # pragma: no cover
         LOGGER.error("Skill uninstall failed: %s", exc)

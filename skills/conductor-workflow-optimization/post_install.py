@@ -12,7 +12,7 @@ TARGET_MARKER = "-   **Step 3.3: Post-Execution Review & Optimization:**"
 STEP_TITLE = "Step 3.4: Workflow Drift Audit"
 NEW_STEP = """
     -   **Step 3.4: Workflow Drift Audit:**
-        -   If Gemini emits an "unexpected tool call" error, references a missing tool, or the CLI help contradicts the workflow instructions, you **must** invoke the `conductor-workflow-optimization` skill before retrying.
+        -   If Claude Code emits an "unexpected tool call" error, references a missing tool, or the CLI help contradicts the workflow instructions, you **must** invoke the `conductor-workflow-optimization` skill before retrying.
         -   Use the skill to scan `conductor/workflow.md`, installed skills, policies, and generated commands for stale tool references and patch the narrowest broken workflow artifact first."""
 
 

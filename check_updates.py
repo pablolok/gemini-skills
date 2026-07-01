@@ -1,4 +1,4 @@
-"""Standalone script to check for Gemini skill updates."""
+"""Standalone script to check for Claude skill updates."""
 
 import os
 import sys
@@ -11,7 +11,7 @@ def main(ask_user_fn: typing.Optional[typing.Callable] = None) -> None:
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger = logging.getLogger("update_checker")
     
-    logger.info("=== Gemini Skill Update Checker ===")
+    logger.info("=== Claude Skill Update Checker ===")
     
     # Locate published directory relative to this script
     script_dir = os.path.dirname(os.path.abspath(__file__))

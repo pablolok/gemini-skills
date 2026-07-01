@@ -1,12 +1,12 @@
 # Conductor Workflow Optimization
 
-Detect and remediate Gemini Conductor workflow drift caused by stale tool names, invalid plan-mode transitions, and unexpected tool calls.
+Detect and remediate Claude Code Conductor workflow drift caused by stale tool names, invalid plan-mode transitions, and unexpected tool calls.
 
 ## What It Helps With
 
 - invalid or removed tool references such as `exit_plan_mode`
-- plan-mode instructions that no longer match Gemini CLI behavior
-- drift between `conductor/workflow.md`, installed skills, and generated Gemini commands
+- plan-mode instructions that no longer match Claude Code behavior
+- drift between `conductor/workflow.md`, installed skills, and generated Claude Code commands
 - binary confirmation prompts that should allow `yes`, `no`, or free-text feedback
 - shell portability issues such as Unix-style alias usage in PowerShell
 - repetitive manual debugging of workflow-level failures after a CLI update
@@ -19,10 +19,10 @@ Install the skill, then invoke it when a Conductor workflow fails at the orchest
 
 If the skill is installed through this repository's supported installer flow, the workflow integration is automatic:
 
-- `python <path-to-gemini-skills>/install.py`
+- `python <path-to-claude-skills>/install.py`
 - `/skill-manager:install workflow/conductor-workflow-optimization`
 
-In that path, the installer copies the skill into `.gemini/skills/` and then runs the skill's `post_install.py` hook. That hook updates `conductor/workflow.md` when a Conductor workflow is present.
+In that path, the installer copies the skill into `.claude/skills/` and then runs the skill's `post_install.py` hook. That hook updates `conductor/workflow.md` when a Conductor workflow is present.
 
 Important limits:
 
@@ -33,23 +33,23 @@ Important limits:
 Manual integration path:
 
 ```bash
-python .gemini/skills/conductor-workflow-optimization/post_install.py .
+python .claude/skills/conductor-workflow-optimization/post_install.py .
 ```
 
-If you prefer Gemini to apply the workflow change conversationally, install the skill first, then ask Gemini to update `conductor/workflow.md` according to the skill instructions.
+If you prefer Claude to apply the workflow change conversationally, install the skill first, then ask Claude to update `conductor/workflow.md` according to the skill instructions.
 
 When used conversationally, the skill should propose workflow fixes first and ask the user whether to apply them. It should not silently rewrite the workflow during ordinary failure triage.
 
 Typical first pass:
 
 ```bash
-python .gemini/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root .
+python .claude/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root .
 ```
 
-If Gemini names a specific missing tool:
+If Claude names a specific missing tool:
 
 ```bash
-python .gemini/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root . --forbid exit_plan_mode
+python .claude/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root . --forbid exit_plan_mode
 ```
 
-Use the report to patch the narrowest broken workflow artifact, then verify the fix against live Gemini CLI help before retrying the workflow.
+Use the report to patch the narrowest broken workflow artifact, then verify the fix against live Claude Code CLI help before retrying the workflow.

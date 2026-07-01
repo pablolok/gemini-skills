@@ -23,7 +23,7 @@ When you invoke this skill, you MUST:
 2.  **Skill Standards Audit**: If any skill-related files (`SKILL.md`, `metadata.json`) were modified, verify that they meet the official standards (SemVer, correct frontmatter, present README).
 3.  **Verify Skill Presence:** Before any invocation, you MUST verify if the required specialized skill is "installed" and available for use in the current environment. A skill is considered available if its `SKILL.md` file exists in either:
     *   The project's local `skills/` directory.
-    *   The user's global `.gemini/skills/` directory.
+    *   The user's global `.claude/skills/` directory.
 3.  **Resolve Delegation Through The Balancer Layer:** Before dispatching to a specialized audit:
     *   If `subagent-balancer-orchestrator` is available, invoke it first and carry its routing decision into the specialized audit.
     *   If the orchestrator is not available but a direct balancer is already clearly appropriate from explicit task context, you may invoke that balancer directly.

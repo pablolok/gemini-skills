@@ -30,12 +30,10 @@ class TestSkillManagerRuntime(unittest.TestCase):
         expected = os.path.abspath("published")
         self.assertEqual(published_dir, expected)
 
-    def test_install_named_skills_respects_companion_support_flags(self) -> None:
-        """Verify runtime installs skip Codex and Claude companions for Gemini-only skills."""
+    def test_install_named_skills_installs_as_claude_skill(self) -> None:
+        """Verify runtime installs each named skill as a real Claude skill."""
         installer = MagicMock()
         installer.install_skill.return_value = True
-        installer.supports_codex_bridge.return_value = False
-        installer.supports_claude_reference.return_value = False
 
         with patch.object(RUNTIME, "build_installer", return_value=installer), patch.object(
             RUNTIME,
@@ -45,13 +43,12 @@ class TestSkillManagerRuntime(unittest.TestCase):
             installed = RUNTIME.install_named_skills(
                 ["utility/subagent-balancer"],
                 root=os.getcwd(),
-                include_codex_bridges=True,
-                include_claude_references=True,
             )
 
         self.assertEqual(installed, ["utility/subagent-balancer"])
-        installer.install_codex_bridge.assert_not_called()
-        installer.install_claude_reference.assert_not_called()
+        installer.install_skill.assert_called_once_with(
+            "utility/subagent-balancer", os.getcwd()
+        )
 
     def test_uninstall_named_skills_uses_installer_uninstall(self) -> None:
         """Verify runtime uninstall delegates to the installer cleanup flow."""

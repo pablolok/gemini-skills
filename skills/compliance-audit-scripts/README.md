@@ -1,10 +1,10 @@
 # Conductor Compliance Audit Skill (Scripts)
 
-A specialized skill for the **Gemini CLI** to enforce engineering standards and best practices during the development of automation and scripting projects (PowerShell, Python, Bash).
+A specialized skill for **Claude Code** to enforce engineering standards and best practices during the development of automation and scripting projects (PowerShell, Python, Bash).
 
 ## Overview
 
-This skill automates the "Sub-Agent Compliance Audit" step of the **Conductor** workflow for script-based environments. When invoked, it first applies quota-aware routing and explicit model-selection guardrails, then delegates only if that route is justified. If the user selected Pro or rejected Flash or preview models, the skill must preserve that choice or keep the audit local.
+This skill automates the "Sub-Agent Compliance Audit" step of the **Conductor** workflow for script-based environments. When invoked, it first applies quota-aware routing and explicit model-selection guardrails, then delegates only if that route is justified. If the user selected Opus or rejected Sonnet or Haiku models, the skill must preserve that choice or keep the audit local.
 
 ## Audit Criteria
 

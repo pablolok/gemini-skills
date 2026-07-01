@@ -1,4 +1,4 @@
-"""Select the best billed Gemini API model for a task."""
+"""Select the best billed Claude (Anthropic) API model for a task."""
 
 from __future__ import annotations
 
@@ -22,42 +22,29 @@ REFRESHER_SPEC.loader.exec_module(REFRESHER)
 
 
 MODEL_PROFILES = {
-    "gemini-2.5-flash-lite": {"tier": "lite", "preview": False, "quality": 40},
-    "gemini-2.5-flash": {"tier": "flash", "preview": False, "quality": 74},
-    "gemini-2.5-pro": {"tier": "pro", "preview": False, "quality": 92},
-    "gemini-3-flash-preview": {"tier": "flash", "preview": True, "quality": 82},
-    "gemini-3.1-flash-lite-preview": {"tier": "lite", "preview": True, "quality": 58},
-    "gemini-3.1-pro-preview": {"tier": "pro", "preview": True, "quality": 98},
+    "claude-haiku-4-5": {"tier": "haiku", "preview": False, "quality": 45},
+    "claude-sonnet-5": {"tier": "sonnet", "preview": False, "quality": 82},
+    "claude-opus-4-8": {"tier": "opus", "preview": False, "quality": 95},
+    "claude-fable-5": {"tier": "opus", "preview": False, "quality": 90},
 }
 
+# Prices are USD per 1M tokens. Batch API pricing is 50% of standard.
 DEFAULT_PRICES = {
-    "gemini-2.5-flash-lite": {
-        "standard": {"input": 0.10, "output": 0.40},
-        "batch": {"input": 0.05, "output": 0.20},
+    "claude-haiku-4-5": {
+        "standard": {"input": 1.00, "output": 5.00},
+        "batch": {"input": 0.50, "output": 2.50},
     },
-    "gemini-2.5-flash": {
-        "standard": {"input": 0.30, "output": 2.50},
-        "batch": {"input": 0.15, "output": 1.25},
+    "claude-sonnet-5": {
+        "standard": {"input": 3.00, "output": 15.00},
+        "batch": {"input": 1.50, "output": 7.50},
     },
-    "gemini-2.5-pro": {
-        "standard": {"input": 1.25, "output": 10.00},
-        "batch": {"input": 0.625, "output": 5.00},
-        "standard_long": {"input": 2.50, "output": 15.00},
-        "batch_long": {"input": 1.25, "output": 7.50},
+    "claude-opus-4-8": {
+        "standard": {"input": 5.00, "output": 25.00},
+        "batch": {"input": 2.50, "output": 12.50},
     },
-    "gemini-3-flash-preview": {
-        "standard": {"input": 0.50, "output": 3.00},
-        "batch": {"input": 0.25, "output": 1.50},
-    },
-    "gemini-3.1-flash-lite-preview": {
-        "standard": {"input": 0.25, "output": 1.50},
-        "batch": {"input": 0.125, "output": 0.75},
-    },
-    "gemini-3.1-pro-preview": {
-        "standard": {"input": 2.00, "output": 12.00},
-        "batch": {"input": 1.00, "output": 6.00},
-        "standard_long": {"input": 4.00, "output": 18.00},
-        "batch_long": {"input": 2.00, "output": 9.00},
+    "claude-fable-5": {
+        "standard": {"input": 5.00, "output": 25.00},
+        "batch": {"input": 2.50, "output": 12.50},
     },
 }
 

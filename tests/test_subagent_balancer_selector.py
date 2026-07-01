@@ -23,13 +23,14 @@ sys.modules[SPEC.name] = MODULE
 SPEC.loader.exec_module(MODULE)
 
 
+# Claude tiers: haiku (cheapest), sonnet (mid workhorse), opus (top).
 SNAPSHOT = """
 Model                   Reqs    Model usage                 Usage resets
-gemini-2.5-flash           -    ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬ Limit  7:00 PM (19h 21m)
-gemini-2.5-flash-lite      -    ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬    2%  9:10 PM (21h 30m)
-gemini-2.5-pro             -    ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬   11%  7:24 PM (19h 45m)
-gemini-3-flash-preview     -    ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬ Limit  7:00 PM (19h 21m)
-gemini-3.1-pro-preview     -    ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬   11%  7:24 PM (19h 45m)
+claude-sonnet-5            -    ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬ Limit  7:00 PM (19h 21m)
+claude-haiku-4-5          -    ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬    2%  9:10 PM (21h 30m)
+claude-opus-4-8           -    ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬   11%  7:24 PM (19h 45m)
+claude-sonnet-6-preview   -    ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬ Limit  7:00 PM (19h 21m)
+claude-opus-5-preview     -    ▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬   11%  7:24 PM (19h 45m)
 """
 
 
@@ -39,21 +40,21 @@ class TestSubagentBalancerSelector(unittest.TestCase):
     def test_parse_snapshot(self) -> None:
         models = MODULE.parse_snapshot(SNAPSHOT)
         self.assertEqual(len(models), 5)
-        self.assertEqual(models[0].name, "gemini-2.5-flash")
+        self.assertEqual(models[0].name, "claude-sonnet-5")
         self.assertTrue(models[0].limited)
         self.assertEqual(models[1].usage_percent, 2)
         self.assertEqual(models[1].reset_window_minutes, 21 * 60 + 30)
 
     def test_parse_snapshot_preserves_decimal_percentages(self) -> None:
         snapshot = """
-gemini-2.5-flash-lite    -    0.7%  7:23 AM (20h 23m)
-gemini-2.5-flash         -    83%   7:12 AM (20h 12m)
+claude-haiku-4-5    -    0.7%  7:23 AM (20h 23m)
+claude-sonnet-5     -    83%   7:12 AM (20h 12m)
 """
         models = MODULE.parse_snapshot(snapshot)
         self.assertEqual(models[0].usage_percent, 0.7)
         self.assertEqual(models[1].usage_percent, 83.0)
 
-    def test_prefers_flash_lite_for_small_review(self) -> None:
+    def test_prefers_haiku_for_small_review(self) -> None:
         models = MODULE.parse_snapshot(SNAPSHOT)
         result = MODULE.choose_model(
             models=models,
@@ -65,9 +66,9 @@ gemini-2.5-flash         -    83%   7:12 AM (20h 12m)
             allow_preview=True,
         )
         self.assertEqual(result["route"], "subagent")
-        self.assertEqual(result["selected_model"], "gemini-2.5-flash-lite")
+        self.assertEqual(result["selected_model"], "claude-haiku-4-5")
 
-    def test_prefers_pro_for_large_implementation_when_flash_is_unavailable(self) -> None:
+    def test_prefers_opus_for_large_implementation_when_sonnet_is_unavailable(self) -> None:
         models = MODULE.parse_snapshot(SNAPSHOT)
         result = MODULE.choose_model(
             models=models,
@@ -78,12 +79,12 @@ gemini-2.5-flash         -    83%   7:12 AM (20h 12m)
             avoid_models=set(),
             allow_preview=False,
         )
-        self.assertEqual(result["selected_model"], "gemini-2.5-pro")
+        self.assertEqual(result["selected_model"], "claude-opus-4-8")
 
-    def test_prefers_flash_over_pro_for_typical_implementation_work(self) -> None:
+    def test_prefers_sonnet_over_opus_for_typical_implementation_work(self) -> None:
         snapshot = """
-gemini-2.5-flash         -    22%  4:00 PM (4h 0m)
-gemini-2.5-pro           -     7%  4:00 PM (4h 0m)
+claude-sonnet-5         -    22%  4:00 PM (4h 0m)
+claude-opus-4-8         -     7%  4:00 PM (4h 0m)
 """
         models = MODULE.parse_snapshot(snapshot)
         result = MODULE.choose_model(
@@ -95,12 +96,12 @@ gemini-2.5-pro           -     7%  4:00 PM (4h 0m)
             avoid_models=set(),
             allow_preview=False,
         )
-        self.assertEqual(result["selected_model"], "gemini-2.5-flash")
+        self.assertEqual(result["selected_model"], "claude-sonnet-5")
 
-    def test_prefers_pro_only_for_clearly_harder_case(self) -> None:
+    def test_prefers_opus_only_for_clearly_harder_case(self) -> None:
         snapshot = """
-gemini-2.5-flash         -    84%  11:00 PM (18h 0m)
-gemini-2.5-pro           -    14%  1:00 PM (8h 0m)
+claude-sonnet-5         -    84%  11:00 PM (18h 0m)
+claude-opus-4-8         -    14%  1:00 PM (8h 0m)
 """
         models = MODULE.parse_snapshot(snapshot)
         result = MODULE.choose_model(
@@ -112,7 +113,7 @@ gemini-2.5-pro           -    14%  1:00 PM (8h 0m)
             avoid_models=set(),
             allow_preview=False,
         )
-        self.assertEqual(result["selected_model"], "gemini-2.5-pro")
+        self.assertEqual(result["selected_model"], "claude-opus-4-8")
 
     def test_respects_explicit_preferred_model(self) -> None:
         models = MODULE.parse_snapshot(SNAPSHOT)
@@ -121,11 +122,11 @@ gemini-2.5-pro           -    14%  1:00 PM (8h 0m)
             task_type="review",
             scope="small",
             complexity="normal",
-            preferred_model="gemini-2.5-pro",
+            preferred_model="claude-opus-4-8",
             avoid_models=set(),
             allow_preview=False,
         )
-        self.assertEqual(result["selected_model"], "gemini-2.5-pro")
+        self.assertEqual(result["selected_model"], "claude-opus-4-8")
 
     def test_falls_back_to_local_when_preferred_model_is_limited(self) -> None:
         models = MODULE.parse_snapshot(SNAPSHOT)
@@ -134,7 +135,7 @@ gemini-2.5-pro           -    14%  1:00 PM (8h 0m)
             task_type="review",
             scope="small",
             complexity="trivial",
-            preferred_model="gemini-2.5-flash",
+            preferred_model="claude-sonnet-5",
             avoid_models=set(),
             allow_preview=True,
         )
@@ -147,7 +148,7 @@ gemini-2.5-pro           -    14%  1:00 PM (8h 0m)
             task_type="review",
             scope="small",
             complexity="normal",
-            preferred_model="gemini-3.1-pro-preview",
+            preferred_model="claude-opus-5-preview",
             avoid_models=set(),
             allow_preview=False,
         )
@@ -161,7 +162,7 @@ gemini-2.5-pro           -    14%  1:00 PM (8h 0m)
             scope="small",
             complexity="trivial",
             preferred_model=None,
-            avoid_models={"gemini-2.5-flash-lite", "gemini-2.5-pro"},
+            avoid_models={"claude-haiku-4-5", "claude-opus-4-8"},
             allow_preview=False,
         )
         self.assertEqual(result["route"], "local")
@@ -169,8 +170,8 @@ gemini-2.5-pro           -    14%  1:00 PM (8h 0m)
 
     def test_reset_window_breaks_ties_toward_earlier_reset(self) -> None:
         snapshot = """
-gemini-2.5-flash         -    35%  11:00 AM (2h 0m)
-gemini-2.0-flash         -    35%  5:00 AM (32h 0m)
+claude-sonnet-5         -    35%  11:00 AM (2h 0m)
+claude-sonnet-4-5       -    35%  5:00 AM (32h 0m)
 """
         models = MODULE.parse_snapshot(snapshot)
         result = MODULE.choose_model(
@@ -182,12 +183,12 @@ gemini-2.0-flash         -    35%  5:00 AM (32h 0m)
             avoid_models=set(),
             allow_preview=False,
         )
-        self.assertEqual(result["selected_model"], "gemini-2.5-flash")
+        self.assertEqual(result["selected_model"], "claude-sonnet-5")
 
     def test_unknown_future_model_name_is_inferred(self) -> None:
         snapshot = """
-gemini-4-flash           -    18%  3:00 PM (6h 0m)
-gemini-4-pro             -    18%  3:00 PM (6h 0m)
+claude-sonnet-6         -    18%  3:00 PM (6h 0m)
+claude-opus-5           -    18%  3:00 PM (6h 0m)
 """
         models = MODULE.parse_snapshot(snapshot)
         result = MODULE.choose_model(
@@ -199,12 +200,12 @@ gemini-4-pro             -    18%  3:00 PM (6h 0m)
             avoid_models=set(),
             allow_preview=False,
         )
-        self.assertEqual(result["selected_model"], "gemini-4-flash")
+        self.assertEqual(result["selected_model"], "claude-sonnet-6")
 
     def test_unparseable_reset_text_does_not_crash(self) -> None:
         snapshot = """
-gemini-2.5-flash         -    18%  resets sometime later
-gemini-2.5-pro           -    18%  resets sometime later
+claude-sonnet-5         -    18%  resets sometime later
+claude-opus-4-8         -    18%  resets sometime later
 """
         models = MODULE.parse_snapshot(snapshot)
         result = MODULE.choose_model(
@@ -217,12 +218,12 @@ gemini-2.5-pro           -    18%  resets sometime later
             allow_preview=False,
         )
         self.assertEqual(result["route"], "subagent")
-        self.assertEqual(result["selected_model"], "gemini-2.5-flash")
+        self.assertEqual(result["selected_model"], "claude-sonnet-5")
 
-    def test_hard_complexity_can_escalate_to_pro(self) -> None:
+    def test_hard_complexity_can_escalate_to_opus(self) -> None:
         snapshot = """
-gemini-2.5-flash         -    18%  2:00 PM (8h 0m)
-gemini-2.5-pro           -    20%  2:00 PM (8h 0m)
+claude-sonnet-5         -    18%  2:00 PM (8h 0m)
+claude-opus-4-8         -    20%  2:00 PM (8h 0m)
 """
         models = MODULE.parse_snapshot(snapshot)
         result = MODULE.choose_model(
@@ -234,12 +235,12 @@ gemini-2.5-pro           -    20%  2:00 PM (8h 0m)
             avoid_models=set(),
             allow_preview=False,
         )
-        self.assertEqual(result["selected_model"], "gemini-2.5-pro")
+        self.assertEqual(result["selected_model"], "claude-opus-4-8")
 
-    def test_normal_complexity_preserves_pro_quota_even_when_pro_is_slightly_healthier(self) -> None:
+    def test_normal_complexity_preserves_opus_quota_even_when_opus_is_slightly_healthier(self) -> None:
         snapshot = """
-gemini-2.5-flash         -    24%  5:00 PM (6h 0m)
-gemini-2.5-pro           -    12%  5:00 PM (6h 0m)
+claude-sonnet-5         -    24%  5:00 PM (6h 0m)
+claude-opus-4-8         -    12%  5:00 PM (6h 0m)
 """
         models = MODULE.parse_snapshot(snapshot)
         result = MODULE.choose_model(
@@ -251,13 +252,13 @@ gemini-2.5-pro           -    12%  5:00 PM (6h 0m)
             avoid_models=set(),
             allow_preview=False,
         )
-        self.assertEqual(result["selected_model"], "gemini-2.5-flash")
+        self.assertEqual(result["selected_model"], "claude-sonnet-5")
 
-    def test_flash_lite_is_preferred_for_trivial_audit_style_work(self) -> None:
+    def test_haiku_is_preferred_for_trivial_audit_style_work(self) -> None:
         snapshot = """
-gemini-2.5-flash-lite    -    31%  7:00 PM (4h 0m)
-gemini-2.5-flash         -    14%  7:00 PM (4h 0m)
-gemini-2.5-pro           -     2%  7:00 PM (4h 0m)
+claude-haiku-4-5    -    31%  7:00 PM (4h 0m)
+claude-sonnet-5     -    14%  7:00 PM (4h 0m)
+claude-opus-4-8     -     2%  7:00 PM (4h 0m)
 """
         models = MODULE.parse_snapshot(snapshot)
         result = MODULE.choose_model(
@@ -269,13 +270,13 @@ gemini-2.5-pro           -     2%  7:00 PM (4h 0m)
             avoid_models=set(),
             allow_preview=False,
         )
-        self.assertEqual(result["selected_model"], "gemini-2.5-flash-lite")
+        self.assertEqual(result["selected_model"], "claude-haiku-4-5")
 
-    def test_flash_lite_can_win_for_small_trivial_implementation_when_flash_is_heavily_used(self) -> None:
+    def test_haiku_can_win_for_small_trivial_implementation_when_sonnet_is_heavily_used(self) -> None:
         snapshot = """
-gemini-2.5-flash-lite    -    1.2%  7:00 PM (18h 0m)
-gemini-2.5-flash         -    88%   7:00 PM (18h 0m)
-gemini-2.5-pro           -    61%   7:00 PM (18h 0m)
+claude-haiku-4-5    -    1.2%  7:00 PM (18h 0m)
+claude-sonnet-5     -    88%   7:00 PM (18h 0m)
+claude-opus-4-8     -    61%   7:00 PM (18h 0m)
 """
         models = MODULE.parse_snapshot(snapshot)
         result = MODULE.choose_model(
@@ -287,7 +288,7 @@ gemini-2.5-pro           -    61%   7:00 PM (18h 0m)
             avoid_models=set(),
             allow_preview=False,
         )
-        self.assertEqual(result["selected_model"], "gemini-2.5-flash-lite")
+        self.assertEqual(result["selected_model"], "claude-haiku-4-5")
 
     def test_reason_includes_complexity(self) -> None:
         models = MODULE.parse_snapshot(SNAPSHOT)

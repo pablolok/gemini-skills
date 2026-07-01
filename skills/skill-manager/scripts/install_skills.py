@@ -25,26 +25,10 @@ def main(argv: list[str] | None = None) -> int:
             print("Available skills:")
             for path in list_available_skill_paths():
                 print(f"- {path}")
-            print("Use: /skill-manager:install [--with-codex] [--with-claude] <category/skill> [more-skills]")
+            print("Use: /skill-manager:install <category/skill> [more-skills]")
             return 0
 
-        include_codex_bridges = False
-        include_claude_references = False
-        filtered_args: list[str] = []
-        for arg in args:
-            if arg == "--with-codex":
-                include_codex_bridges = True
-                continue
-            if arg == "--with-claude":
-                include_claude_references = True
-                continue
-            filtered_args.append(arg)
-
-        installed = install_named_skills(
-            filtered_args,
-            include_codex_bridges=include_codex_bridges,
-            include_claude_references=include_claude_references,
-        )
+        installed = install_named_skills(args)
         if not installed:
             print("No skills were installed.")
             return 1
@@ -52,15 +36,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"Installed {len(installed)} skill(s):")
         for item in installed:
             print(f"- {item}")
-        if include_codex_bridges:
-            print("Requested matching Codex bridge wrappers for supported skills.")
-        else:
-            print("To add matching Codex bridge wrappers too, rerun with --with-codex.")
-        if include_claude_references:
-            print("Requested generated Claude reference skills for the selected skills.")
-        else:
-            print("To add generated Claude reference skills too, rerun with --with-claude.")
-        print("Run /skills reload and /commands reload if Gemini CLI is already open.")
+        print("Restart Claude Code or start a new session to load the new skills.")
         return 0
     except Exception as exc:  # pragma: no cover
         LOGGER.error("Skill install failed: %s", exc)

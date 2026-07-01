@@ -1,6 +1,6 @@
 # Conductor Compliance Audit Skill (Angular)
 
-A specialized Gemini skill for Angular compliance reviews.
+A specialized Claude Code skill for Angular compliance reviews.
 
 ## What It Checks
 
