@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.2] - 2026-07-01
+- Publish Claude Code migration (retarget from Gemini CLI distribution)
+
+
 ## [1.0.1] - 2026-03-23
 - Publish balancer orchestrator for CLI-versus-API routing
 

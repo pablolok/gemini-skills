@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.15] - 2026-07-01
+- Publish Claude Code migration (retarget from Gemini CLI distribution)
+
+
 ## [1.6.14] - 2026-04-14
 - Move runtime_config.json to .agents/skills/skill-manager/
 

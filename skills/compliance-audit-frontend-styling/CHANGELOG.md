@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.4] - 2026-07-01
+- Publish Claude Code migration (retarget from Gemini CLI distribution)
+
+
 ## [1.0.3] - 2026-04-06
 - Flag repeated semantic styling string literals such as theme names, token keys, and class-name contracts when they should come from central styling contracts
 

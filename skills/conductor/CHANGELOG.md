@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.1] - 2026-07-01
+- Publish Claude Code migration (retarget from Gemini CLI distribution)
+
+
 All notable changes to the `conductor` skill are documented here.
 
 ## [1.0.0]

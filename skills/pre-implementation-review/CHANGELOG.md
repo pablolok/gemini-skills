@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.0.6] - 2026-07-01
+- Publish Claude Code migration (retarget from Gemini CLI distribution)
+
+
 ## [1.0.5] - 2026-04-06
 - Flag repeated or semantic hardcoded string literals early and steer them toward shared constants, resources, or configuration during planning
 

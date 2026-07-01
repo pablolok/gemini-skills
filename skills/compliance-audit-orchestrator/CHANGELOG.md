@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.4.3] - 2026-07-01
+- Publish Claude Code migration (retarget from Gemini CLI distribution)
+
+
 ## [1.4.2] - 2026-04-04
 - Route frontend styling changes to the dedicated cross-framework frontend styling audit.
 

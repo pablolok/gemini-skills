@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.1.2] - 2026-07-01
+- Publish Claude Code migration (retarget from Gemini CLI distribution)
+
+
 ## [1.1.1] - 2026-03-23
 - Publish API pricing refresh support and Codex integration notes
 

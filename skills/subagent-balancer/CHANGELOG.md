@@ -1,5 +1,9 @@
 # Changelog
 
+## [1.6.3] - 2026-07-01
+- Publish Claude Code migration (retarget from Gemini CLI distribution)
+
+
 ## [1.6.2] - 2026-03-24
 - Refine haiku routing for bounded trivial implementation work and fix decimal percentage parsing.
 
