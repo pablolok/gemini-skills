@@ -1,6 +1,6 @@
 ---
 name: conductor-workflow-optimization
-description: Detect and remediate Gemini Conductor workflow drift caused by stale tool names, invalid plan-mode transitions, unexpected tool calls, and CLI/workflow mismatches. Use when Gemini emits "unexpected tool call", references a missing tool such as `exit_plan_mode`, or when `conductor/workflow.md`, custom commands, or installed skills may be out of sync with the current CLI behavior.
+description: Detect and remediate Claude Code Conductor workflow drift caused by stale tool names, invalid plan-mode transitions, unexpected tool calls, and CLI/workflow mismatches. Use when Claude Code emits "unexpected tool call", references a missing tool such as `exit_plan_mode`, or when `conductor/workflow.md`, custom commands, or installed skills may be out of sync with the current CLI behavior.
 ---
 
 # Conductor Workflow Optimization
@@ -15,8 +15,8 @@ This skill supports two integration paths:
    - When installed through `install.py` or `/skill-manager:install`, the installer executes this skill's `post_install.py` hook after copying files.
    - The hook attempts to update `conductor/workflow.md` automatically.
 2. Manual or conversational integration.
-   - If the skill was copied manually, or the hook could not patch the workflow safely, update `conductor/workflow.md` yourself or ask Gemini to do it using this skill's rules.
-   - You may also run `python .gemini/skills/conductor-workflow-optimization/post_install.py .` manually from the project root.
+   - If the skill was copied manually, or the hook could not patch the workflow safely, update `conductor/workflow.md` yourself or ask Claude to do it using this skill's rules.
+   - You may also run `python .claude/skills/conductor-workflow-optimization/post_install.py .` manually from the project root.
 
 ## Core Workflow
 
@@ -24,13 +24,13 @@ This skill supports two integration paths:
    - Preserve the exact missing tool name, command, or error text.
    - Prefer absolute examples such as `exit_plan_mode` over paraphrases like "plan mode broke".
 2. Scan the project for stale workflow references before editing.
-   - Run `python .gemini/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root .`
-   - If the failure names a specific missing tool, run `python .gemini/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root . --forbid <tool-name>`
+   - Run `python .claude/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root .`
+   - If the failure names a specific missing tool, run `python .claude/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root . --forbid <tool-name>`
 3. Classify the workflow failure.
    - Distinguish between tool mismatch, shell portability, prompt design, missing workflow context, and command-policy issues.
    - Treat shell alias failures and shell-specific syntax drift as workflow problems when they were induced by the workflow instructions.
 4. Verify live CLI behavior before patching prompts or policies.
-   - Consult Gemini CLI help and command output in the current environment.
+   - Consult Claude Code CLI help and command output in the current environment.
    - Treat the live CLI as the source of truth when it conflicts with workflow text.
 5. Propose the workflow repair before applying it.
    - Summarize the failure, the root cause, and the narrowest workflow change that would prevent recurrence.
@@ -66,9 +66,9 @@ Default checks:
 Useful invocations:
 
 ```bash
-python .gemini/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root .
-python .gemini/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root . --forbid exit_plan_mode
-python .gemini/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root . --json
+python .claude/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root .
+python .claude/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root . --forbid exit_plan_mode
+python .claude/skills/conductor-workflow-optimization/scripts/workflow_guard.py --root . --json
 ```
 
 ## Repair Rules
@@ -76,7 +76,7 @@ python .gemini/skills/conductor-workflow-optimization/scripts/workflow_guard.py 
 - Never invent a replacement tool from memory when the CLI can be queried directly.
 - Prefer fixing the narrowest artifact that caused the bad call, then propagate the correction to mirrored docs if needed.
 - If the issue originated from a generated command or post-install hook, update the source skill and published copy so future installs inherit the fix.
-- If the workflow text says to "exit" plan mode, rewrite it in terms of the valid current actions instead of adding a generic exit abstraction.
+- If the workflow text says to "exit" plan mode, rewrite it in terms of the valid current actions (such as Claude Code's `ExitPlanMode` / `EnterPlanMode`) instead of adding a generic exit abstraction.
 - Prefer tri-state confirmation prompts over binary ones. For user confirmation, default to `yes`, `no`, or free-text feedback instead of yes/no-only wording.
 - Prefer shell-native commands and explicit file tools over shell aliases when workflow instructions may run under different shells. In PowerShell, avoid Unix-style multi-path `ls` patterns.
 - When the skill is used interactively, ask the user before applying workflow edits. Treat approval as mandatory for workflow changes.

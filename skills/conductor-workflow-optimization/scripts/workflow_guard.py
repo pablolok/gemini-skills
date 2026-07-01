@@ -12,7 +12,7 @@ from typing import Iterable, Sequence
 
 
 DEFAULT_FORBIDDEN_TOOLS = ("exit_plan_mode",)
-DEFAULT_TARGET_DIRS = ("conductor", "skills", ".gemini")
+DEFAULT_TARGET_DIRS = ("conductor", "skills", ".claude")
 DEFAULT_EXTENSIONS = {".md", ".toml", ".json", ".py", ".yaml", ".yml"}
 EXCLUDED_PATH_PARTS = ("conductor-workflow-optimization",)
 

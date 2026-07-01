@@ -1,4 +1,4 @@
-"""Choose the correct Gemini balancing skill for the current environment."""
+"""Choose the correct Claude balancing skill for the current environment."""
 
 from __future__ import annotations
 
@@ -8,21 +8,22 @@ import sys
 
 
 CLI_KEYWORDS = (
-    "gemini cli",
+    "claude code",
     "/stats model",
     "usage resets",
     "model usage",
     "quota",
-    "google account",
+    "anthropic account",
+    "subscription",
     "free tier",
 )
 
 API_KEYWORDS = (
-    "vertex ai",
-    "google ai developer api",
-    "gemini api",
-    "gemini_api_key",
-    "google_api_key",
+    "amazon bedrock",
+    "google vertex ai",
+    "anthropic api",
+    "claude api",
+    "anthropic_api_key",
     "api key",
     "token pricing",
     "per 1m tokens",

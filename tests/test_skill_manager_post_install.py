@@ -1,4 +1,4 @@
-"""Tests for skill-manager Gemini integration setup."""
+"""Tests for skill-manager Claude Code integration setup."""
 
 import io
 import importlib.util
@@ -31,33 +31,29 @@ SESSION_START_HOOK = _load_module(
 class TestSkillManagerPostInstall(unittest.TestCase):
     def test_integrate_writes_settings_command_and_runtime_config(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            fake_home = os.path.join(temp_dir, "fake-home")
             with patch.dict(
                 os.environ,
                 {
-                    "GEMINI_SKILLS_REPO_ROOT": os.path.abspath("."),
-                    "GEMINI_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
-                    "USERPROFILE": fake_home,
+                    "CLAUDE_SKILLS_REPO_ROOT": os.path.abspath("."),
+                    "CLAUDE_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
                 },
                 clear=False,
             ):
                 POST_INSTALL.integrate(temp_dir)
 
-            settings_path = os.path.join(temp_dir, ".gemini", "settings.json")
-            command_dir = os.path.join(temp_dir, ".gemini", "commands", "skill-manager")
-            config_path = os.path.join(temp_dir, ".agents", "skills", "skill-manager", "runtime_config.json")
-            policy_path = os.path.join(fake_home, ".gemini", "policies", "skill-manager-plan-mode.toml")
+            settings_path = os.path.join(temp_dir, ".claude", "settings.json")
+            command_dir = os.path.join(temp_dir, ".claude", "commands", "skill-manager")
+            config_path = os.path.join(temp_dir, ".claude", "skills", "skill-manager", "runtime_config.json")
             gitignore_path = os.path.join(temp_dir, ".gitignore")
 
             self.assertTrue(os.path.exists(settings_path))
-            self.assertTrue(os.path.exists(os.path.join(command_dir, "list.toml")))
-            self.assertTrue(os.path.exists(os.path.join(command_dir, "install.toml")))
-            self.assertTrue(os.path.exists(os.path.join(command_dir, "update.toml")))
-            self.assertTrue(os.path.exists(os.path.join(command_dir, "uninstall.toml")))
+            self.assertTrue(os.path.exists(os.path.join(command_dir, "list.md")))
+            self.assertTrue(os.path.exists(os.path.join(command_dir, "install.md")))
+            self.assertTrue(os.path.exists(os.path.join(command_dir, "update.md")))
+            self.assertTrue(os.path.exists(os.path.join(command_dir, "uninstall.md")))
             self.assertTrue(os.path.exists(config_path))
-            self.assertTrue(os.path.exists(policy_path))
             self.assertTrue(os.path.exists(gitignore_path))
-            self.assertTrue(os.path.exists(os.path.join(temp_dir, ".gemini", "skill-manager-manifest.json")))
+            self.assertTrue(os.path.exists(os.path.join(temp_dir, ".claude", "skill-manager-manifest.json")))
 
             with open(settings_path, "r", encoding="utf-8") as handle:
                 settings = json.load(handle)
@@ -65,54 +61,54 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             hooks = settings["hooks"]["SessionStart"]
             self.assertEqual(len(hooks), 1)
             self.assertEqual(hooks[0]["matcher"], "startup")
-            self.assertEqual(hooks[0]["hooks"][0]["name"], POST_INSTALL.HOOK_NAME)
-            self.assertNotIn("tools", settings)
+            self.assertEqual(hooks[0]["hooks"][0]["command"], POST_INSTALL.HOOK_COMMAND)
+            self.assertIn("python3 .claude/skills/skill-manager/scripts/session_start_hook.py", POST_INSTALL.HOOK_COMMAND)
 
-            with open(os.path.join(command_dir, "update.toml"), "r", encoding="utf-8") as handle:
+            with open(os.path.join(command_dir, "update.md"), "r", encoding="utf-8") as handle:
                 update_command = handle.read()
-            with open(os.path.join(command_dir, "list.toml"), "r", encoding="utf-8") as handle:
+            with open(os.path.join(command_dir, "list.md"), "r", encoding="utf-8") as handle:
                 list_command = handle.read()
-            with open(os.path.join(command_dir, "install.toml"), "r", encoding="utf-8") as handle:
+            with open(os.path.join(command_dir, "install.md"), "r", encoding="utf-8") as handle:
                 install_command = handle.read()
 
-            self.assertIn("Update installed Gemini skills", update_command)
-            self.assertIn("python .agents/skills/skill-manager/scripts/update_skills.py", update_command)
-            self.assertIn("python .agents/skills/skill-manager/scripts/list_skills.py", list_command)
-            self.assertIn("--with-claude", install_command)
-            self.assertIn(".claude/skills/", install_command)
+            self.assertIn("Update installed Claude skills", update_command)
+            self.assertIn("python3 .claude/skills/skill-manager/scripts/update_skills.py", update_command)
+            self.assertIn("python3 .claude/skills/skill-manager/scripts/list_skills.py", list_command)
+            self.assertIn("$ARGUMENTS", install_command)
+            self.assertIn("python3 .claude/skills/skill-manager/scripts/install_skills.py", install_command)
+            self.assertNotIn("--with-claude", install_command)
+            self.assertNotIn("--with-codex", install_command)
 
             with open(config_path, "r", encoding="utf-8") as handle:
                 config = json.load(handle)
-            with open(policy_path, "r", encoding="utf-8") as handle:
-                policy = handle.read()
             with open(gitignore_path, "r", encoding="utf-8") as handle:
                 gitignore = handle.read()
 
-            self.assertTrue(config["source_repo_root"].endswith("gemini-skills"))
-            self.assertTrue(config["published_dir"].endswith(os.path.join("gemini-skills", "published")))
-            self.assertIn('modes = ["plan"]', policy)
-            self.assertIn("list_skills.py", policy)
-            self.assertIn(".agents/skills/skill-manager/", gitignore)
-            self.assertIn(".gemini/commands/", gitignore)
-            self.assertIn(".gemini/settings.json", gitignore)
-            self.assertIn(".gemini/skill-manager-manifest.json", gitignore)
+            # Name-agnostic: don't couple to the repo folder name, just the structure.
+            self.assertTrue(os.path.isabs(config["source_repo_root"]))
+            self.assertEqual(
+                config["published_dir"],
+                os.path.join(config["source_repo_root"], "published"),
+            )
+            self.assertIn(".claude/skills/skill-manager/", gitignore)
+            self.assertIn(".claude/commands/skill-manager/", gitignore)
+            self.assertIn(".claude/settings.json", gitignore)
+            self.assertIn(".claude/skill-manager-manifest.json", gitignore)
 
     def test_integrate_is_idempotent_for_session_start_hook(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            fake_home = os.path.join(temp_dir, "fake-home")
             with patch.dict(
                 os.environ,
                 {
-                    "GEMINI_SKILLS_REPO_ROOT": os.path.abspath("."),
-                    "GEMINI_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
-                    "USERPROFILE": fake_home,
+                    "CLAUDE_SKILLS_REPO_ROOT": os.path.abspath("."),
+                    "CLAUDE_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
                 },
                 clear=False,
             ):
                 POST_INSTALL.integrate(temp_dir)
                 POST_INSTALL.integrate(temp_dir)
 
-            settings_path = os.path.join(temp_dir, ".gemini", "settings.json")
+            settings_path = os.path.join(temp_dir, ".claude", "settings.json")
             with open(settings_path, "r", encoding="utf-8") as handle:
                 settings = json.load(handle)
             with open(os.path.join(temp_dir, ".gitignore"), "r", encoding="utf-8") as handle:
@@ -121,7 +117,6 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             hooks = settings["hooks"]["SessionStart"]
             self.assertEqual(len(hooks), 1)
             self.assertEqual(len(hooks[0]["hooks"]), 1)
-            self.assertNotIn("tools", settings)
             self.assertEqual(gitignore.count(POST_INSTALL.GITIGNORE_MARKER_START), 1)
 
     def test_integrate_preserves_existing_gitignore_outside_managed_block(self) -> None:
@@ -130,13 +125,11 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             with open(gitignore_path, "w", encoding="utf-8") as handle:
                 handle.write("node_modules/\n\n# custom\ncustom-file.txt\n")
 
-            fake_home = os.path.join(temp_dir, "fake-home")
             with patch.dict(
                 os.environ,
                 {
-                    "GEMINI_SKILLS_REPO_ROOT": os.path.abspath("."),
-                    "GEMINI_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
-                    "USERPROFILE": fake_home,
+                    "CLAUDE_SKILLS_REPO_ROOT": os.path.abspath("."),
+                    "CLAUDE_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
                 },
                 clear=False,
             ):
@@ -147,25 +140,23 @@ class TestSkillManagerPostInstall(unittest.TestCase):
 
             self.assertIn("node_modules/", gitignore)
             self.assertIn("custom-file.txt", gitignore)
-            self.assertIn(".agents/skills/skill-manager/", gitignore)
-            self.assertIn(".gemini/commands/", gitignore)
-            self.assertIn(".gemini/settings.json", gitignore)
-            self.assertIn(".gemini/skill-manager-manifest.json", gitignore)
+            self.assertIn(".claude/skills/skill-manager/", gitignore)
+            self.assertIn(".claude/commands/skill-manager/", gitignore)
+            self.assertIn(".claude/settings.json", gitignore)
+            self.assertIn(".claude/skill-manager-manifest.json", gitignore)
 
-    def test_integrate_preserves_existing_tool_configuration(self) -> None:
+    def test_integrate_preserves_existing_settings(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            settings_path = os.path.join(temp_dir, ".gemini", "settings.json")
+            settings_path = os.path.join(temp_dir, ".claude", "settings.json")
             os.makedirs(os.path.dirname(settings_path), exist_ok=True)
             with open(settings_path, "w", encoding="utf-8") as handle:
-                json.dump({"tools": {"core": ["ask_user", "run_shell_command"]}}, handle)
+                json.dump({"permissions": {"allow": ["Bash(python3:*)"]}}, handle)
 
-            fake_home = os.path.join(temp_dir, "fake-home")
             with patch.dict(
                 os.environ,
                 {
-                    "GEMINI_SKILLS_REPO_ROOT": os.path.abspath("."),
-                    "GEMINI_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
-                    "USERPROFILE": fake_home,
+                    "CLAUDE_SKILLS_REPO_ROOT": os.path.abspath("."),
+                    "CLAUDE_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
                 },
                 clear=False,
             ):
@@ -174,35 +165,24 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             with open(settings_path, "r", encoding="utf-8") as handle:
                 settings = json.load(handle)
 
-            self.assertEqual(settings["tools"]["core"], ["ask_user", "run_shell_command"])
-            self.assertIn("run_shell_command", settings["tools"]["core"])
-            self.assertNotIn("run_shell_command(python)", settings["tools"]["core"])
+            self.assertEqual(settings["permissions"]["allow"], ["Bash(python3:*)"])
+            self.assertIn("SessionStart", settings["hooks"])
 
-    def test_integrate_prunes_ineligible_managed_claude_skills(self) -> None:
+    def test_integrate_prunes_managed_skills_without_a_directory(self) -> None:
         with tempfile.TemporaryDirectory() as temp_dir:
-            os.makedirs(os.path.join(temp_dir, ".gemini", "skills", "subagent-balancer"))
-            os.makedirs(os.path.join(temp_dir, ".claude", "skills", "subagent-balancer"))
-            manifest_path = os.path.join(temp_dir, ".gemini", "skill-manager-manifest.json")
+            # 'present' has a directory; 'ghost' does not and should be pruned.
+            os.makedirs(os.path.join(temp_dir, ".claude", "skills", "present"))
+            manifest_path = os.path.join(temp_dir, ".claude", "skill-manager-manifest.json")
             os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
             with open(manifest_path, "w", encoding="utf-8") as handle:
-                json.dump(
-                    {
-                        "gemini": ["subagent-balancer"],
-                        "codex": [],
-                        "claude": ["subagent-balancer"],
-                    },
-                    handle,
-                    indent=2,
-                )
+                json.dump({"claude": ["present", "ghost"]}, handle, indent=2)
                 handle.write("\n")
 
-            fake_home = os.path.join(temp_dir, "fake-home")
             with patch.dict(
                 os.environ,
                 {
-                    "GEMINI_SKILLS_REPO_ROOT": os.path.abspath("."),
-                    "GEMINI_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
-                    "USERPROFILE": fake_home,
+                    "CLAUDE_SKILLS_REPO_ROOT": os.path.abspath("."),
+                    "CLAUDE_SKILLS_PUBLISHED_DIR": os.path.abspath("published"),
                 },
                 clear=False,
             ):
@@ -213,10 +193,12 @@ class TestSkillManagerPostInstall(unittest.TestCase):
             with open(manifest_path, "r", encoding="utf-8") as handle:
                 manifest = json.load(handle)
 
-            self.assertIn(".gemini/skills/subagent-balancer/", gitignore)
-            self.assertNotIn(".claude/skills/subagent-balancer/", gitignore)
-            self.assertEqual(manifest["claude"], [])
-            self.assertFalse(os.path.exists(os.path.join(temp_dir, ".claude", "skills", "subagent-balancer")))
+            self.assertIn(".claude/skills/present/", gitignore)
+            self.assertNotIn(".claude/skills/ghost/", gitignore)
+            self.assertIn("present", manifest["claude"])
+            self.assertNotIn("ghost", manifest["claude"])
+            # skill-manager registers itself during integrate.
+            self.assertIn("skill-manager", manifest["claude"])
 
 
 class TestSkillManagerSessionStartHook(unittest.TestCase):

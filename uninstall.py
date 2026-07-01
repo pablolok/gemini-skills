@@ -1,4 +1,4 @@
-"""Interactive Gemini Skill Uninstaller.
+"""Interactive Claude Skill Uninstaller.
 Allows users to uninstall skill-manager-managed skills from the current project.
 """
 
@@ -70,7 +70,7 @@ def main() -> None:
     """Run the CLI entry point for interactive uninstall selection."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger = logging.getLogger("skill_uninstaller")
-    logger.info("=== Gemini Skill Uninstaller ===")
+    logger.info("=== Claude Skill Uninstaller ===")
 
     target_project = resolve_target_project_path()
     if not os.access(target_project, os.W_OK):
@@ -139,7 +139,7 @@ def main() -> None:
     print(f"Removed {len(removed)} managed skill(s):")
     for skill_name in removed:
         print(f"- {skill_name}")
-    print("Run /skills reload and /commands reload if Gemini CLI is already open.")
+    print("Restart Claude Code or start a new session to refresh the skill list.")
 
 
 if __name__ == "__main__":

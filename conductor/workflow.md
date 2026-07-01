@@ -8,7 +8,7 @@
 4. **High Code Coverage:** Aim for >80% code coverage for all modules
 5. **User Experience First:** Every decision should prioritize user experience
 6. **Non-Interactive & CI-Aware:** Prefer non-interactive commands. Use `CI=true` for watch-mode tools (tests, linters) to ensure single execution.
-7. **Shell Portability Before Alias Convenience:** When Gemini invokes shell commands, prefer commands that match the active shell. In PowerShell, avoid Unix-style alias patterns like multi-path `ls`; use shell-native commands or one-path-per-command.
+7. **Shell Portability Before Alias Convenience:** When Claude invokes shell commands, prefer commands that match the active shell. In PowerShell, avoid Unix-style alias patterns like multi-path `ls`; use shell-native commands or one-path-per-command.
 
 ## Task Workflow
 
@@ -16,7 +16,7 @@ All tasks follow a strict lifecycle:
 
 ### Standard Task Workflow
 
-0. **Check for Skill Updates:** Periodically run `python check_updates.py` from the global `gemini-skills` repository to ensure all installed skills in your project are up to date.
+0. **Check for Skill Updates:** Periodically run `python check_updates.py` from the global `claude-skills` repository to ensure all installed skills in your project are up to date.
 
 1. **Select Task:** Choose the next available task from `plan.md` in sequential order
 
@@ -97,7 +97,7 @@ All tasks follow a strict lifecycle:
         -   Execute the announced command.
     -   **Step 3.2: Compliance Audit Orchestration:**
         -   After automated tests pass, you **must** apply the `subagent-balancer` policy whenever an audit may delegate review work.
-        -   If the user explicitly selected a model tier, that choice is binding. Do not silently downgrade from Pro to Flash or from a non-preview choice to a preview model.
+        -   If the user explicitly selected a model tier, that choice is binding. Do not silently downgrade from Opus to Sonnet (or Haiku) or from a non-preview choice to a preview model.
         -   Then invoke the `compliance-audit-orchestrator` skill. It must run `compliance-audit-verification-gates` first for code changes, then any relevant specialized audits based on the files modified in this phase.
         -   Required automated verification must be green before manual verification is proposed. If the changed stack has a build, compile, bundle, or packaging gate, that gate must succeed without warnings unless the repository explicitly documents an allowed warning exception.
         -   Follow the remediation steps within the orchestrator if any violations are found.
@@ -105,7 +105,7 @@ All tasks follow a strict lifecycle:
         -   You **must** invoke the `review-optimization` skill to analyze the phase's execution path, audit skill efficiency, and receive workflow optimization advice.
         -   Follow the interactive recommendations provided by the skill to refine the workflow or update existing skills.
     -   **Step 3.4: Workflow Drift Audit:**
-        -   If Gemini emits an "unexpected tool call" error, references a missing tool, or the CLI help contradicts the workflow instructions, you **must** invoke the `conductor-workflow-optimization` skill before retrying.
+        -   If Claude emits an "unexpected tool call" error, references a missing tool, or the CLI help contradicts the workflow instructions, you **must** invoke the `conductor-workflow-optimization` skill before retrying.
         -   Use the skill to scan `conductor/workflow.md`, installed skills, policies, and generated commands for stale tool references and patch the narrowest broken workflow artifact first.
     -   **Error Handling:** If tests fail, verification-gate or specialized compliance audits report persistent violations, or the optimization review identifies critical workflow drift, you **must** inform the user and begin debugging. You may attempt to propose a fix a **maximum of two times**. If the failure persists after your second proposed fix, you **must stop**, report the persistent failure, and ask the user for guidance.
 
@@ -135,7 +135,7 @@ All tasks follow a strict lifecycle:
         ```
 
 5.  **Await Explicit User Feedback:**
-    -   After presenting the detailed plan, ask the user for confirmation using the `ask_user` tool:
+    -   After presenting the detailed plan, ask the user for confirmation using the AskUserQuestion tool:
         - **header:** "Verify"
         - **question:** "Does this meet your expectations? Reply with `yes` to confirm, `no` to reject, or provide free-text feedback."
         - **type:** "text"
@@ -180,7 +180,7 @@ All tasks follow a strict lifecycle:
 
 5.  **Commit Track Completion:** Stage the **Tracks Registry** and commit with the message `chore(conductor): Mark track '<track_description>' as complete`.
 
-6.  **Cleanup Track:** Use the `ask_user` tool to offer the user to "Archive", "Delete", or "Skip" the track folder, following the "TRACK CLEANUP" protocol in the system prompt.
+6.  **Cleanup Track:** Use the AskUserQuestion tool to offer the user to "Archive", "Delete", or "Skip" the track folder, following the "TRACK CLEANUP" protocol in the system prompt.
 
 ### Quality Gates
 

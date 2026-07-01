@@ -134,8 +134,8 @@ class TestSkillInstaller(unittest.TestCase):
         mock_exists.side_effect = exists_side_effect
         
         installer.install_skill(skill_path, target_project)
-        
-        expected_target = os.path.join(target_project, ".agents", "skills", "review-optimization")
+
+        expected_target = os.path.join(target_project, ".claude", "skills", "review-optimization")
         mock_copytree.assert_called_once_with(
             os.path.abspath(os.path.join(self.published_dir, skill_path)),
             os.path.abspath(expected_target),
@@ -159,7 +159,7 @@ class TestSkillInstaller(unittest.TestCase):
         def side_effect(path):
             if "post_install.py" in path:
                 return True
-            if ".gemini" in path and "skills" in path:
+            if ".claude" in path and "skills" in path:
                 # This covers target_path check
                 return False
             return True
@@ -194,32 +194,12 @@ class TestSkillInstaller(unittest.TestCase):
         self.assertIsNotNone(metadata)
         self.assertEqual(metadata["name"], "review-optimization")
 
-    def test_supports_claude_reference_for_skill_name(self) -> None:
-        """Verify Claude reference skills can be generated for selected skills."""
+    def test_get_skill_config_returns_category(self) -> None:
+        """Verify the install config exposes a skill's category."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
-        self.assertTrue(installer.supports_claude_reference("review-optimization"))
-        self.assertFalse(installer.supports_claude_reference(""))
-
-    def test_supports_agents_bridge_for_skill_name(self) -> None:
-        """Verify agents bridge skills can be generated for selected skills."""
-        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
-
-        self.assertTrue(installer.supports_agents_bridge("review-optimization"))
-        self.assertFalse(installer.supports_agents_bridge(""))
-
-    def test_install_config_marks_balancer_family_as_gemini_only(self) -> None:
-        """Verify Gemini-only skills are not treated as agents/Claude companion candidates."""
-        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
-
-        self.assertTrue(installer.supports_agents_bridge("compliance-audit-verification-gates"))
-        self.assertTrue(installer.supports_claude_reference("compliance-audit-verification-gates"))
-        self.assertFalse(installer.supports_agents_bridge("subagent-balancer"))
-        self.assertFalse(installer.supports_claude_reference("subagent-balancer"))
-        self.assertFalse(installer.supports_agents_bridge("subagent-balancer-api"))
-        self.assertFalse(installer.supports_claude_reference("subagent-balancer-api"))
-        self.assertFalse(installer.supports_agents_bridge("subagent-balancer-orchestrator"))
-        self.assertFalse(installer.supports_claude_reference("subagent-balancer-orchestrator"))
+        config = installer.get_skill_config("review-optimization")
+        self.assertEqual(config.get("category"), "audit")
 
     def test_supports_ansi_respects_no_color(self) -> None:
         """Verify NO_COLOR disables ANSI output."""
@@ -279,80 +259,45 @@ class TestSkillInstaller(unittest.TestCase):
 
             self.assertIsNone(installer._read_metadata(metadata_path))
 
-    def test_claude_reference_content_uses_metadata_description(self) -> None:
-        """Verify generated Claude reference content reuses installed skill metadata when available."""
+    def test_all_available_skills_install_to_claude_dir(self) -> None:
+        """Verify every published skill installs as a real skill under .claude/skills/."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+        available = installer.get_available_skills()
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            # demo-skill is not in install.config.json so defaults to shared → .agents/skills/
-            metadata_dir = os.path.join(temp_dir, ".agents", "skills", "demo-skill")
-            os.makedirs(metadata_dir, exist_ok=True)
-            with open(os.path.join(metadata_dir, "metadata.json"), "w", encoding="utf-8") as handle:
-                json.dump({"description": "Installed demo skill."}, handle)
-
-            claude_content = installer.claude_reference_skill_content("demo-skill", temp_dir)
-
-            self.assertIn("Installed demo skill.", claude_content)
-            self.assertIn(".agents/skills/demo-skill/SKILL.md", claude_content)
-
-    def test_shared_skills_install_to_agents_dir_and_generate_claude_references(self) -> None:
-        """Verify every shared skill installs to .agents/skills/ and can generate Claude references."""
-        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
-
-        with open("install.config.json", "r", encoding="utf-8") as handle:
-            install_config = json.load(handle)
-
-        shared_skills = {
-            skill_name: skill_config
-            for skill_name, skill_config in install_config["skills"].items()
-            if skill_config.get("distribution", install_config["defaults"]["distribution"]) == "shared"
-        }
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            for skill_name, skill_config in shared_skills.items():
-                category = skill_config["category"]
-                rel_path = f"{category}/{skill_name}"
-                self.assertTrue(
-                    installer.install_skill(rel_path, temp_dir),
-                    msg=f"Failed to install skill {skill_name}",
-                )
-                self.assertTrue(
-                    os.path.isfile(
-                        os.path.join(temp_dir, ".agents", "skills", skill_name, "SKILL.md")
-                    ),
-                    msg=f"Skill {skill_name} not found in .agents/skills/",
-                )
-
-                if installer.supports_claude_reference(skill_name):
+            installed_names = []
+            for category, skills in available.items():
+                for skill_name in skills:
+                    rel_path = f"{category}/{skill_name}"
                     self.assertTrue(
-                        installer.install_claude_reference(skill_name, temp_dir),
-                        msg=f"Failed to generate Claude reference for {skill_name}",
+                        installer.install_skill(rel_path, temp_dir),
+                        msg=f"Failed to install skill {skill_name}",
                     )
                     self.assertTrue(
                         os.path.isfile(
                             os.path.join(temp_dir, ".claude", "skills", skill_name, "SKILL.md")
-                        )
+                        ),
+                        msg=f"Skill {skill_name} not found in .claude/skills/",
                     )
+                    installed_names.append(skill_name)
 
             gitignore_path = os.path.join(temp_dir, ".gitignore")
             with open(gitignore_path, "r", encoding="utf-8") as handle:
                 gitignore = handle.read()
 
-            for skill_name in shared_skills:
-                self.assertIn(f".agents/skills/{skill_name}/", gitignore)
+            for skill_name in installed_names:
+                self.assertIn(f".claude/skills/{skill_name}/", gitignore)
+                self.assertNotIn(f".agents/skills/{skill_name}/", gitignore)
                 self.assertNotIn(f".gemini/skills/{skill_name}/", gitignore)
-                if installer.supports_claude_reference(skill_name):
-                    self.assertIn(f".claude/skills/{skill_name}/", gitignore)
 
     def test_check_for_updates_reports_newer_published_versions(self) -> None:
         """Verify update detection compares installed and published metadata."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            # review-optimization is a shared skill, so it lives in .agents/skills/
             installed_dir = os.path.join(
                 temp_dir,
-                ".agents",
+                ".claude",
                 "skills",
                 "review-optimization",
             )
@@ -370,19 +315,11 @@ class TestSkillInstaller(unittest.TestCase):
             self.assertEqual(updates[0]["name"], "review-optimization")
             self.assertEqual(updates[0]["installed"], "0.9.0")
 
-    def test_install_claude_reference_returns_false_when_skill_missing(self) -> None:
-        """Verify Claude reference install short-circuits when the Gemini skill is missing."""
+    def test_migrate_legacy_skill_locations_moves_gemini_skills_to_claude(self) -> None:
+        """Verify skills in .gemini/skills/ are migrated to .claude/skills/."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            self.assertFalse(installer.install_claude_reference("review-optimization", temp_dir))
-
-    def test_migrate_legacy_skill_locations_moves_gemini_shared_to_agents(self) -> None:
-        """Verify shared skills in .gemini/skills/ are migrated to .agents/skills/."""
-        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
-
-        with tempfile.TemporaryDirectory() as temp_dir:
-            # Place a shared skill under the old .gemini/skills/ location
             old_dir = os.path.join(temp_dir, ".gemini", "skills", "review-optimization")
             os.makedirs(old_dir)
             with open(os.path.join(old_dir, "metadata.json"), "w", encoding="utf-8") as fh:
@@ -390,70 +327,127 @@ class TestSkillInstaller(unittest.TestCase):
 
             installer.migrate_legacy_skill_locations(temp_dir)
 
-            # Skill must land in .agents/skills/
-            new_dir = os.path.join(temp_dir, ".agents", "skills", "review-optimization")
+            new_dir = os.path.join(temp_dir, ".claude", "skills", "review-optimization")
             self.assertTrue(os.path.isdir(new_dir))
             self.assertFalse(os.path.isdir(old_dir))
 
-    def test_migrate_legacy_skill_locations_moves_codex_skills_to_agents(self) -> None:
-        """Verify skills in .codex/skills/ are migrated to .agents/skills/."""
+    def test_migrate_legacy_skill_locations_moves_agents_and_codex_skills_to_claude(self) -> None:
+        """Verify skills in .agents/skills/ and .codex/skills/ are migrated to .claude/skills/."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            old_dir = os.path.join(temp_dir, ".codex", "skills", "review-optimization")
-            os.makedirs(old_dir)
-            with open(os.path.join(old_dir, "SKILL.md"), "w", encoding="utf-8") as fh:
-                fh.write("---\nname: review-optimization\n---\n")
+            agents_dir = os.path.join(temp_dir, ".agents", "skills", "alpha")
+            codex_dir = os.path.join(temp_dir, ".codex", "skills", "beta")
+            os.makedirs(agents_dir)
+            os.makedirs(codex_dir)
+            with open(os.path.join(agents_dir, "SKILL.md"), "w", encoding="utf-8") as fh:
+                fh.write("---\nname: alpha\n---\n")
+            with open(os.path.join(codex_dir, "SKILL.md"), "w", encoding="utf-8") as fh:
+                fh.write("---\nname: beta\n---\n")
 
             installer.migrate_legacy_skill_locations(temp_dir)
 
-            new_dir = os.path.join(temp_dir, ".agents", "skills", "review-optimization")
-            self.assertTrue(os.path.isdir(new_dir))
-            self.assertFalse(os.path.isdir(old_dir))
+            self.assertTrue(os.path.isdir(os.path.join(temp_dir, ".claude", "skills", "alpha")))
+            self.assertTrue(os.path.isdir(os.path.join(temp_dir, ".claude", "skills", "beta")))
+            self.assertFalse(os.path.isdir(agents_dir))
+            self.assertFalse(os.path.isdir(codex_dir))
 
-    def test_migrate_legacy_skill_locations_updates_manifest_kind(self) -> None:
-        """Verify manifest 'gemini' entries for shared skills become 'agents' after migration."""
+    def test_migrate_legacy_skill_locations_moves_manifest_and_settings(self) -> None:
+        """Verify the legacy manifest and settings hook migrate to .claude/."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            # Create old .gemini/skills/ dir for a shared skill
             old_dir = os.path.join(temp_dir, ".gemini", "skills", "review-optimization")
             os.makedirs(old_dir)
             with open(os.path.join(old_dir, "metadata.json"), "w", encoding="utf-8") as fh:
                 json.dump({"name": "review-optimization", "version": "1.0.0"}, fh)
 
-            # Write a manifest with a "gemini" entry for this shared skill
-            manifest_path = os.path.join(temp_dir, ".gemini", "skill-manager-manifest.json")
-            with open(manifest_path, "w", encoding="utf-8") as fh:
+            legacy_manifest = os.path.join(temp_dir, ".gemini", "skill-manager-manifest.json")
+            with open(legacy_manifest, "w", encoding="utf-8") as fh:
                 json.dump({"gemini": ["review-optimization"], "agents": [], "claude": []}, fh)
 
+            legacy_settings = os.path.join(temp_dir, ".gemini", "settings.json")
+            with open(legacy_settings, "w", encoding="utf-8") as fh:
+                json.dump(
+                    {
+                        "hooks": {
+                            "SessionStart": [
+                                {
+                                    "matcher": "startup",
+                                    "hooks": [
+                                        {
+                                            "type": "command",
+                                            "command": "python .gemini/skills/skill-manager/scripts/session_start_hook.py",
+                                        }
+                                    ],
+                                }
+                            ]
+                        }
+                    },
+                    fh,
+                )
+
+            os.makedirs(os.path.join(temp_dir, ".gemini", "commands", "skill-manager"))
+
             installer.migrate_legacy_skill_locations(temp_dir)
 
-            with open(manifest_path, "r", encoding="utf-8") as fh:
+            new_manifest = os.path.join(temp_dir, ".claude", "skill-manager-manifest.json")
+            self.assertTrue(os.path.exists(new_manifest))
+            self.assertFalse(os.path.exists(legacy_manifest))
+            with open(new_manifest, "r", encoding="utf-8") as fh:
                 manifest = json.load(fh)
+            self.assertIn("review-optimization", manifest.get("claude", []))
 
-            self.assertNotIn("review-optimization", manifest.get("gemini", []))
-            self.assertIn("review-optimization", manifest.get("agents", []))
+            new_settings = os.path.join(temp_dir, ".claude", "settings.json")
+            self.assertTrue(os.path.exists(new_settings))
+            with open(new_settings, "r", encoding="utf-8") as fh:
+                settings = json.load(fh)
+            hook_cmd = settings["hooks"]["SessionStart"][0]["hooks"][0]["command"]
+            self.assertIn(".claude/skills/skill-manager/scripts/session_start_hook.py", hook_cmd)
+            self.assertFalse(os.path.exists(legacy_settings))
+            self.assertFalse(os.path.isdir(os.path.join(temp_dir, ".gemini", "commands")))
 
-    def test_migrate_legacy_skill_locations_renames_invalid_claude_dir_and_fixes_name(self) -> None:
-        """Verify .claude/skills dirs with # are renamed and the name: frontmatter is updated."""
+    def test_migrate_legacy_skill_locations_is_idempotent_and_preserves_newer_claude(self) -> None:
+        """Verify migration does not clobber newer .claude/skills content and is idempotent."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            old_claude_dir = os.path.join(temp_dir, ".claude", "skills", "compliance-audit-c#")
-            os.makedirs(old_claude_dir)
-            skill_md_path = os.path.join(old_claude_dir, "SKILL.md")
-            with open(skill_md_path, "w", encoding="utf-8") as fh:
+            legacy_dir = os.path.join(temp_dir, ".gemini", "skills", "review-optimization")
+            os.makedirs(legacy_dir)
+            with open(os.path.join(legacy_dir, "marker.txt"), "w", encoding="utf-8") as fh:
+                fh.write("legacy")
+
+            claude_dir = os.path.join(temp_dir, ".claude", "skills", "review-optimization")
+            os.makedirs(claude_dir)
+            with open(os.path.join(claude_dir, "marker.txt"), "w", encoding="utf-8") as fh:
+                fh.write("newer")
+
+            installer.migrate_legacy_skill_locations(temp_dir)
+            # Newer .claude content is preserved; legacy copy is removed.
+            with open(os.path.join(claude_dir, "marker.txt"), "r", encoding="utf-8") as fh:
+                self.assertEqual(fh.read(), "newer")
+            self.assertFalse(os.path.isdir(legacy_dir))
+
+            # Second run performs no further changes.
+            self.assertFalse(installer.migrate_legacy_skill_locations(temp_dir))
+
+    def test_migrate_legacy_skill_locations_renames_sharp_skill_and_fixes_name(self) -> None:
+        """Verify legacy skills containing '#' migrate to a 'sharp' name and the SKILL.md name is fixed."""
+        installer = SkillInstaller(self.published_dir, self.mock_ask_user)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            legacy_dir = os.path.join(temp_dir, ".gemini", "skills", "compliance-audit-c#")
+            os.makedirs(legacy_dir)
+            with open(os.path.join(legacy_dir, "SKILL.md"), "w", encoding="utf-8") as fh:
                 fh.write("---\nname: compliance-audit-c#\ndescription: test\n---\nContent.\n")
 
             installer.migrate_legacy_skill_locations(temp_dir)
 
-            new_claude_dir = os.path.join(temp_dir, ".claude", "skills", "compliance-audit-csharp")
-            self.assertTrue(os.path.isdir(new_claude_dir))
-            self.assertFalse(os.path.isdir(old_claude_dir))
+            new_dir = os.path.join(temp_dir, ".claude", "skills", "compliance-audit-csharp")
+            self.assertTrue(os.path.isdir(new_dir))
+            self.assertFalse(os.path.isdir(legacy_dir))
 
-            new_skill_md = os.path.join(new_claude_dir, "SKILL.md")
-            with open(new_skill_md, "r", encoding="utf-8") as fh:
+            with open(os.path.join(new_dir, "SKILL.md"), "r", encoding="utf-8") as fh:
                 content = fh.read()
             self.assertIn("name: compliance-audit-csharp", content)
             self.assertNotIn("compliance-audit-c#", content)
@@ -469,7 +463,7 @@ class TestSkillInstaller(unittest.TestCase):
                 handle.write(
                     "node_modules/\n\n"
                     "# >>> skill-manager managed workspace files >>>\n"
-                    ".gemini/commands/\n"
+                    ".claude/commands/skill-manager/\n"
                     "# <<< skill-manager managed workspace files <<<\n\n"
                     ".env\n"
                 )
@@ -481,7 +475,7 @@ class TestSkillInstaller(unittest.TestCase):
 
         self.assertIn("node_modules/", gitignore)
         self.assertIn(".env", gitignore)
-        self.assertIn(".gemini/skill-manager-manifest.json", gitignore)
+        self.assertIn(".claude/skill-manager-manifest.json", gitignore)
         self.assertEqual(gitignore.count("# >>> skill-manager managed workspace files >>>"), 1)
 
     def test_ensure_managed_gitignore_entries_bootstraps_from_existing_managed_block(self) -> None:
@@ -491,16 +485,13 @@ class TestSkillInstaller(unittest.TestCase):
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            os.makedirs(os.path.join(temp_dir, ".gemini", "skills", "alpha"))
-            os.makedirs(os.path.join(temp_dir, ".agents", "skills", "beta"))
-            os.makedirs(os.path.join(temp_dir, ".claude", "skills", "gamma"))
-            os.makedirs(os.path.join(temp_dir, ".agents", "skills", "delta"))
+            os.makedirs(os.path.join(temp_dir, ".claude", "skills", "alpha"))
+            os.makedirs(os.path.join(temp_dir, ".claude", "skills", "beta"))
             with open(os.path.join(temp_dir, ".gitignore"), "w", encoding="utf-8") as handle:
                 handle.write(
                     "# >>> skill-manager managed workspace files >>>\n"
-                    ".gemini/skills/alpha/\n"
-                    ".agents/skills/beta/\n"
-                    ".agents/skills/delta/\n"
+                    ".claude/skills/alpha/\n"
+                    ".claude/skills/beta/\n"
                     "# <<< skill-manager managed workspace files <<<\n"
                 )
 
@@ -509,32 +500,19 @@ class TestSkillInstaller(unittest.TestCase):
             with open(os.path.join(temp_dir, ".gitignore"), "r", encoding="utf-8") as handle:
                 gitignore = handle.read()
 
-        self.assertIn(".gemini/skills/alpha/", gitignore)
-        self.assertIn(".agents/skills/beta/", gitignore)
-        self.assertNotIn(".claude/skills/gamma/", gitignore)
-        self.assertIn(".agents/skills/delta/", gitignore)
+        self.assertIn(".claude/skills/alpha/", gitignore)
+        self.assertIn(".claude/skills/beta/", gitignore)
 
-    def test_ensure_managed_gitignore_entries_prunes_ineligible_companion_skills(self) -> None:
-        """Verify stale agents/Claude entries are removed when install config no longer allows them."""
+    def test_ensure_managed_gitignore_entries_prunes_skills_without_a_directory(self) -> None:
+        """Verify manifest entries whose .claude/skills directory is gone are pruned."""
         installer = SkillInstaller(self.published_dir, self.mock_ask_user)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            os.makedirs(os.path.join(temp_dir, ".gemini", "skills", "subagent-balancer"))
-            os.makedirs(os.path.join(temp_dir, ".claude", "skills", "subagent-balancer"))
-            os.makedirs(os.path.join(temp_dir, ".agents", "skills", "subagent-balancer"))
-            manifest_path = os.path.join(temp_dir, ".gemini", "skill-manager-manifest.json")
+            os.makedirs(os.path.join(temp_dir, ".claude", "skills", "present"))
+            manifest_path = os.path.join(temp_dir, ".claude", "skill-manager-manifest.json")
             os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
             with open(manifest_path, "w", encoding="utf-8") as handle:
-                json.dump(
-                    {
-                        "gemini": ["subagent-balancer"],
-                        "codex": [],
-                        "claude": ["subagent-balancer"],
-                        "copilot": ["subagent-balancer"],
-                    },
-                    handle,
-                    indent=2,
-                )
+                json.dump({"claude": ["present", "ghost"]}, handle, indent=2)
                 handle.write("\n")
 
             installer.ensure_managed_gitignore_entries(temp_dir)
@@ -544,13 +522,9 @@ class TestSkillInstaller(unittest.TestCase):
             with open(manifest_path, "r", encoding="utf-8") as handle:
                 manifest = json.load(handle)
 
-            self.assertIn(".gemini/skills/subagent-balancer/", gitignore)
-            self.assertNotIn(".claude/skills/subagent-balancer/", gitignore)
-            self.assertNotIn(".agents/skills/subagent-balancer/", gitignore)
-            self.assertEqual(manifest["claude"], [])
-            self.assertEqual(manifest["agents"], [])
-            self.assertFalse(os.path.exists(os.path.join(temp_dir, ".claude", "skills", "subagent-balancer")))
-            self.assertFalse(os.path.exists(os.path.join(temp_dir, ".agents", "skills", "subagent-balancer")))
+            self.assertIn(".claude/skills/present/", gitignore)
+            self.assertNotIn(".claude/skills/ghost/", gitignore)
+            self.assertEqual(manifest["claude"], ["present"])
 
     @patch("subprocess.run")
     @patch("os.path.exists")
@@ -920,15 +894,14 @@ class TestSkillInstaller(unittest.TestCase):
         print_target_project_summary(
             "C:/repo/sample",
             skill_names=["skill-manager", "review-optimization"],
-            include_claude=True,
         )
 
         printed = "\n".join(str(call.args[0]) for call in mock_print.call_args_list if call.args)
         self.assertIn("Target project: C:/repo/sample", printed)
-        self.assertIn(os.path.join("C:/repo/sample", ".gemini", "skills"), printed)
-        self.assertIn(os.path.join("C:/repo/sample", ".agents", "skills"), printed)
         self.assertIn(os.path.join("C:/repo/sample", ".claude", "skills"), printed)
-        self.assertIn(os.path.join("C:/repo/sample", ".gemini", "commands", "skill-manager"), printed)
+        self.assertIn(os.path.join("C:/repo/sample", ".claude", "commands", "skill-manager"), printed)
+        self.assertIn(os.path.join("C:/repo/sample", ".claude", "settings.json"), printed)
+        self.assertIn(os.path.join("C:/repo/sample", ".claude", "skill-manager-manifest.json"), printed)
 
     @patch("install.SkillInstaller")
     @patch("install.SkillSelector")

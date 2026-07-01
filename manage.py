@@ -34,7 +34,7 @@ def main() -> None:
     """Launch the installer or uninstaller from one shared UI entry point."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger = logging.getLogger("skill_manager")
-    logger.info("=== Gemini Skill Manager ===")
+    logger.info("=== Claude Skill Manager ===")
 
     ask_user_fn = get_cli_ask_user()
     response = ask_user_fn(_mode_prompt())

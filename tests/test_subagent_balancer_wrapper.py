@@ -27,9 +27,9 @@ SPEC.loader.exec_module(MODULE)
 
 
 SNAPSHOT = """
-gemini-2.5-flash-lite      -    2%  9:10 PM (21h 30m)
-gemini-2.5-pro             -   11%  7:24 PM (19h 45m)
-gemini-3-flash-preview     - Limit 7:00 PM (19h 21m)
+claude-haiku-4-5           -    2%  9:10 PM (21h 30m)
+claude-opus-4-8            -   11%  7:24 PM (19h 45m)
+claude-sonnet-6-preview    - Limit 7:00 PM (19h 21m)
 """
 
 
@@ -54,7 +54,7 @@ class TestSubagentBalancerWrapper(unittest.TestCase):
             )
             result = MODULE.choose_route(args)
             self.assertEqual(result["snapshot_source"], "snapshot-file")
-            self.assertEqual(result["selected_model"], "gemini-2.5-flash-lite")
+            self.assertEqual(result["selected_model"], "claude-haiku-4-5")
 
     def test_uses_cache_when_live_command_fails(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -62,7 +62,7 @@ class TestSubagentBalancerWrapper(unittest.TestCase):
             cache_path.write_text(SNAPSHOT, encoding="utf-8")
             args = types.SimpleNamespace(
                 snapshot_file=None,
-                stats_command="gemini something",
+                stats_command="claude something",
                 cache_file=str(cache_path),
                 timeout_seconds=1,
                 task_type="implementation",
@@ -75,7 +75,7 @@ class TestSubagentBalancerWrapper(unittest.TestCase):
             with mock.patch.object(MODULE, "run_stats_command", side_effect=RuntimeError("boom")):
                 result = MODULE.choose_route(args)
             self.assertEqual(result["route"], "subagent")
-            self.assertEqual(result["selected_model"], "gemini-2.5-pro")
+            self.assertEqual(result["selected_model"], "claude-opus-4-8")
             self.assertIn("cache-fallback", result["snapshot_source"])
 
     def test_accepts_stdin_marker_for_snapshot(self) -> None:
@@ -95,13 +95,13 @@ class TestSubagentBalancerWrapper(unittest.TestCase):
             with mock.patch("sys.stdin.read", return_value=SNAPSHOT):
                 result = MODULE.choose_route(args)
             self.assertEqual(result["snapshot_source"], "stdin")
-            self.assertEqual(result["selected_model"], "gemini-2.5-flash-lite")
+            self.assertEqual(result["selected_model"], "claude-haiku-4-5")
 
     def test_returns_local_when_no_stats_source_is_available(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             args = types.SimpleNamespace(
                 snapshot_file=None,
-                stats_command="gemini something",
+                stats_command="claude something",
                 cache_file=str(pathlib.Path(tmp) / ".quota-cache.txt"),
                 timeout_seconds=1,
                 task_type="review",
@@ -141,11 +141,11 @@ class TestSubagentBalancerWrapper(unittest.TestCase):
     def test_extract_snapshot_text_accepts_json_wrapped_output(self) -> None:
         payload = {
             "stats": {
-                "models": "gemini-2.5-flash-lite - 2% 9:10 PM (21h 30m)\ngemini-2.5-pro - 11% 7:24 PM (19h 45m)"
+                "models": "claude-haiku-4-5 - 2% 9:10 PM (21h 30m)\nclaude-opus-4-8 - 11% 7:24 PM (19h 45m)"
             }
         }
         snapshot = MODULE.extract_snapshot_text(MODULE.json.dumps(payload))
-        self.assertIn("gemini-2.5-flash-lite", snapshot)
+        self.assertIn("claude-haiku-4-5", snapshot)
 
     def test_acquire_snapshot_tries_multiple_stats_commands(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

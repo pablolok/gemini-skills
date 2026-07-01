@@ -1,22 +1,22 @@
 ---
 name: subagent-balancer-orchestrator
-description: Use when work may delegate Gemini subagents and you first need to choose the correct balancing policy between Gemini CLI quota preservation and billed Gemini API cost preservation.
+description: Use when work may delegate Claude subagents and you first need to choose the correct balancing policy between Claude Code quota preservation and billed Anthropic API cost preservation.
 ---
 
 # Subagent Balancer Orchestrator
 
-Use this skill as the single entry point before any Gemini subagent delegation when the environment might be either:
+Use this skill as the single entry point before any Claude subagent delegation when the environment might be either:
 
-- Gemini CLI or Google-account Gemini with quota limits
-- Google AI Developer API or Vertex AI with billed token pricing
+- Claude Code or Claude subscription with quota limits
+- Anthropic API (Claude API) with billed token pricing
 
 ## Goal
 
 Choose the correct balancing skill once, then delegate policy decisions to that skill:
 
 1. Detect whether the environment is quota-driven or price-driven.
-2. Route to `subagent-balancer` for Gemini CLI and Google-account Gemini usage.
-3. Route to `subagent-balancer-api` for billed API and Vertex usage.
+2. Route to `subagent-balancer` for Claude Code and Claude subscription usage.
+3. Route to `subagent-balancer-api` for billed Anthropic API usage.
 4. If the environment is unclear, keep the work local or ask the user before delegating.
 
 ## Deterministic Routing
@@ -24,7 +24,7 @@ Choose the correct balancing skill once, then delegate policy decisions to that 
 Use the bundled router script when context needs to be inferred:
 
 ```bash
-python skills/subagent-balancer-orchestrator/scripts/select_balancer.py --mode auto --context "Gemini CLI /stats model quota is almost exhausted"
+python skills/subagent-balancer-orchestrator/scripts/select_balancer.py --mode auto --context "Claude Code /stats model quota is almost exhausted"
 ```
 
 Interpret the result as follows:
@@ -37,17 +37,18 @@ Interpret the result as follows:
 
 Use `subagent-balancer` when the context mentions:
 
-- Gemini CLI
+- Claude Code
 - `/stats model`
 - model usage bars or usage resets
-- Google-account or free-tier Gemini usage
+- Claude subscription or free-tier Claude usage
 - quota preservation as the main objective
 
 Use `subagent-balancer-api` when the context mentions:
 
-- Google AI Developer API
-- Vertex AI
-- API keys such as `GEMINI_API_KEY` or `GOOGLE_API_KEY`
+- Anthropic API or Claude API
+- an Anthropic account with billed token pricing
+- Amazon Bedrock or Google Vertex AI
+- API keys such as `ANTHROPIC_API_KEY`
 - billed token pricing
 - `batch` delivery
 - spend, price, or cost-per-token as the main objective

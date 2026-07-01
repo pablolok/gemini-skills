@@ -1,6 +1,6 @@
 # Conductor Compliance Audit Skill (Frontend Styling)
 
-A specialized Gemini skill for cross-framework frontend styling compliance reviews.
+A specialized Claude Code skill for cross-framework frontend styling compliance reviews.
 
 ## What It Checks
 

@@ -1,6 +1,6 @@
 # Conductor Compliance Audit Skill (Verification Gates)
 
-A generic Gemini skill that checks whether automated verification is complete before user manual verification.
+A generic Claude Code skill that checks whether automated verification is complete before user manual verification.
 
 ## What It Checks
 

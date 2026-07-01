@@ -19,7 +19,7 @@ def project_root() -> str:
 
 def runtime_config_path(root: str | None = None) -> str:
     base = root or project_root()
-    return os.path.join(base, ".gemini", "skills", "skill-manager", "runtime_config.json")
+    return os.path.join(base, ".claude", "skills", "skill-manager", "runtime_config.json")
 
 
 def load_runtime_config(root: str | None = None) -> Dict[str, Any]:
@@ -32,7 +32,7 @@ def load_runtime_config(root: str | None = None) -> Dict[str, Any]:
 
 
 def bundled_repo_root() -> str | None:
-    """Resolve the gemini-skills checkout that contains this runtime module, if any."""
+    """Resolve the skills repo checkout that contains this runtime module, if any."""
     current = os.path.abspath(os.path.dirname(__file__))
 
     while True:
@@ -48,7 +48,7 @@ def bundled_repo_root() -> str | None:
 
 
 def resolve_source_repo(root: str | None = None) -> str | None:
-    env_override = os.environ.get("GEMINI_SKILLS_REPO")
+    env_override = os.environ.get("CLAUDE_SKILLS_REPO")
     if env_override and os.path.exists(env_override):
         return os.path.abspath(env_override)
 
@@ -65,7 +65,7 @@ def resolve_source_repo(root: str | None = None) -> str | None:
 
 
 def resolve_published_dir(root: str | None = None) -> str | None:
-    env_published = os.environ.get("GEMINI_SKILLS_PUBLISHED_DIR")
+    env_published = os.environ.get("CLAUDE_SKILLS_PUBLISHED_DIR")
     if env_published and os.path.exists(env_published):
         return os.path.abspath(env_published)
 
@@ -99,7 +99,7 @@ def build_installer(
 ) -> Any:
     published_dir = resolve_published_dir(root)
     if not published_dir:
-        raise FileNotFoundError("Could not locate the gemini-skills published directory.")
+        raise FileNotFoundError("Could not locate the skills repo published directory.")
 
     installer_module = import_installer(os.path.dirname(published_dir))
     ask_user = ask_user_fn or (lambda *_args, **_kwargs: {"answers": {"0": []}})
@@ -127,7 +127,7 @@ def apply_updates(root: str | None = None) -> List[Dict[str, str]]:
 
 def format_updates(updates: List[Dict[str, str]]) -> str:
     if not updates:
-        return "All installed Gemini skills are up to date."
+        return "All installed Claude skills are up to date."
 
     lines = [f"Found {len(updates)} update(s):"]
     for update in updates:
@@ -148,7 +148,7 @@ def list_available_skill_paths(root: str | None = None) -> List[str]:
 
 def list_installed_skills(root: str | None = None) -> List[Dict[str, str]]:
     target_root = root or project_root()
-    target_skills_dir = os.path.join(target_root, ".gemini", "skills")
+    target_skills_dir = os.path.join(target_root, ".claude", "skills")
     if not os.path.exists(target_skills_dir):
         return []
 
@@ -176,8 +176,6 @@ def list_managed_installed_skills(root: str | None = None) -> List[Dict[str, str
 def install_named_skills(
     skill_paths: List[str],
     root: str | None = None,
-    include_codex_bridges: bool = False,
-    include_claude_references: bool = False,
 ) -> List[str]:
     target_root = root or project_root()
     installer = build_installer(target_root)
@@ -192,11 +190,6 @@ def install_named_skills(
             raise ValueError(f"Unknown skill path: {normalized}")
         if installer.install_skill(normalized, target_root):
             installed.append(normalized)
-            skill_name = os.path.basename(normalized)
-            if include_codex_bridges and installer.supports_codex_bridge(skill_name):
-                installer.install_codex_bridge(skill_name, target_root)
-            if include_claude_references and installer.supports_claude_reference(skill_name):
-                installer.install_claude_reference(skill_name, target_root)
     return installed
 
 

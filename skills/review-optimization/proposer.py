@@ -89,8 +89,8 @@ class SkillProposer:
                     ),
                     "type": "choice",
                     "options": [
-                        {"label": "Global", "description": "Save to the central gemini-skills repository."},
-                        {"label": "Local", "description": "Save to the current project's .gemini/skills/ directory."},
+                        {"label": "Global", "description": "Save to the central claude-skills repository."},
+                        {"label": "Local", "description": "Save to the current project's .claude/skills/ directory."},
                         {"label": "Custom Path", "description": "Prompt for a specific directory path."},
                         {"label": "Skip", "description": "Do not create a skill at this time."}
                     ]
@@ -110,7 +110,7 @@ class SkillProposer:
                         os.makedirs(custom_path, exist_ok=True)
                         self._logger.info(f"Created custom skill directory: {custom_path}")
                 elif selection == "Local":
-                    local_path = os.path.join(".gemini", "skills")
+                    local_path = os.path.join(".claude", "skills")
                     os.makedirs(local_path, exist_ok=True)
                     self._logger.info(f"Ensured local skill directory: {local_path}")
                 

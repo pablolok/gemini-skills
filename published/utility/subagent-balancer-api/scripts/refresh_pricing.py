@@ -1,4 +1,4 @@
-"""Refresh the API pricing catalog from the official Gemini pricing page."""
+"""Refresh the API pricing catalog from the official Claude (Anthropic) pricing page."""
 
 from __future__ import annotations
 
@@ -11,16 +11,14 @@ import re
 import urllib.request
 
 
-DEFAULT_PRICING_URL = "https://ai.google.dev/gemini-api/docs/pricing"
+DEFAULT_PRICING_URL = "https://platform.claude.com/docs/en/pricing"
 THIS_DIR = pathlib.Path(__file__).resolve().parent
 DEFAULT_OUTPUT_PATH = THIS_DIR.parent / "pricing_catalog.json"
 TRACKED_MODELS = (
-    "gemini-2.5-flash-lite",
-    "gemini-2.5-flash",
-    "gemini-2.5-pro",
-    "gemini-3-flash-preview",
-    "gemini-3.1-flash-lite-preview",
-    "gemini-3.1-pro-preview",
+    "claude-haiku-4-5",
+    "claude-sonnet-5",
+    "claude-opus-4-8",
+    "claude-fable-5",
 )
 
 
@@ -28,7 +26,7 @@ def fetch_pricing_page(pricing_url: str = DEFAULT_PRICING_URL) -> str:
     """Download the official pricing page HTML."""
     request = urllib.request.Request(
         pricing_url,
-        headers={"User-Agent": "gemini-skills-subagent-balancer-api/1.0"},
+        headers={"User-Agent": "claude-skills-subagent-balancer-api/1.0"},
     )
     with urllib.request.urlopen(request, timeout=30) as response:
         return response.read().decode("utf-8", errors="ignore")

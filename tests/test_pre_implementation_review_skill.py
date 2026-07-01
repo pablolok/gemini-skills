@@ -23,11 +23,11 @@ class TestPreImplementationReviewSkill(unittest.TestCase):
         self.assertIn("workflow", available)
         self.assertIn("pre-implementation-review", available["workflow"])
 
-    def test_codex_bridge_exists(self) -> None:
-        bridge_path = os.path.join(".agents", "skills", "pre-implementation-review", "SKILL.md")
-        self.assertTrue(os.path.exists(bridge_path))
+    def test_source_skill_exists(self) -> None:
+        skill_path = os.path.join("skills", "pre-implementation-review", "SKILL.md")
+        self.assertTrue(os.path.exists(skill_path))
 
-        with open(bridge_path, "r", encoding="utf-8") as handle:
+        with open(skill_path, "r", encoding="utf-8") as handle:
             content = handle.read()
 
         self.assertIn("pre-implementation-review", content)

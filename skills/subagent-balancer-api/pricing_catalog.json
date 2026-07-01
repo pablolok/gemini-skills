@@ -1,82 +1,46 @@
 {
-  "source_url": "https://ai.google.dev/gemini-api/docs/pricing",
-  "page_last_updated": "2026-03-18 UTC",
-  "fetched_at_utc": "2026-03-23T00:00:00Z",
+  "source_url": "https://platform.claude.com/docs/en/pricing",
+  "page_last_updated": "2026-06-24 UTC",
+  "fetched_at_utc": "2026-07-01T00:00:00Z",
   "models": {
-    "gemini-2.5-flash-lite": {
+    "claude-haiku-4-5": {
       "standard": {
-        "input": 0.1,
-        "output": 0.4
+        "input": 1.0,
+        "output": 5.0
       },
       "batch": {
-        "input": 0.05,
-        "output": 0.2
-      }
-    },
-    "gemini-2.5-flash": {
-      "standard": {
-        "input": 0.3,
+        "input": 0.5,
         "output": 2.5
-      },
-      "batch": {
-        "input": 0.15,
-        "output": 1.25
       }
     },
-    "gemini-2.5-pro": {
+    "claude-sonnet-5": {
       "standard": {
-        "input": 1.25,
-        "output": 10.0
-      },
-      "standard_long": {
-        "input": 2.5,
+        "input": 3.0,
         "output": 15.0
       },
       "batch": {
-        "input": 0.625,
-        "output": 5.0
-      },
-      "batch_long": {
-        "input": 1.25,
+        "input": 1.5,
         "output": 7.5
       }
     },
-    "gemini-3-flash-preview": {
+    "claude-opus-4-8": {
       "standard": {
-        "input": 0.5,
-        "output": 3.0
+        "input": 5.0,
+        "output": 25.0
       },
       "batch": {
-        "input": 0.25,
-        "output": 1.5
+        "input": 2.5,
+        "output": 12.5
       }
     },
-    "gemini-3.1-flash-lite-preview": {
+    "claude-fable-5": {
       "standard": {
-        "input": 0.25,
-        "output": 1.5
+        "input": 5.0,
+        "output": 25.0
       },
       "batch": {
-        "input": 0.125,
-        "output": 0.75
-      }
-    },
-    "gemini-3.1-pro-preview": {
-      "standard": {
-        "input": 2.0,
-        "output": 12.0
-      },
-      "standard_long": {
-        "input": 4.0,
-        "output": 18.0
-      },
-      "batch": {
-        "input": 1.0,
-        "output": 6.0
-      },
-      "batch_long": {
-        "input": 2.0,
-        "output": 9.0
+        "input": 2.5,
+        "output": 12.5
       }
     }
   }

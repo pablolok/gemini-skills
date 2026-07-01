@@ -1,7 +1,7 @@
-# Tech Stack: Gemini CLI Skills
+# Tech Stack: Claude Code Skills
 
 ## Platforms
-- **Gemini CLI**: The primary runtime environment for all custom skills.
+- **Claude Code**: The primary runtime environment for all custom skills.
 - **Conductor**: The project management and workflow orchestration layer.
 
 ## Languages & Formats

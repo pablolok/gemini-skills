@@ -1,4 +1,4 @@
-"""Select a Gemini subagent model from a quota snapshot."""
+"""Select a Claude Code subagent model from a usage snapshot."""
 
 from __future__ import annotations
 
@@ -10,63 +10,56 @@ from dataclasses import dataclass
 
 
 KNOWN_MODELS = {
-    "gemini-1.5-flash-8b": {"tier": "lite", "preview": False, "scarcity": 14},
-    "gemini-1.5-flash": {"tier": "flash", "preview": False, "scarcity": 8},
-    "gemini-1.5-pro": {"tier": "pro", "preview": False, "scarcity": -6},
-    "gemini-2.0-flash": {"tier": "flash", "preview": False, "scarcity": 6},
-    "gemini-2.0-flash-lite-preview-02-05": {"tier": "lite", "preview": True, "scarcity": 6},
-    "gemini-2.0-pro-exp-02-05": {"tier": "pro", "preview": True, "scarcity": -12},
-    "gemini-2.5-flash-lite": {"tier": "lite", "preview": False, "scarcity": 20},
-    "gemini-2.5-flash": {"tier": "flash", "preview": False, "scarcity": 12},
-    "gemini-2.5-pro": {"tier": "pro", "preview": False, "scarcity": -10},
-    "gemini-3-flash-preview": {"tier": "flash", "preview": True, "scarcity": 2},
-    "gemini-3.1-pro-preview": {"tier": "pro", "preview": True, "scarcity": -18},
+    "claude-haiku-4-5": {"tier": "haiku", "preview": False, "scarcity": 18},
+    "claude-sonnet-5": {"tier": "sonnet", "preview": False, "scarcity": 6},
+    "claude-opus-4-8": {"tier": "opus", "preview": False, "scarcity": -10},
+    "claude-fable-5": {"tier": "opus", "preview": False, "scarcity": -16},
 }
 
 TIER_WEIGHTS = {
-    "review": {"lite": 12, "flash": 5, "pro": 1},
-    "search": {"lite": 12, "flash": 5, "pro": 1},
-    "verification": {"lite": 10, "flash": 6, "pro": 2},
-    "implementation": {"lite": 1, "flash": 11, "pro": 4},
-    "refactor": {"lite": 0, "flash": 9, "pro": 6},
+    "review": {"haiku": 12, "sonnet": 5, "opus": 1},
+    "search": {"haiku": 12, "sonnet": 5, "opus": 1},
+    "verification": {"haiku": 10, "sonnet": 6, "opus": 2},
+    "implementation": {"haiku": 1, "sonnet": 11, "opus": 4},
+    "refactor": {"haiku": 0, "sonnet": 9, "opus": 6},
 }
 
 SCOPE_BONUS = {
-    "small": {"lite": 6, "flash": 2, "pro": -4},
-    "medium": {"lite": 0, "flash": 3, "pro": 0},
-    "large": {"lite": -6, "flash": 3, "pro": 2},
+    "small": {"haiku": 6, "sonnet": 2, "opus": -4},
+    "medium": {"haiku": 0, "sonnet": 3, "opus": 0},
+    "large": {"haiku": -6, "sonnet": 3, "opus": 2},
 }
 
-MODEL_RE = re.compile(r"(gemini-\S+)")
+MODEL_RE = re.compile(r"(claude-\S+)")
 PERCENT_RE = re.compile(r"(\d+(?:\.\d+)?)%")
 RESET_WINDOW_RE = re.compile(r"\((?:(?P<days>\d+)d)?\s*(?:(?P<hours>\d+)h)?\s*(?:(?P<minutes>\d+)m)?\)")
 
 TIER_ECONOMY_BONUS = {
-    "lite": 15,
-    "flash": 8,
-    "pro": -12,
+    "haiku": 15,
+    "sonnet": 8,
+    "opus": -12,
 }
 
 COMPLEXITY_ESCALATION = {
-    ("implementation", "large"): {"pro": 10},
-    ("refactor", "large"): {"pro": 18},
+    ("implementation", "large"): {"opus": 10},
+    ("refactor", "large"): {"opus": 18},
 }
 
 COMPLEXITY_WEIGHTS = {
-    "trivial": {"lite": 8, "flash": 3, "pro": -10},
-    "normal": {"lite": 1, "flash": 5, "pro": 0},
-    "hard": {"lite": -10, "flash": 2, "pro": 14},
-    "ambiguous": {"lite": -14, "flash": 0, "pro": 18},
+    "trivial": {"haiku": 8, "sonnet": 3, "opus": -10},
+    "normal": {"haiku": 1, "sonnet": 5, "opus": 0},
+    "hard": {"haiku": -10, "sonnet": 2, "opus": 14},
+    "ambiguous": {"haiku": -14, "sonnet": 0, "opus": 18},
 }
 
 COMPLEXITY_ESCALATION_BY_LEVEL = {
-    "hard": {"pro": 42},
-    "ambiguous": {"pro": 56},
+    "hard": {"opus": 42},
+    "ambiguous": {"opus": 56},
 }
 
 LOW_RISK_IMPLEMENTATION_BONUS = {
-    ("implementation", "small", "trivial"): {"lite": 28, "flash": 8, "pro": -18},
-    ("implementation", "small", "normal"): {"lite": 6, "flash": 4, "pro": -10},
+    ("implementation", "small", "trivial"): {"haiku": 28, "sonnet": 8, "opus": -18},
+    ("implementation", "small", "normal"): {"haiku": 6, "sonnet": 4, "opus": -10},
 }
 
 
@@ -86,12 +79,12 @@ class ModelQuota:
         if self.name in KNOWN_MODELS:
             return KNOWN_MODELS[self.name]["tier"]
         lower = self.name.lower()
-        if "pro" in lower:
-            return "pro"
-        if "lite" in lower or "8b" in lower:
-            return "lite"
-        if "flash" in lower:
-            return "flash"
+        if "opus" in lower or "fable" in lower:
+            return "opus"
+        if "haiku" in lower:
+            return "haiku"
+        if "sonnet" in lower:
+            return "sonnet"
         return "unknown"
 
     @property
@@ -108,23 +101,23 @@ class ModelQuota:
         if self.name in KNOWN_MODELS:
             return int(KNOWN_MODELS[self.name].get("scarcity", 0))
         if self.preview:
-            return -8 if self.tier == "flash" else -14
-        if self.tier == "lite":
+            return -8 if self.tier == "sonnet" else -14
+        if self.tier == "haiku":
             return 12
-        if self.tier == "flash":
+        if self.tier == "sonnet":
             return 6
-        if self.tier == "pro":
+        if self.tier == "opus":
             return -8
         return 0
 
 
 def parse_snapshot(text: str) -> list[ModelQuota]:
-    """Parse a Gemini quota table into model quota entries."""
+    """Parse a Claude Code usage table into model quota entries."""
     models: list[ModelQuota] = []
 
     for raw_line in text.splitlines():
         line = " ".join(raw_line.strip().split())
-        if "gemini-" not in line:
+        if "claude-" not in line:
             continue
 
         model_match = MODEL_RE.search(line)
@@ -214,7 +207,7 @@ def compute_usage_penalty(model: ModelQuota) -> int:
 
 
 def compute_low_risk_bonus(task_type: str, scope: str, complexity: str, tier: str) -> int:
-    """Apply a cautious lite bonus only for genuinely low-risk implementation work."""
+    """Apply a cautious haiku bonus only for genuinely low-risk implementation work."""
     return LOW_RISK_IMPLEMENTATION_BONUS.get((task_type, scope, complexity), {}).get(tier, 0)
 
 
@@ -233,7 +226,7 @@ def choose_model(
         return {
             "route": "local",
             "selected_model": None,
-            "reason": "No valid Gemini models were parsed from the quota snapshot.",
+            "reason": "No valid Claude models were parsed from the usage snapshot.",
             "ranked_candidates": [],
         }
 

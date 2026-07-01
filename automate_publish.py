@@ -1,4 +1,4 @@
-"""Automate the publishing of official Gemini skills."""
+"""Automate the publishing of official Claude skills."""
 
 from __future__ import annotations
 

@@ -17,7 +17,7 @@ This skill is read-only with respect to skill infrastructure and workflow defini
 
 ## Audit Objective
 
-This skill exists to prevent Gemini from sending work to user manual verification while required automated verification is still red or noisy.
+This skill exists to prevent Claude Code from sending work to user manual verification while required automated verification is still red or noisy.
 
 You must verify all of the following for the changed code paths:
 

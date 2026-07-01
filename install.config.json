@@ -1,80 +1,50 @@
 {
-  "schemaVersion": 1,
-  "defaults": {
-    "distribution": "shared",
-    "supports": {
-      "agents_bridge": true,
-      "claude_reference": true
-    }
-  },
+  "schemaVersion": 2,
   "skills": {
     "compliance-audit-angular": {
-      "category": "audit",
-      "distribution": "shared"
+      "category": "audit"
     },
     "compliance-audit-frontend-styling": {
-      "category": "audit",
-      "distribution": "shared"
+      "category": "audit"
     },
     "compliance-audit-avalonia": {
-      "category": "audit",
-      "distribution": "shared"
+      "category": "audit"
     },
-    "compliance-audit-c#": {
-      "category": "audit",
-      "distribution": "shared"
+    "compliance-audit-csharp": {
+      "category": "audit"
     },
     "compliance-audit-orchestrator": {
-      "category": "audit",
-      "distribution": "shared"
+      "category": "audit"
     },
     "compliance-audit-scripts": {
-      "category": "audit",
-      "distribution": "shared"
+      "category": "audit"
     },
     "compliance-audit-verification-gates": {
-      "category": "audit",
-      "distribution": "shared"
+      "category": "audit"
     },
     "review-optimization": {
-      "category": "audit",
-      "distribution": "shared"
+      "category": "audit"
     },
     "skill-manager": {
-      "category": "utility",
-      "distribution": "shared"
+      "category": "utility"
     },
     "subagent-balancer": {
-      "category": "utility",
-      "distribution": "gemini-only",
-      "supports": {
-        "agents_bridge": false,
-        "claude_reference": false
-      }
+      "category": "utility"
     },
     "subagent-balancer-api": {
-      "category": "utility",
-      "distribution": "gemini-only",
-      "supports": {
-        "agents_bridge": false,
-        "claude_reference": false
-      }
+      "category": "utility"
     },
     "subagent-balancer-orchestrator": {
-      "category": "utility",
-      "distribution": "gemini-only",
-      "supports": {
-        "agents_bridge": false,
-        "claude_reference": false
-      }
+      "category": "utility"
+    },
+    "conductor": {
+      "category": "workflow"
     },
     "conductor-workflow-optimization": {
-      "category": "workflow",
-      "distribution": "shared"
+      "category": "workflow"
     },
     "pre-implementation-review": {
-      "category": "workflow",
-      "distribution": "shared"
+      "category": "workflow"
     }
   }
 }

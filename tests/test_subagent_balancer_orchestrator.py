@@ -27,11 +27,11 @@ class TestSubagentBalancerOrchestrator(unittest.TestCase):
     """Verify CLI-vs-API balancer routing."""
 
     def test_detects_cli_quota_context(self) -> None:
-        result = MODULE.select_balancer("auto", "Gemini CLI /stats model shows quota almost exhausted")
+        result = MODULE.select_balancer("auto", "Claude Code /stats model shows quota almost exhausted")
         self.assertEqual(result["selected_balancer"], "subagent-balancer")
 
     def test_detects_api_cost_context(self) -> None:
-        result = MODULE.select_balancer("auto", "Vertex AI batch job with token pricing and GEMINI_API_KEY")
+        result = MODULE.select_balancer("auto", "Anthropic API batch job with token pricing and ANTHROPIC_API_KEY")
         self.assertEqual(result["selected_balancer"], "subagent-balancer-api")
 
     def test_returns_local_when_context_is_ambiguous(self) -> None:
@@ -40,7 +40,7 @@ class TestSubagentBalancerOrchestrator(unittest.TestCase):
         self.assertIsNone(result["selected_balancer"])
 
     def test_explicit_mode_overrides_context(self) -> None:
-        result = MODULE.select_balancer("cli", "Vertex AI batch job with token pricing")
+        result = MODULE.select_balancer("cli", "Anthropic API batch job with token pricing")
         self.assertEqual(result["selected_balancer"], "subagent-balancer")
 
 

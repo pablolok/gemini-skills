@@ -1,4 +1,4 @@
-"""Interactive Gemini Skill Installer.
+"""Interactive Claude Skill Installer.
 Allows users to install official skills from the 'published/' directory into their projects.
 """
 
@@ -33,13 +33,40 @@ INSTALLER_BANNER = (
 )
 GITIGNORE_MARKER_START = "# >>> skill-manager managed workspace files >>>"
 GITIGNORE_MARKER_END = "# <<< skill-manager managed workspace files <<<"
-MANAGED_SKILL_MANIFEST = ".gemini/skill-manager-manifest.json"
+MANAGED_SKILL_MANIFEST = ".claude/skill-manager-manifest.json"
 GITIGNORE_ENTRIES = [
-    ".gemini/commands/",
-    ".gemini/settings.json",
+    ".claude/commands/skill-manager/",
+    ".claude/settings.json",
     MANAGED_SKILL_MANIFEST,
 ]
 INSTALL_CONFIG_FILENAME = "install.config.json"
+SESSION_START_HOOK_COMMAND = (
+    "python3 .claude/skills/skill-manager/scripts/session_start_hook.py"
+)
+
+
+def ensure_claude_session_start_hook(
+    settings: typing.Dict[str, typing.Any],
+) -> typing.Dict[str, typing.Any]:
+    """Ensure the Claude Code SessionStart update-check hook is present in settings."""
+    hooks = settings.setdefault("hooks", {})
+    session_start = hooks.setdefault("SessionStart", [])
+    command_entry = {"type": "command", "command": SESSION_START_HOOK_COMMAND}
+
+    for entry in session_start:
+        if entry.get("matcher") != "startup":
+            continue
+        nested_hooks = entry.setdefault("hooks", [])
+        for nested in nested_hooks:
+            if str(nested.get("command", "")).endswith("session_start_hook.py"):
+                nested["type"] = "command"
+                nested["command"] = SESSION_START_HOOK_COMMAND
+                return settings
+        nested_hooks.append(dict(command_entry))
+        return settings
+
+    session_start.append({"matcher": "startup", "hooks": [dict(command_entry)]})
+    return settings
 
 
 def supports_ansi(output_stream: typing.Optional[typing.TextIO] = None) -> bool:
@@ -675,47 +702,24 @@ class SkillInstaller:
             self.version_comparator = version_comparator
 
     def _load_install_config(self) -> typing.Dict[str, typing.Any]:
-        """Load optional repo-level installer capabilities and distribution config."""
+        """Load the repo-level installer catalog (skill categories)."""
         config_path = os.path.join(os.path.dirname(self.published_dir), INSTALL_CONFIG_FILENAME)
         if not os.path.exists(config_path):
-            return {"defaults": {"distribution": "shared", "supports": {}}, "skills": {}}
+            return {"skills": {}}
 
         try:
             with open(config_path, "r", encoding="utf-8") as handle:
                 payload = json.load(handle)
         except Exception as exc:
             self.logger.error("Error parsing install config at '%s': %s", config_path, exc)
-            return {"defaults": {"distribution": "shared", "supports": {}}, "skills": {}}
+            return {"skills": {}}
 
-        defaults = payload.get("defaults", {})
         skills = payload.get("skills", {})
-        return {
-            "defaults": {
-                "distribution": defaults.get("distribution", "shared"),
-                "supports": defaults.get("supports", {}),
-            },
-            "skills": skills if isinstance(skills, dict) else {},
-        }
+        return {"skills": skills if isinstance(skills, dict) else {}}
 
     def get_skill_config(self, skill_name: str) -> typing.Dict[str, typing.Any]:
-        """Return the merged install config for a skill."""
-        defaults = self.install_config.get("defaults", {})
-        default_supports = defaults.get("supports", {})
-        skill_config = self.install_config.get("skills", {}).get(skill_name, {})
-        skill_supports = skill_config.get("supports", {})
-        return {
-            "distribution": skill_config.get("distribution", defaults.get("distribution", "shared")),
-            "supports": {
-                "agents_bridge": skill_supports.get(
-                    "agents_bridge",
-                    default_supports.get("agents_bridge", True),
-                ),
-                "claude_reference": skill_supports.get(
-                    "claude_reference",
-                    default_supports.get("claude_reference", True),
-                ),
-            },
-        }
+        """Return the install config for a skill (category only)."""
+        return dict(self.install_config.get("skills", {}).get(skill_name, {}))
 
     def get_available_skills(self) -> typing.Dict[str, typing.List[str]]:
         """Scan the published directory for categories and skills."""
@@ -766,72 +770,16 @@ class SkillInstaller:
                 return True
         return False
 
-    def claude_reference_skill_content(self, skill_name: str, target_project_path: str) -> str:
-        """Build a lightweight Claude reference skill that points at the installed skill."""
-        metadata = self.get_installed_skill_metadata(skill_name, target_project_path) or {}
-        description = metadata.get(
-            "description",
-            (
-                f"Claude reference skill for the installed Gemini skill '{skill_name}'. "
-                "Use the Gemini skill as the source of truth."
-            ),
-        )
-        title = re.sub(r"[-_]+", " ", skill_name).strip().title() or skill_name
-        if self._is_shared_skill(skill_name):
-            skill_location = f".agents/skills/{skill_name}"
-        else:
-            skill_location = f".gemini/skills/{skill_name}"
-        return (
-            "---\n"
-            f"name: {skill_name}\n"
-            f"description: {description}\n"
-            "---\n\n"
-            f"# {title} Reference\n\n"
-            f"Use the installed Gemini skill at `{skill_location}/SKILL.md` as the source of truth.\n\n"
-            "Workflow:\n\n"
-            f"1. Read and follow `{skill_location}/SKILL.md`.\n"
-            "2. If that skill references scripts, metadata, or companion files, "
-            f"resolve them from `{skill_location}/`.\n"
-            "3. Do not duplicate the Gemini implementation in `.claude/skills/`. "
-            "This reference exists only so Claude can discover and invoke the "
-            "installed Gemini skill guidance.\n"
-        )
-
-    def supports_agents_bridge(self, skill_name: str) -> bool:
-        """Check whether a skill is eligible for installation in .agents/skills/ (shared distribution)."""
-        return self._is_shared_skill(skill_name)
-
-    def supports_claude_reference(self, skill_name: str) -> bool:
-        """Check whether a skill can get a generated Claude reference skill."""
-        if not skill_name:
-            return False
-        skill_config = self.get_skill_config(skill_name)
-        return bool(skill_config["supports"].get("claude_reference", True))
-
-    def _is_shared_skill(self, skill_name: str) -> bool:
-        """Return whether a skill uses shared distribution (installed to .agents/skills/)."""
-        if not skill_name:
-            return False
-        return self.get_skill_config(skill_name).get("distribution", "shared") == "shared"
-
     def get_installed_skill_metadata(
         self,
         skill_name: str,
         target_project_path: str
     ) -> typing.Optional[typing.Dict[str, typing.Any]]:
-        """Read and parse the metadata.json for an installed skill.
-
-        Checks .agents/skills/ (shared) then .gemini/skills/ (gemini-only).
-        """
-        for skills_dir in (
-            os.path.join(target_project_path, ".agents", "skills"),
-            os.path.join(target_project_path, ".gemini", "skills"),
-        ):
-            metadata_path = os.path.join(skills_dir, skill_name, "metadata.json")
-            meta = self._read_metadata(metadata_path)
-            if meta is not None:
-                return meta
-        return None
+        """Read and parse the metadata.json for an installed skill under .claude/skills/."""
+        metadata_path = os.path.join(
+            target_project_path, ".claude", "skills", skill_name, "metadata.json"
+        )
+        return self._read_metadata(metadata_path)
 
     def _read_metadata(self, metadata_path: str) -> typing.Optional[typing.Dict[str, typing.Any]]:
         """Read and parse a metadata.json file."""
@@ -856,9 +804,9 @@ class SkillInstaller:
         skill_entries = self._build_managed_skill_ignore_entries(manifest)
         managed_lines = [
             GITIGNORE_MARKER_START,
-            "# Ignore local Gemini workspace commands generated by skill-manager",
+            "# Ignore local Claude workspace commands generated by skill-manager",
             GITIGNORE_ENTRIES[0],
-            "# Ignore local Gemini workspace settings written by skill-manager",
+            "# Ignore local Claude workspace settings written by skill-manager",
             GITIGNORE_ENTRIES[1],
             "# Ignore the local skill-manager installation manifest",
             GITIGNORE_ENTRIES[2],
@@ -899,7 +847,7 @@ class SkillInstaller:
 
     def _managed_skill_manifest_path(self, target_project_path: str) -> str:
         """Return the manifest path used to track skill-manager-installed skills."""
-        return os.path.join(target_project_path, ".gemini", "skill-manager-manifest.json")
+        return os.path.join(target_project_path, ".claude", "skill-manager-manifest.json")
 
     def _load_managed_skill_manifest(
         self,
@@ -907,26 +855,27 @@ class SkillInstaller:
     ) -> typing.Dict[str, typing.List[str]]:
         """Load the local manifest of skills installed by skill-manager."""
         manifest_path = self._managed_skill_manifest_path(target_project_path)
-        if not os.path.exists(manifest_path):
+        # Fall back to the legacy manifest location if the new one is absent.
+        legacy_path = os.path.join(
+            target_project_path, ".gemini", "skill-manager-manifest.json"
+        )
+        source_path = manifest_path if os.path.exists(manifest_path) else legacy_path
+        if not os.path.exists(source_path):
             return self._discover_managed_skills(target_project_path)
 
         try:
-            with open(manifest_path, "r", encoding="utf-8") as handle:
+            with open(source_path, "r", encoding="utf-8") as handle:
                 payload = json.load(handle)
         except Exception:
-            return {"gemini": [], "agents": [], "claude": []}
+            return {"claude": []}
 
-        manifest: typing.Dict[str, typing.List[str]] = {}
-        for key in ("gemini", "agents", "claude"):
-            values = payload.get(key, [])
-            manifest[key] = sorted({str(value) for value in values if str(value).strip()})
-        # Migration: merge old "codex" and "copilot" keys into "agents"
-        for old_key in ("codex", "copilot"):
-            old_values = payload.get(old_key, [])
-            merged = set(manifest["agents"])
-            merged.update(str(v) for v in old_values if str(v).strip())
-            manifest["agents"] = sorted(merged)
-        return manifest
+        # Everything is a Claude skill now: merge any legacy tool keys into "claude".
+        merged: typing.Set[str] = set()
+        for key in ("claude", "agents", "gemini", "codex", "copilot"):
+            for value in payload.get(key, []):
+                if str(value).strip():
+                    merged.add(str(value))
+        return {"claude": sorted(merged)}
 
     def _read_managed_gitignore_entries(
         self,
@@ -934,7 +883,7 @@ class SkillInstaller:
     ) -> typing.Dict[str, typing.List[str]]:
         """Recover managed skill entries from the existing skill-manager gitignore block."""
         gitignore_path = os.path.join(target_project_path, ".gitignore")
-        manifest: typing.Dict[str, typing.List[str]] = {"gemini": [], "agents": [], "claude": []}
+        manifest: typing.Dict[str, typing.List[str]] = {"claude": []}
         if not os.path.exists(gitignore_path):
             return manifest
 
@@ -947,29 +896,25 @@ class SkillInstaller:
         start = content.index(GITIGNORE_MARKER_START) + len(GITIGNORE_MARKER_START)
         end = content.index(GITIGNORE_MARKER_END)
         block = content[start:end]
-        prefixes = {
-            "gemini": ".gemini/skills/",
-            "agents": ".agents/skills/",
-            "claude": ".claude/skills/",
-        }
+        # All skill directories (including legacy tool locations) map to Claude.
+        prefixes = (
+            ".claude/skills/",
+            ".agents/skills/",
+            ".gemini/skills/",
+            ".codex/skills/",
+        )
 
+        names: typing.Set[str] = set()
         for raw_line in block.splitlines():
             line = raw_line.strip()
-            # Backward compat: recognize old .codex/skills/ entries as agents
-            if line.startswith(".codex/skills/") and line.endswith("/"):
-                skill_name = line[len(".codex/skills/"):-1].strip()
-                if skill_name:
-                    manifest["agents"].append(skill_name)
-                continue
-            for kind, prefix in prefixes.items():
+            for prefix in prefixes:
                 if line.startswith(prefix) and line.endswith("/"):
                     skill_name = line[len(prefix):-1].strip()
                     if skill_name:
-                        manifest[kind].append(skill_name)
+                        names.add(skill_name)
                     break
 
-        for kind in manifest:
-            manifest[kind] = sorted(set(manifest[kind]))
+        manifest["claude"] = sorted(names)
         return manifest
 
     def _discover_managed_skills(
@@ -988,250 +933,206 @@ class SkillInstaller:
         manifest_path = self._managed_skill_manifest_path(target_project_path)
         os.makedirs(os.path.dirname(manifest_path), exist_ok=True)
         with open(manifest_path, "w", encoding="utf-8") as handle:
-            json.dump(manifest, handle, indent=2)
+            json.dump({"claude": sorted(set(manifest.get("claude", [])))}, handle, indent=2)
             handle.write("\n")
-
-    def _companion_skill_still_supported(self, kind: str, skill_name: str) -> bool:
-        """Return whether a managed companion skill is still eligible under install config."""
-        if kind == "agents":
-            return self.supports_agents_bridge(skill_name)
-        if kind == "claude":
-            return self.supports_claude_reference(skill_name)
-        return True
 
     def _normalize_managed_skill_manifest(
         self,
         target_project_path: str,
         manifest: typing.Dict[str, typing.List[str]],
     ) -> typing.Dict[str, typing.List[str]]:
-        """Prune stale managed companion artifacts that are no longer supported."""
-        base_paths = {
-            "gemini": os.path.join(target_project_path, ".gemini", "skills"),
-            "agents": os.path.join(target_project_path, ".agents", "skills"),
-            "claude": os.path.join(target_project_path, ".claude", "skills"),
-        }
-        normalized: typing.Dict[str, typing.List[str]] = {}
-        changed = False
-
-        for kind in ("gemini", "agents", "claude"):
-            kept: typing.List[str] = []
-            for skill_name in manifest.get(kind, []):
-                skill_path = os.path.join(base_paths[kind], skill_name)
-                if kind in ("agents", "claude") and not self._companion_skill_still_supported(kind, skill_name):
-                    if os.path.isdir(skill_path):
-                        self._remove_directory_tree(skill_path)
-                    changed = True
-                    continue
-                if not os.path.isdir(skill_path):
-                    changed = True
-                    continue
+        """Prune manifest entries whose skill directory no longer exists on disk."""
+        claude_dir = os.path.join(target_project_path, ".claude", "skills")
+        kept: typing.List[str] = []
+        for skill_name in manifest.get("claude", []):
+            if os.path.isdir(os.path.join(claude_dir, skill_name)):
                 kept.append(skill_name)
-            normalized[kind] = sorted(set(kept))
-            if normalized[kind] != sorted(set(manifest.get(kind, []))):
-                changed = True
 
-        if changed:
+        normalized = {"claude": sorted(set(kept))}
+        if normalized["claude"] != sorted(set(manifest.get("claude", []))):
             self._write_managed_skill_manifest(target_project_path, normalized)
         return normalized
 
     def migrate_legacy_skill_locations(self, target_project_path: str) -> bool:
-        """Migrate skills installed under the old layout to the new layout.
+        """Migrate a project from the old multi-tool layout to Claude-only.
 
-        Old layout (pre-agents-routing):
-          .gemini/skills/<shared-skill>/  — shared skills (should be in .agents/skills/)
-          .codex/skills/<skill>/          — codex bridge stubs (should be in .agents/skills/)
-          .claude/skills/<name>/SKILL.md  — references may point to .gemini/skills/
+        Old layout (multi-tool):
+          .gemini/skills/<skill>/, .agents/skills/<skill>/, .codex/skills/<skill>/
+          .gemini/skill-manager-manifest.json
+          .gemini/settings.json (SessionStart hook)
+          .gemini/commands/skill-manager/*.toml
 
-        New layout:
-          .agents/skills/<shared-skill>/  — shared skills (all tools)
-          .gemini/skills/<gemini-only>/   — gemini-only skills
-          .claude/skills/<name>/SKILL.md  — references point to .agents/skills/ or .gemini/skills/
+        New layout (Claude only):
+          .claude/skills/<skill>/  — real skills
+          .claude/skill-manager-manifest.json
+          .claude/settings.json (SessionStart hook)
+          .claude/commands/skill-manager/*.md
+
+        The migration is idempotent and never clobbers newer .claude/skills/<name>
+        content that already exists.
 
         Returns True if any migration was performed.
         """
-        manifest = self._load_managed_skill_manifest(target_project_path)
-        agents_dir = os.path.join(target_project_path, ".agents", "skills")
-        gemini_dir = os.path.join(target_project_path, ".gemini", "skills")
-        codex_dir = os.path.join(target_project_path, ".codex", "skills")
         claude_dir = os.path.join(target_project_path, ".claude", "skills")
+        legacy_skill_dirs = [
+            os.path.join(target_project_path, ".gemini", "skills"),
+            os.path.join(target_project_path, ".agents", "skills"),
+            os.path.join(target_project_path, ".codex", "skills"),
+        ]
         changed = False
+        migrated_names: typing.Set[str] = set(
+            self._load_managed_skill_manifest(target_project_path).get("claude", [])
+        )
 
-        # Mapping of old_name -> new_name for any rename performed (e.g., c# -> csharp)
-        rename_map: typing.Dict[str, str] = {}
+        def _clean_name(name: str) -> str:
+            # Only replace '#' → 'sharp' to avoid broader unintended renames.
+            return name.replace("#", "sharp")
 
-        # Collect skills that need to move from gemini → agents
-        new_gemini: typing.List[str] = []
-        new_agents: typing.Set[str] = set(manifest.get("agents", []))
-
-        def _clean_name(n: str) -> str:
-            # Only replace '#' → 'sharp' to avoid broader unintended renames
-            return n.replace("#", "sharp")
-
-        # Handle manifest entries under 'gemini'
-        for skill_name in manifest.get("gemini", []):
-            gemini_path = os.path.join(gemini_dir, skill_name)
-            clean_skill = _clean_name(skill_name) if "#" in skill_name else skill_name
-            agents_path = os.path.join(agents_dir, clean_skill)
-            if self._is_shared_skill(skill_name) and os.path.isdir(gemini_path):
-                if not os.path.isdir(agents_path):
-                    os.makedirs(agents_dir, exist_ok=True)
-                    shutil.move(gemini_path, agents_path)
-                    self.logger.info("Migrated '%s': .gemini/skills → .agents/skills", skill_name)
-                else:
-                    # Already in the right place; remove the old copy if present
-                    self.logger.info("Removing stale .gemini/skills/%s (already in .agents/skills)", skill_name)
-                    self._remove_directory_tree(gemini_path)
-                new_agents.add(clean_skill)
-                if clean_skill != skill_name:
-                    rename_map[skill_name] = clean_skill
-                changed = True
-            else:
-                # Keep manifest entry (may rename if contains '#')
-                new_gemini.append(clean_skill)
-
-        # Also migrate any shared skills present on disk in .gemini/skills/ but not tracked
-        if os.path.isdir(gemini_dir):
-            for skill_name in os.listdir(gemini_dir):
-                if not os.path.isdir(os.path.join(gemini_dir, skill_name)):
+        # 1. Move legacy skill directories into .claude/skills/.
+        for legacy_dir in legacy_skill_dirs:
+            if not os.path.isdir(legacy_dir):
+                continue
+            for skill_name in sorted(os.listdir(legacy_dir)):
+                src = os.path.join(legacy_dir, skill_name)
+                if not os.path.isdir(src):
                     continue
-                if not self._is_shared_skill(skill_name):
-                    continue
-                clean_skill = _clean_name(skill_name) if "#" in skill_name else skill_name
-                gemini_path = os.path.join(gemini_dir, skill_name)
-                agents_path = os.path.join(agents_dir, clean_skill)
-                if not os.path.isdir(agents_path):
-                    os.makedirs(agents_dir, exist_ok=True)
-                    shutil.move(gemini_path, agents_path)
-                    self.logger.info("Migrated untracked '%s': .gemini/skills → .agents/skills", skill_name)
+                clean_skill = _clean_name(skill_name)
+                dst = os.path.join(claude_dir, clean_skill)
+                if os.path.isdir(dst):
+                    # Newer .claude content wins; drop the stale legacy copy.
+                    self._remove_directory_tree(src)
+                    self.logger.info(
+                        "Removed stale legacy skill '%s' (already in .claude/skills)", skill_name
+                    )
                 else:
-                    self._remove_directory_tree(gemini_path)
-                    self.logger.info("Removed stale .gemini/skills/%s (already in .agents/skills)", skill_name)
-                new_agents.add(clean_skill)
-                if clean_skill != skill_name:
-                    rename_map[skill_name] = clean_skill
+                    os.makedirs(claude_dir, exist_ok=True)
+                    shutil.move(src, dst)
+                    self.logger.info("Migrated '%s' → .claude/skills/%s", skill_name, clean_skill)
+                    if clean_skill != skill_name:
+                        self._fix_skill_name_frontmatter(dst, skill_name, clean_skill)
+                migrated_names.add(clean_skill)
                 changed = True
 
-        # Migrate .codex/skills/ stubs → .agents/skills/
-        if os.path.isdir(codex_dir):
-            for skill_name in os.listdir(codex_dir):
-                codex_path = os.path.join(codex_dir, skill_name)
-                if not os.path.isdir(codex_path):
-                    continue
-                clean_skill = _clean_name(skill_name) if "#" in skill_name else skill_name
-                agents_path = os.path.join(agents_dir, clean_skill)
-                if not os.path.isdir(agents_path):
-                    os.makedirs(agents_dir, exist_ok=True)
-                    shutil.move(codex_path, agents_path)
-                    self.logger.info("Migrated '%s': .codex/skills → .agents/skills", skill_name)
-                else:
-                    self._remove_directory_tree(codex_path)
-                    self.logger.info("Removed stale .codex/skills/%s (already in .agents/skills)", skill_name)
-                new_agents.add(clean_skill)
-                if clean_skill != skill_name:
-                    rename_map[skill_name] = clean_skill
-                changed = True
-
-        # Fix .claude/skills/ reference files: update paths, rename invalid dirs, and fix frontmatter name
-        if os.path.isdir(claude_dir):
-            for entry in os.listdir(claude_dir):
-                entry_path = os.path.join(claude_dir, entry)
-                if not os.path.isdir(entry_path):
-                    continue
-                skill_md = os.path.join(entry_path, "SKILL.md")
-                if not os.path.isfile(skill_md):
-                    continue
-
-                clean_entry = _clean_name(entry) if "#" in entry else entry
-                if clean_entry != entry:
-                    new_entry_path = os.path.join(claude_dir, clean_entry)
-                    if not os.path.isdir(new_entry_path):
-                        shutil.move(entry_path, new_entry_path)
-                        self.logger.info("Renamed .claude/skills/%s → .claude/skills/%s", entry, clean_entry)
-                        entry_path = new_entry_path
-                        skill_md = os.path.join(entry_path, "SKILL.md")
-                        # Update manifest entry
-                        claude_entries = set(manifest.get("claude", []))
-                        if entry in claude_entries:
-                            claude_entries.discard(entry)
-                            claude_entries.add(clean_entry)
-                            manifest["claude"] = sorted(claude_entries)
-                        rename_map[entry] = clean_entry
-                        changed = True
-
-                # Update SKILL.md content: fix paths and fix invalid name in frontmatter
-                try:
-                    with open(skill_md, "r", encoding="utf-8") as handle:
-                        content = handle.read()
-                    updated = content
-                    if ".gemini/skills/" in updated:
-                        updated = updated.replace(".gemini/skills/", ".agents/skills/")
-
-                    # Fix name: frontmatter lines conservatively
-                    # Handle variations: name: value   or name: "value" or name: 'value'
-                    if clean_entry != entry:
-                        # Replace exact occurrences in frontmatter and JSON-like patterns
-                        updated = updated.replace(f"name: {entry}", f"name: {clean_entry}")
-                        updated = updated.replace(f'"name": "{entry}"', f'"name": "{clean_entry}"')
-                        updated = updated.replace(f"'name': '{entry}'", f"'name': '{clean_entry}'")
-
-                    if updated != content:
-                        with open(skill_md, "w", encoding="utf-8") as handle:
-                            handle.write(updated)
-                        self.logger.info("Updated .claude/skills/%s/SKILL.md", clean_entry)
-                        changed = True
-                except OSError:
-                    pass
-
-        # Patch references across the target project for any renamed skills
-        if rename_map:
-            exts = (".md", ".json", ".yml", ".yaml", ".py", ".txt", ".ini", ".rst")
-            for root, _, files in os.walk(target_project_path):
-                for fname in files:
-                    if not fname.lower().endswith(exts):
-                        continue
-                    fpath = os.path.join(root, fname)
-                    try:
-                        with open(fpath, "r", encoding="utf-8") as fh:
-                            content = fh.read()
-                    except Exception:
-                        continue
-                    updated = content
-                    for old, new in rename_map.items():
-                        # Path replacements
-                        updated = updated.replace(f".gemini/skills/{old}", f".agents/skills/{new}")
-                        updated = updated.replace(f".agents/skills/{old}", f".agents/skills/{new}")
-                        # Frontmatter / simple key replacements
-                        updated = updated.replace(f"name: {old}", f"name: {new}")
-                        updated = updated.replace(f'"name": "{old}"', f'"name": "{new}"')
-                        # Conservative raw replacement (only when old contains '#')
-                        if "#" in old:
-                            updated = updated.replace(old, new)
-                    if updated != content:
-                        try:
-                            with open(fpath, "w", encoding="utf-8") as fh:
-                                fh.write(updated)
-                            self.logger.info("Patched references in %s", fpath)
-                        except OSError:
-                            pass
-            # Update manifest lists after renames
-            manifest["gemini"] = sorted(set(new_gemini))
-            manifest["agents"] = sorted(new_agents)
+        # 2. Migrate the managed manifest to .claude/.
+        legacy_manifest = os.path.join(
+            target_project_path, ".gemini", "skill-manager-manifest.json"
+        )
+        new_manifest = self._managed_skill_manifest_path(target_project_path)
+        if os.path.exists(legacy_manifest):
+            for name in self._load_managed_skill_manifest(target_project_path).get("claude", []):
+                migrated_names.add(_clean_name(name))
+            try:
+                os.remove(legacy_manifest)
+            except OSError:
+                pass
             changed = True
 
-        if changed:
-            # Ensure manifest lists reflect the new layout (agents/gemini)
-            manifest["gemini"] = sorted(set(new_gemini))
-            manifest["agents"] = sorted(new_agents)
-            self._write_managed_skill_manifest(target_project_path, manifest)
+        # 3. Migrate the SessionStart hook into .claude/settings.json.
+        if self._migrate_legacy_settings_hook(target_project_path):
+            changed = True
+
+        # 4. Remove legacy .gemini/commands (replaced by .claude/commands slash commands).
+        legacy_commands = os.path.join(target_project_path, ".gemini", "commands")
+        if os.path.isdir(legacy_commands):
+            self._remove_directory_tree(legacy_commands)
+            self.logger.info("Removed legacy .gemini/commands.")
+            changed = True
+
+        # 5. Prune legacy tool directories that are now empty after the move.
+        for legacy_base in (".gemini", ".agents", ".codex"):
+            self._remove_empty_dir_tree(os.path.join(target_project_path, legacy_base))
+
+        if changed or os.path.exists(new_manifest):
+            # Only keep names whose directory now exists under .claude/skills/.
+            present = {
+                name for name in migrated_names
+                if os.path.isdir(os.path.join(claude_dir, name))
+            }
+            self._write_managed_skill_manifest(target_project_path, {"claude": sorted(present)})
             self.ensure_managed_gitignore_entries(target_project_path)
-            self.logger.info("Migration complete.")
+            if changed:
+                self.logger.info("Migration to Claude-only layout complete.")
 
         return changed
+
+    def _remove_empty_dir_tree(self, path: str) -> None:
+        """Remove `path` and any empty subdirectories, bottom-up.
+
+        Directories that still contain files are left untouched, so a legacy `.agents`/`.codex`
+        directory that holds non-skill content is preserved.
+        """
+        if not os.path.isdir(path):
+            return
+        for root, _dirs, _files in os.walk(path, topdown=False):
+            try:
+                if not os.listdir(root):
+                    os.rmdir(root)
+            except OSError:
+                pass
+
+    def _fix_skill_name_frontmatter(self, skill_dir: str, old_name: str, new_name: str) -> None:
+        """Rewrite the SKILL.md name/reference for a renamed skill directory."""
+        skill_md = os.path.join(skill_dir, "SKILL.md")
+        if not os.path.isfile(skill_md):
+            return
+        try:
+            with open(skill_md, "r", encoding="utf-8") as handle:
+                content = handle.read()
+        except OSError:
+            return
+        updated = content
+        updated = updated.replace(f"name: {old_name}", f"name: {new_name}")
+        updated = updated.replace(f'"name": "{old_name}"', f'"name": "{new_name}"')
+        updated = updated.replace(f"'name': '{old_name}'", f"'name': '{new_name}'")
+        updated = updated.replace(old_name, new_name)
+        if updated != content:
+            try:
+                with open(skill_md, "w", encoding="utf-8") as handle:
+                    handle.write(updated)
+            except OSError:
+                pass
+
+    def _migrate_legacy_settings_hook(self, target_project_path: str) -> bool:
+        """Move a legacy .gemini/settings.json SessionStart hook into .claude/settings.json."""
+        legacy_settings = os.path.join(target_project_path, ".gemini", "settings.json")
+        if not os.path.exists(legacy_settings):
+            return False
+
+        try:
+            with open(legacy_settings, "r", encoding="utf-8") as handle:
+                legacy = json.load(handle)
+        except Exception:
+            legacy = {}
+
+        has_session_start = bool(
+            legacy.get("hooks", {}).get("SessionStart")
+        )
+        if has_session_start:
+            claude_settings_path = os.path.join(
+                target_project_path, ".claude", "settings.json"
+            )
+            claude_settings: typing.Dict[str, typing.Any] = {}
+            if os.path.exists(claude_settings_path):
+                try:
+                    with open(claude_settings_path, "r", encoding="utf-8") as handle:
+                        claude_settings = json.load(handle)
+                except Exception:
+                    claude_settings = {}
+            claude_settings = ensure_claude_session_start_hook(claude_settings)
+            os.makedirs(os.path.dirname(claude_settings_path), exist_ok=True)
+            with open(claude_settings_path, "w", encoding="utf-8") as handle:
+                json.dump(claude_settings, handle, indent=2)
+                handle.write("\n")
+
+        try:
+            os.remove(legacy_settings)
+        except OSError:
+            pass
+        return True
 
     def _register_managed_skill(
         self,
         target_project_path: str,
-        kind: str,
         skill_name: str,
     ) -> None:
         """Record a skill directory as being installed by skill-manager."""
@@ -1239,15 +1140,14 @@ class SkillInstaller:
             target_project_path,
             self._load_managed_skill_manifest(target_project_path),
         )
-        current = set(manifest.get(kind, []))
+        current = set(manifest.get("claude", []))
         current.add(skill_name)
-        manifest[kind] = sorted(current)
+        manifest["claude"] = sorted(current)
         self._write_managed_skill_manifest(target_project_path, manifest)
 
     def _unregister_managed_skill(
         self,
         target_project_path: str,
-        kind: str,
         skill_name: str,
     ) -> None:
         """Remove a skill directory from the managed manifest."""
@@ -1255,10 +1155,10 @@ class SkillInstaller:
             target_project_path,
             self._load_managed_skill_manifest(target_project_path),
         )
-        current = set(manifest.get(kind, []))
+        current = set(manifest.get("claude", []))
         if skill_name in current:
             current.remove(skill_name)
-            manifest[kind] = sorted(current)
+            manifest["claude"] = sorted(current)
             self._write_managed_skill_manifest(target_project_path, manifest)
 
     def _build_managed_skill_ignore_entries(
@@ -1266,17 +1166,10 @@ class SkillInstaller:
         manifest: typing.Dict[str, typing.List[str]],
     ) -> typing.List[str]:
         """Build exact gitignore entries for skill directories managed by skill-manager."""
-        entries: typing.List[str] = []
-        base_paths = {
-            "gemini": ".gemini/skills",
-            "agents": ".agents/skills",
-            "claude": ".claude/skills",
-        }
-        for kind in ("gemini", "agents", "claude"):
-            base_path = base_paths[kind]
-            for skill_name in manifest.get(kind, []):
-                entries.append(f"{base_path}/{skill_name}/")
-        return entries
+        return [
+            f".claude/skills/{skill_name}/"
+            for skill_name in manifest.get("claude", [])
+        ]
 
     def get_managed_skill_names(self, target_project_path: str) -> typing.List[str]:
         """Return the set of skill names currently managed by skill-manager."""
@@ -1284,10 +1177,7 @@ class SkillInstaller:
             target_project_path,
             self._load_managed_skill_manifest(target_project_path),
         )
-        names = set()
-        for kind in ("gemini", "agents", "claude"):
-            names.update(manifest.get(kind, []))
-        return sorted(names)
+        return sorted(set(manifest.get("claude", [])))
 
     def check_for_updates(self, target_project_path: str) -> typing.List[typing.Dict[str, str]]:
         """Check all installed skills for available updates."""
@@ -1298,21 +1188,12 @@ class SkillInstaller:
             for s in skills:
                 name_to_rel[s] = os.path.join(cat, s)
 
-        seen: typing.Set[str] = set()
-        for target_skills_dir in (
-            os.path.join(target_project_path, ".agents", "skills"),
-            os.path.join(target_project_path, ".gemini", "skills"),
-        ):
-            if not os.path.exists(target_skills_dir):
-                continue
-
+        target_skills_dir = os.path.join(target_project_path, ".claude", "skills")
+        if os.path.exists(target_skills_dir):
             for skill_name in os.listdir(target_skills_dir):
-                if skill_name in seen:
-                    continue
                 skill_path = os.path.join(target_skills_dir, skill_name)
                 if not os.path.isdir(skill_path):
                     continue
-                seen.add(skill_name)
 
                 installed_meta = self.get_installed_skill_metadata(skill_name, target_project_path)
                 if not installed_meta or "version" not in installed_meta:
@@ -1346,105 +1227,52 @@ class SkillInstaller:
             self.logger.info(f"  - {update['name']}: {update['installed']} -> {update['latest']}")
         self.logger.info("\nRun 'python install.py' or 'python check_updates.py' to update.\n")
 
-    def install_claude_reference(self, skill_name: str, target_project_path: str) -> bool:
-        """Install a lightweight Claude reference skill for an installed skill."""
-        if self._is_shared_skill(skill_name):
-            source_base = os.path.join(target_project_path, ".agents", "skills", skill_name)
-        else:
-            source_base = os.path.join(target_project_path, ".gemini", "skills", skill_name)
-        source_skill_path = os.path.join(source_base, "SKILL.md")
-        if not os.path.isfile(source_skill_path):
-            self.logger.info(
-                "Skipping Claude reference for '%s': the Gemini skill is not "
-                "installed in the target project.",
-                skill_name,
-            )
-            return False
-
-        target_skill_dir = os.path.join(target_project_path, ".claude", "skills", skill_name)
-        os.makedirs(target_skill_dir, exist_ok=True)
-        target_skill_path = os.path.join(target_skill_dir, "SKILL.md")
-
-        self.logger.info(f"Installing Claude reference skill for '{skill_name}'...")
-        try:
-            content = self.claude_reference_skill_content(skill_name, target_project_path)
-            with open(target_skill_path, "w", encoding="utf-8") as handle:
-                handle.write(content)
-            self._register_managed_skill(target_project_path, "claude", skill_name)
-            self.ensure_managed_gitignore_entries(target_project_path)
-            self.logger.info(f"Successfully installed Claude reference skill for '{skill_name}'.")
-            return True
-        except Exception as e:
-            self.logger.error(f"Failed to install Claude reference skill for '{skill_name}': {e}")
-            return False
-
     def uninstall_skill(self, skill_name: str, target_project_path: str) -> bool:
-        """Remove a managed Gemini skill and any managed Codex/Claude/Copilot companions."""
+        """Remove a managed Claude skill from .claude/skills/ (plus stale legacy copies)."""
         if not skill_name:
             return False
 
         if skill_name not in self.get_managed_skill_names(target_project_path):
             return False
 
-        removed = False
-        targets = {
-            "gemini": os.path.join(target_project_path, ".gemini", "skills", skill_name),
-            "agents": os.path.join(target_project_path, ".agents", "skills", skill_name),
-            "claude": os.path.join(target_project_path, ".claude", "skills", skill_name),
-        }
+        # Clean up any stale legacy tool copies from old multi-tool installs.
+        for legacy_base in (".gemini", ".agents", ".codex"):
+            stale_path = os.path.join(
+                target_project_path, legacy_base, "skills", skill_name
+            )
+            if os.path.isdir(stale_path):
+                try:
+                    self._remove_directory_tree(stale_path)
+                except OSError as exc:
+                    self.logger.warning(
+                        "Could not remove stale artifact at '%s': %s", stale_path, exc
+                    )
 
-        # Also attempt to clean up any stale .codex/skills/<skill>/ from old installs
-        stale_codex_path = os.path.join(target_project_path, ".codex", "skills", skill_name)
-        if os.path.isdir(stale_codex_path):
+        removed = False
+        failed = False
+        path = os.path.join(target_project_path, ".claude", "skills", skill_name)
+        if os.path.isdir(path):
             try:
-                self._remove_directory_tree(stale_codex_path)
+                self._remove_directory_tree(path)
+                removed = True
             except OSError as exc:
-                self.logger.warning(
-                    "Could not remove stale Codex artifact at '%s': %s",
-                    stale_codex_path,
-                    exc,
+                failed = True
+                self.logger.error(
+                    "Failed to uninstall '%s' at '%s': %s", skill_name, path, exc
                 )
 
-        failed_kinds: typing.Set[str] = set()
-        for kind, path in targets.items():
-            if os.path.isdir(path):
-                try:
-                    self._remove_directory_tree(path)
-                    removed = True
-                except OSError as exc:
-                    failed_kinds.add(kind)
-                    self.logger.error(
-                        "Failed to uninstall '%s' %s artifact at '%s': %s",
-                        skill_name,
-                        kind,
-                        path,
-                        exc,
-                    )
-                    continue
-            if kind not in failed_kinds:
-                self._unregister_managed_skill(target_project_path, kind, skill_name)
+        if not failed:
+            self._unregister_managed_skill(target_project_path, skill_name)
 
         self.ensure_managed_gitignore_entries(target_project_path)
-        return removed and not failed_kinds
+        return removed and not failed
 
     def install_skill(self, skill_rel_path: str, target_project_path: str) -> bool:
-        """Install a skill by copying files to the target project.
-
-        Shared skills are installed to .agents/skills/ so all compatible tools
-        (Gemini CLI, Copilot CLI, Codex CLI) can discover them without conflicts.
-        Gemini-only skills are installed to .gemini/skills/.
-        """
+        """Install a skill by copying files into .claude/skills/ of the target project."""
         source_path = os.path.join(self.published_dir, skill_rel_path)
         skill_name = os.path.basename(skill_rel_path)
 
-        is_shared = self._is_shared_skill(skill_name)
-        if is_shared:
-            target_skills_dir = os.path.join(target_project_path, ".agents", "skills")
-            kind = "agents"
-        else:
-            target_skills_dir = os.path.join(target_project_path, ".gemini", "skills")
-            kind = "gemini"
-
+        target_skills_dir = os.path.join(target_project_path, ".claude", "skills")
         if not os.path.exists(target_skills_dir):
             os.makedirs(target_skills_dir)
 
@@ -1458,7 +1286,7 @@ class SkillInstaller:
         self.logger.info(f"Installing skill '{skill_name}' via file copying...")
         try:
             self._copy_skill_files(os.path.abspath(source_path), os.path.abspath(target_path))
-            self._register_managed_skill(target_project_path, kind, skill_name)
+            self._register_managed_skill(target_project_path, skill_name)
             self.ensure_managed_gitignore_entries(target_project_path)
             self.logger.info(f"Successfully installed '{skill_name}'.")
 
@@ -1522,8 +1350,8 @@ class SkillInstaller:
         self.logger.info(f"Running post-install hook: {os.path.basename(hook_path)}...")
         try:
             hook_env = os.environ.copy()
-            hook_env["GEMINI_SKILLS_PUBLISHED_DIR"] = self.published_dir
-            hook_env["GEMINI_SKILLS_REPO_ROOT"] = os.path.dirname(self.published_dir)
+            hook_env["CLAUDE_SKILLS_PUBLISHED_DIR"] = self.published_dir
+            hook_env["CLAUDE_SKILLS_REPO_ROOT"] = os.path.dirname(self.published_dir)
             # Pass the target project path as an argument to the hook
             subprocess.run(
                 [sys.executable, os.path.abspath(hook_path), os.path.abspath(target_project_path)],
@@ -1645,50 +1473,13 @@ def _manual_switch_response(
     return {"answers": {"0": []}, "action": action}
 
 
-def prompt_for_claude_support(
-    ask_user_fn: typing.Callable[[typing.Dict[str, typing.Any]], AskUserResponse],
-    skill_names: typing.Sequence[str],
-) -> typing.Set[str]:
-    """Ask whether selected skills should also receive Claude reference skills."""
-    referenceable = sorted(set(skill_names))
-    if not referenceable:
-        return set()
-
-    response = ask_user_fn({
-        "questions": [{
-            "header": "Claude Support",
-            "question": (
-                "Install generated Claude reference skills in .claude/skills for the selected skills?"
-            ),
-            "type": "choice",
-            "multiSelect": False,
-            "options": [
-                {
-                    "label": "yes",
-                    "description": "Add lightweight Claude reference skills that point at the installed skills.",
-                },
-                {
-                    "label": "no",
-                    "description": "Install skill payloads only (no Claude references).",
-                },
-            ],
-        }]
-    })
-
-    answer = ""
-    if isinstance(response, dict):
-        answer = str(response.get("answers", {}).get("0", "")).strip().lower()
-
-    return set(referenceable) if answer == "yes" else set()
-
-
 def get_cli_ask_user(argv: typing.Optional[typing.Sequence[str]] = None) -> typing.Callable:
     """Choose the best interactive prompt for the current execution context."""
     args = set(argv or sys.argv[1:])
     if "--simple" in args or "--plain" in args:
         return manual_ask_user
 
-    if os.environ.get("GEMINI_SKILLS_SIMPLE_INSTALLER") == "1":
+    if os.environ.get("CLAUDE_SKILLS_SIMPLE_INSTALLER") == "1":
         return manual_ask_user
 
     if not sys.stdin.isatty() or not sys.stdout.isatty():
@@ -1744,18 +1535,14 @@ def print_target_project_summary(
     target_project: str,
     *,
     skill_names: typing.Optional[typing.Sequence[str]] = None,
-    include_claude: bool = False,
 ) -> None:
     """Show the exact project path and managed locations touched by the installer."""
     print(f"Target project: {target_project}")
-    print(f"Agent skills: {os.path.join(target_project, '.agents', 'skills')}")
-    print(f"Gemini-only skills: {os.path.join(target_project, '.gemini', 'skills')}")
-    if include_claude:
-        print(f"Claude references: {os.path.join(target_project, '.claude', 'skills')}")
+    print(f"Claude skills: {os.path.join(target_project, '.claude', 'skills')}")
     if skill_names and "skill-manager" in set(skill_names):
-        print(f"Gemini commands: {os.path.join(target_project, '.gemini', 'commands', 'skill-manager')}")
-        print(f"Gemini settings: {os.path.join(target_project, '.gemini', 'settings.json')}")
-        print(f"Managed manifest: {os.path.join(target_project, '.gemini', 'skill-manager-manifest.json')}")
+        print(f"Claude commands: {os.path.join(target_project, '.claude', 'commands', 'skill-manager')}")
+        print(f"Claude settings: {os.path.join(target_project, '.claude', 'settings.json')}")
+        print(f"Managed manifest: {os.path.join(target_project, '.claude', 'skill-manager-manifest.json')}")
         print(f"Gitignore: {os.path.join(target_project, '.gitignore')}")
 
 
@@ -1763,7 +1550,7 @@ def main() -> None:
     """Run the CLI entry point for manual or agent execution."""
     logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
     logger = logging.getLogger("skill_installer")
-    logger.info("=== Gemini Skill Installer ===")
+    logger.info("=== Claude Skill Installer ===")
     
     # In this repo, 'published' is relative to the script
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -1780,7 +1567,7 @@ def main() -> None:
     logger.info("Target project directory: %s", target_project)
     if os.path.abspath(target_project) == os.path.abspath(script_dir):
         logger.warning(
-            "Installer target matches the gemini-skills repository root. "
+            "Installer target matches the skills repository root. "
             "Run the command from the destination repo root or pass --target-project <path> "
             "to install into a different project."
         )
@@ -1810,17 +1597,12 @@ def main() -> None:
     # Gather installation status for the selector
     updates = installer.check_for_updates(target_project)
     installed_skills = {}
-    for skills_dir in [
-        os.path.join(target_project, ".agents", "skills"),
-        os.path.join(target_project, ".gemini", "skills"),
-    ]:
-        if os.path.exists(skills_dir):
-            for skill_name in os.listdir(skills_dir):
-                if skill_name in installed_skills:
-                    continue
-                if os.path.isdir(os.path.join(skills_dir, skill_name)):
-                    meta = installer.get_installed_skill_metadata(skill_name, target_project)
-                    installed_skills[skill_name] = meta.get("version", "unknown") if meta else "unknown"
+    skills_dir = os.path.join(target_project, ".claude", "skills")
+    if os.path.exists(skills_dir):
+        for skill_name in os.listdir(skills_dir):
+            if os.path.isdir(os.path.join(skills_dir, skill_name)):
+                meta = installer.get_installed_skill_metadata(skill_name, target_project)
+                installed_skills[skill_name] = meta.get("version", "unknown") if meta else "unknown"
 
     selector = SkillSelector(ask_user_fn)
     selected, action = selector.select_skills_with_action(
@@ -1842,16 +1624,9 @@ def main() -> None:
         manage_module.main()
         return
     selected_skill_names = [os.path.basename(skill_path) for skill_path in selected]
-    claude_candidates = [
-        skill_name for skill_name in selected_skill_names if installer.supports_claude_reference(skill_name)
-    ]
-    install_claude_for = prompt_for_claude_support(ask_user_fn, claude_candidates)
 
     for skill_path in selected:
-        if installer.install_skill(skill_path, target_project):
-            skill_name = os.path.basename(skill_path)
-            if skill_name in install_claude_for:
-                installer.install_claude_reference(skill_name, target_project)
+        installer.install_skill(skill_path, target_project)
 
     changed = installer.ensure_managed_gitignore_entries(target_project)
     if not selected:
@@ -1861,7 +1636,6 @@ def main() -> None:
         print_target_project_summary(
             target_project,
             skill_names=selected_skill_names,
-            include_claude=bool(install_claude_for),
         )
     logger.info(
         "Managed .gitignore entries were %s.",

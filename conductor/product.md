@@ -1,10 +1,10 @@
-# Product Guide: Gemini CLI Skills
+# Product Guide: Claude Code Skills
 
 ## Initial Concept
-A collection of custom skills for the Gemini CLI to automate and enhance software engineering workflows.
+A collection of custom skills for Claude Code to automate and enhance software engineering workflows.
 
 ## Overview
-A collection of custom skills for the Gemini CLI designed to automate and enhance software engineering workflows by enforcing architectural rigor, improving workflow efficiency, and providing verified, automated compliance auditing.
+A collection of custom skills for Claude Code designed to automate and enhance software engineering workflows by enforcing architectural rigor, improving workflow efficiency, and providing verified, automated compliance auditing.
 
 ## Target Audience
 - **Software Engineers**: Developers looking to automate repetitive engineering tasks.
@@ -21,4 +21,4 @@ A collection of custom skills for the Gemini CLI designed to automate and enhanc
 - **Specialized Compliance Audits**: Dedicated audits for diverse environments, including C#/.NET architectural standards and script-based automation projects.
 - **Deep Conductor Integration**: Verified to work natively with the Conductor workflow, automatically performing specialized audits as part of the phase completion protocol.
 - **Workflow Optimization & Skill Auditing**: A dedicated post-execution review skill that analyzes execution paths, identifies missed skill opportunities, and interactively proposes workflow refinements—including flexible skill creation (Global, Local, or Custom paths)—to improve overall efficiency.
-- **Skill Provider & Distribution**: A robust mechanism for managing and distributing official Gemini skills via a categorized 'published' directory, an interactive CLI installer, SemVer version tracking with update notifications, and automated project integration via physical file copying and post-installation hooks.
+- **Skill Provider & Distribution**: A robust mechanism for managing and distributing official Claude Code skills via a categorized 'published' directory, an interactive CLI installer, SemVer version tracking with update notifications, and automated project integration via physical file copying and post-installation hooks.
